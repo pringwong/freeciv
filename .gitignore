@@ -36,3 +36,4 @@
 /core
 /libtool
 /freeciv-CI.log
+build/
