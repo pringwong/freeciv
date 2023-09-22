@@ -884,8 +884,6 @@ static void update_unit_activity(struct unit *punit)
   struct tile *ptile = unit_tile(punit);
   const struct unit_type *act_utype = unit_type_get(punit);
 
-  log_normal("DEBUG update_unit_activity")
-
   switch (activity) {
   case ACTIVITY_IDLE:
   case ACTIVITY_EXPLORE:
@@ -922,7 +920,7 @@ static void update_unit_activity(struct unit *punit)
   };
 
   unit_restore_movepoints(pplayer, punit);
-
+  
   switch (activity) {
   case ACTIVITY_EXPLORE:
     /* Not accumulating activity - will be handled more like movement
@@ -1055,7 +1053,9 @@ static void update_unit_activity(struct unit *punit)
 
       /* The function below could change the terrain. Therefore, we have to
        * check the terrain (which will also do a sanity check for the tile). */
-      tile_apply_activity(ptile, activity, punit->activity_target);
+      if (tile_apply_activity(ptile, activity, punit->activity_target)){
+        script_server_signal_emit("action_finished_worker_build");
+      }
       check_terrain_change(ptile, old);
       unit_activity_done = TRUE;
     }
@@ -1114,6 +1114,7 @@ static void update_unit_activity(struct unit *punit)
                                   tile_link(unit_tile(punit)));
     }
   }
+  log_normal("DEBUG ENDDING: update_unit_activities")
 }
 
 /**********************************************************************//**

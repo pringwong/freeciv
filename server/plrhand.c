@@ -1085,8 +1085,6 @@ void player_info_thaw(void)
 **************************************************************************/
 void send_player_all_c(struct player *src, struct conn_list *dest)
 {
-  log_normal("DEBUG send_player_all_c")
-
   send_player_info_c(src, dest);
   send_player_diplstate_c(src, dest);
 }

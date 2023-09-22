@@ -680,26 +680,28 @@ bool tile_apply_activity(struct tile *ptile, Activity_type_id act,
 {
   /* FIXME: for irrigate, mine, and transform we always return TRUE
    * even if the activity fails. */
+  bool activity = FALSE;
+
   switch (act) {
   case ACTIVITY_MINE:
     tile_mine(ptile, tgt);
-    return TRUE;
+    activity = TRUE;
 
   case ACTIVITY_IRRIGATE: 
     tile_irrigate(ptile, tgt);
-    return TRUE;
+    activity = TRUE;
 
   case ACTIVITY_TRANSFORM:
     tile_transform(ptile);
-    return TRUE;
+    activity = TRUE;
 
   case ACTIVITY_CULTIVATE:
     tile_cultivate(ptile);
-    return TRUE;
+    activity = TRUE;
 
   case ACTIVITY_PLANT:
     tile_plant(ptile);
-    return TRUE;
+    activity = TRUE;
 
   case ACTIVITY_PILLAGE:
   case ACTIVITY_BASE:
@@ -708,7 +710,7 @@ bool tile_apply_activity(struct tile *ptile, Activity_type_id act,
   case ACTIVITY_POLLUTION:
   case ACTIVITY_FALLOUT:
     /* Do nothing  - not implemented */
-    return FALSE;
+    activity = FALSE;
 
   case ACTIVITY_IDLE:
   case ACTIVITY_FORTIFIED:
@@ -720,12 +722,11 @@ bool tile_apply_activity(struct tile *ptile, Activity_type_id act,
   case ACTIVITY_LAST:
     /* Do nothing - these activities have no effect
        on terrain type or tile extras */
-    return FALSE;
+    activity = FALSE;
   }
 
-  fc_assert(FALSE);
-
-  return FALSE;
+  fc_assert(activity);
+  return activity;
 }
 
 /************************************************************************//**

@@ -1272,6 +1272,7 @@ static void begin_phase(bool is_new_phase)
             fc_assert(ptile->infra_turns > 0);
 
             ptile->infra_turns--;
+            log_normal("======= BEIGIN PHASE =======")
             if (ptile->infra_turns <= 0) {
               create_extra(ptile, ptile->placing, owner);
               ptile->placing = NULL;
@@ -2843,7 +2844,6 @@ static void announce_player(struct player *pplayer)
 **************************************************************************/
 static void srv_running(void)
 {
-  log_normal("srv_running")
   bool is_new_turn = game.info.is_new_game;
   bool skip_mapimg = !game.info.is_new_game; /* Do not overwrite start-of-turn image */
   bool need_send_pending_events = !game.info.is_new_game;
@@ -2853,10 +2853,8 @@ static void srv_running(void)
   game.info.is_new_game = FALSE;
 
   log_verbose("srv_running() mostly redundant send_server_settings()");
-  log_normal("srv_running() mostly redundant send_server_settings")
 
   send_server_settings(NULL);
-  log_normal("after send_server_settings")
 
   timer_start(eot_timer);
 
@@ -2867,7 +2865,6 @@ static void srv_running(void)
                                          ? NULL : "save interval");
     timer_start(game.server.save_timer);
   }
-  log_normal("after timer_start")
 
   /* 
    * This will freeze the reports and agents at the client.
@@ -2878,7 +2875,6 @@ static void srv_running(void)
   lsend_packet_freeze_client(game.est_connections);
 
   fc_assert(S_S_RUNNING == server_state());
-  log_normal("WHILE S_S_RUNNING")
   while (S_S_RUNNING == server_state()) {
     /* The beginning of a turn.
      *

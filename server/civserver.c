@@ -67,8 +67,6 @@ int main(int argc, char *argv[])
   bool showvers = FALSE;
   char *option = NULL;
 
-  log_normal("main")
-
   /* Load Windows post-crash debugger */
 #ifdef FREECIV_MSWINDOWS
 # ifndef FREECIV_NDEBUG
