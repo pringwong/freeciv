@@ -135,6 +135,7 @@ void climate_change(bool warming, int effect)
   int k = map_num_tiles();
   bool used[k];
   memset(used, 0, sizeof(used));
+  log_normal("DEBUG climate_change")
 
   log_verbose("Climate change: %s (%d)",
               warming ? "Global warming" : "Nuclear winter", effect);
@@ -238,6 +239,8 @@ void climate_change(bool warming, int effect)
 **************************************************************************/
 bool upgrade_city_extras(struct city *pcity, struct extra_type **gained)
 {
+  log_normal("DEBUG upgrade_city_extras")
+
   struct tile *ptile = pcity->tile;
   struct player *pplayer = city_owner(pcity);
   bool upgradet = FALSE;
@@ -1774,6 +1777,7 @@ static void ocean_to_land_fix_rivers(struct tile *ptile)
 **************************************************************************/
 static void check_units_single_tile(struct tile *ptile)
 {
+  log_normal("DEBUG check_units_single_tile")
   unit_list_iterate_safe(ptile->units, punit) {
     bool unit_alive = TRUE;
 
@@ -1829,6 +1833,7 @@ static void check_units_single_tile(struct tile *ptile)
 **************************************************************************/
 void bounce_units_on_terrain_change(struct tile *ptile)
 {
+  log_normal("bounce_units_on_terrain_change")
   /* Check this tile for direct effect on its units */
   check_units_single_tile(ptile);
   /* We have to check adjacent tiles too, in case units in cities are now
@@ -1863,6 +1868,7 @@ bool need_to_reassign_continents(const struct terrain *oldter,
 **************************************************************************/
 void terrain_changed(struct tile *ptile)
 {
+  log_normal("DEBUG: terrain_changed")
   struct city *pcity = tile_city(ptile);
 
   if (pcity != NULL) {
@@ -2439,6 +2445,7 @@ void vision_clear_sight(struct vision *vision)
 void create_extra(struct tile *ptile, struct extra_type *pextra,
                   struct player *pplayer)
 {
+  log_normal("DEBUG create_extra")
   bool extras_removed = FALSE;
 
   extra_type_iterate(old_extra) {

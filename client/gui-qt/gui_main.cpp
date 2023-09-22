@@ -98,6 +98,8 @@ int main(int argc, char **argv)
 {
   setup_gui_funcs();
 
+  log_normal("Entry point for whole freeciv client program")
+
 #ifdef FC_QT_SVGFLAG
   svg_flag_enable();
 #endif // FC_QT_SVGFLAG

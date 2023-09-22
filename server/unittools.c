@@ -884,6 +884,8 @@ static void update_unit_activity(struct unit *punit)
   struct tile *ptile = unit_tile(punit);
   const struct unit_type *act_utype = unit_type_get(punit);
 
+  log_normal("DEBUG update_unit_activity")
+
   switch (activity) {
   case ACTIVITY_IDLE:
   case ACTIVITY_EXPLORE:

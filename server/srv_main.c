@@ -229,6 +229,7 @@ void srv_init(void)
   /* fc_interface_init_server() includes low level support like
    * guaranteeing that fc_vsnprintf() will work after it,
    * so this need to be early. */
+  log_normal("srv_init")
   fc_interface_init_server();
 
   i_am_server(); /* Tell to libfreeciv that we are server */
@@ -1110,6 +1111,8 @@ static void begin_turn(bool is_new_turn)
 {
   log_debug("Begin turn");
 
+  log_normal("---------------- BEGIN TURN --------------------")
+
   event_cache_remove_old();
 
   /* Reset this each turn. */
@@ -1214,6 +1217,8 @@ static void begin_turn(bool is_new_turn)
 static void begin_phase(bool is_new_phase)
 {
   log_debug("Begin phase");
+
+  log_normal("--------------------- BEGIN PHASE -------------------")
 
   conn_list_do_buffer(game.est_connections);
 
@@ -1557,6 +1562,7 @@ static void end_phase(void)
 static void end_turn(void)
 {
   log_debug("Endturn");
+  log_normal("--------------------- End turn --------------------------------");
 
   /* Hack: because observer players never get an end-phase packet we send
    * one here. */
@@ -2038,6 +2044,7 @@ static bool is_client_edit_packet(int type)
 **************************************************************************/
 bool server_packet_input(struct connection *pconn, void *packet, int type)
 {
+  log_normal("server_packet_input")
   struct player *pplayer;
 
   /* a NULL packet can be returned from receive_packet_goto_route() */
@@ -2202,6 +2209,7 @@ bool server_packet_input(struct connection *pconn, void *packet, int type)
 void check_for_full_turn_done(void)
 {
   bool connected = FALSE;
+  log_normal("DEBUG check_for_full_turn_done")
 
   if (S_S_RUNNING != server_state()) {
     /* Not in a running state, no turn done. */
@@ -2835,6 +2843,7 @@ static void announce_player(struct player *pplayer)
 **************************************************************************/
 static void srv_running(void)
 {
+  log_normal("srv_running")
   bool is_new_turn = game.info.is_new_game;
   bool skip_mapimg = !game.info.is_new_game; /* Do not overwrite start-of-turn image */
   bool need_send_pending_events = !game.info.is_new_game;
@@ -2844,7 +2853,10 @@ static void srv_running(void)
   game.info.is_new_game = FALSE;
 
   log_verbose("srv_running() mostly redundant send_server_settings()");
+  log_normal("srv_running() mostly redundant send_server_settings")
+
   send_server_settings(NULL);
+  log_normal("after send_server_settings")
 
   timer_start(eot_timer);
 
@@ -2855,6 +2867,7 @@ static void srv_running(void)
                                          ? NULL : "save interval");
     timer_start(game.server.save_timer);
   }
+  log_normal("after timer_start")
 
   /* 
    * This will freeze the reports and agents at the client.
@@ -2865,6 +2878,7 @@ static void srv_running(void)
   lsend_packet_freeze_client(game.est_connections);
 
   fc_assert(S_S_RUNNING == server_state());
+  log_normal("WHILE S_S_RUNNING")
   while (S_S_RUNNING == server_state()) {
     /* The beginning of a turn.
      *
@@ -3113,6 +3127,8 @@ static void srv_prepare(void)
 **************************************************************************/
 static void srv_scores(void)
 {
+  log_normal("srv_scores")
+
   /* Recalculate the scores in case of a spaceship victory */
   players_iterate(pplayer) {
     calc_civ_score(pplayer);
@@ -3171,6 +3187,7 @@ static void final_ruleset_adjustments(void)
 **************************************************************************/
 static void srv_ready(void)
 {
+  log_normal("srv_ready")
   (void) send_server_info_to_metaserver(META_INFO);
 
   if (game.server.auto_ai_toggle) {
@@ -3502,6 +3519,7 @@ void server_game_free(void)
 void fc__noreturn srv_main(void)
 {
   srv_prepare();
+  log_normal("srv_main")
 
   /* Run server loop */
   do {
@@ -3533,6 +3551,7 @@ void fc__noreturn srv_main(void)
       srv_running();
       srv_scores();
     }
+    log_normal("----------------------- After running")
 
     /* Remain in S_S_OVER until players log out */
     while (conn_list_size(game.est_connections) > 0) {
