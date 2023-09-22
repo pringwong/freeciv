@@ -208,7 +208,6 @@ void handle_unit_type_upgrade(struct player *pplayer, Unit_type_id uti)
   unit_list_iterate(pplayer->units, punit) {
     if (unit_type_get(punit) == from_unittype) {
       struct city *pcity = tile_city(unit_tile(punit));
-      log_normal("ROUTE TO conn_list_do_buffer")
       if (is_action_enabled_unit_on_city(paction->id, punit, pcity)
           && unit_perform_action(pplayer, punit->id, pcity->id, 0, "",
                                  paction->id, ACT_REQ_SS_AGENT)) {
@@ -3144,7 +3143,6 @@ void handle_unit_action_query(struct connection *pc,
                               const action_id action_type,
                               int request_kind)
 {
-  log_normal("handle_unit_action_query")
   struct player *pplayer = pc->playing;
   struct unit *pactor = player_unit_by_number(pplayer, actor_id);
   struct action *paction = action_by_number(action_type);
@@ -3259,7 +3257,6 @@ void handle_unit_do_action(struct player *pplayer,
                            const char *name,
                            const action_id action_type)
 {
-  log_normal("handle_unit_do_action")
   (void) unit_perform_action(pplayer, actor_id, target_id, sub_tgt_id, name,
                              action_type, ACT_REQ_PLAYER);
 }
@@ -3276,8 +3273,6 @@ void unit_do_action(struct player *pplayer,
                     const char *name,
                     const action_id action_type)
 {
-  log_normal("ROUTE TO unit_do_action")
-
   unit_perform_action(pplayer, actor_id, target_id,
                       sub_tgt_id, name, action_type, ACT_REQ_PLAYER);
 }
@@ -5510,7 +5505,6 @@ bool unit_move_handling(struct unit *punit, struct tile *pdesttile,
 {
   struct player *pplayer = unit_owner(punit);
   struct unit *ptrans;
-  log_normal("ROUTE TO unit_move_handling")
 
   /*** Phase 1: Attempted action interpretation checks ***/
 
@@ -6192,7 +6186,6 @@ void handle_unit_sscs_set(struct player *pplayer,
                           int value)
 {
   struct unit *punit = player_unit_by_number(pplayer, unit_id);
-  log_normal("handle_unit_sscs_set")
 
   if (NULL == punit) {
     /* Being asked to unqueue a "spent" unit because the client haven't
@@ -6298,7 +6291,6 @@ void handle_unit_server_side_agent_set(struct player *pplayer,
                                        enum server_side_agent agent)
 {
   struct unit *punit = player_unit_by_number(pplayer, unit_id);
-  log_normal("CALL handle_unit_server_side_agent_set: unit_id=%d, agent=%d", unit_id, agent)
 
   if (NULL == punit) {
     /* Probably died or bribed. */
@@ -6444,7 +6436,6 @@ static bool do_action_activity(struct unit *punit,
 bool unit_activity_handling(struct unit *punit,
                             enum unit_activity new_activity)
 {
-  log_normal("unit_activity_handling")
   /* Must specify target for ACTIVITY_BASE */
   fc_assert_ret_val(new_activity != ACTIVITY_BASE
                     && new_activity != ACTIVITY_GEN_ROAD, FALSE);
@@ -6471,8 +6462,6 @@ bool unit_activity_handling(struct unit *punit,
 static bool unit_activity_internal(struct unit *punit,
                                    enum unit_activity new_activity)
 {
-  log_normal("unit_activity_internal")
-
   if (!can_unit_do_activity(punit, new_activity)) {
     return FALSE;
   } else {
@@ -6497,8 +6486,6 @@ static bool do_action_activity_targeted(struct unit *punit,
                                         const struct action *paction,
                                         struct extra_type **new_target)
 {
-  log_normal("do_action_activity_targeted")
-
   enum unit_activity new_activity = action_get_activity(paction);
 
   fc_assert_ret_val(new_activity != ACTIVITY_LAST, FALSE);
@@ -6515,7 +6502,6 @@ bool unit_activity_handling_targeted(struct unit *punit,
                                      enum unit_activity new_activity,
                                      struct extra_type **new_target)
 {
-  log_normal("unit_activity_handling_targeted")
   if (!activity_requires_target(new_activity)) {
     unit_activity_handling(punit, new_activity);
   } else if (can_unit_do_activity_targeted(punit, new_activity, *new_target)) {
@@ -6541,7 +6527,6 @@ static bool unit_activity_targeted_internal(struct unit *punit,
                                             enum unit_activity new_activity,
                                             struct extra_type **new_target)
 {
-  log_normal("unit_activity_targeted_internal")
   if (!can_unit_do_activity_targeted(punit, new_activity, *new_target)) {
     return FALSE;
   } else {
@@ -6690,7 +6675,6 @@ void handle_unit_orders(struct player *pplayer,
 void handle_worker_task(struct player *pplayer,
                         const struct packet_worker_task *packet)
 {
-  log_normal("handle_worker_task")
   struct city *pcity = game_city_by_number(packet->city_id);
   struct worker_task *ptask = NULL;
   struct tile *ptile = index_to_tile(&(wld.map), packet->tile_id);
