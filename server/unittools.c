@@ -1114,7 +1114,6 @@ static void update_unit_activity(struct unit *punit)
                                   tile_link(unit_tile(punit)));
     }
   }
-  log_normal("DEBUG ENDDING: update_unit_activities")
 }
 
 /**********************************************************************//**

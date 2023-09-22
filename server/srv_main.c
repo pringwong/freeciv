@@ -229,7 +229,6 @@ void srv_init(void)
   /* fc_interface_init_server() includes low level support like
    * guaranteeing that fc_vsnprintf() will work after it,
    * so this need to be early. */
-  log_normal("srv_init")
   fc_interface_init_server();
 
   i_am_server(); /* Tell to libfreeciv that we are server */
@@ -1272,7 +1271,6 @@ static void begin_phase(bool is_new_phase)
             fc_assert(ptile->infra_turns > 0);
 
             ptile->infra_turns--;
-            log_normal("======= BEIGIN PHASE =======")
             if (ptile->infra_turns <= 0) {
               create_extra(ptile, ptile->placing, owner);
               ptile->placing = NULL;
@@ -2045,7 +2043,6 @@ static bool is_client_edit_packet(int type)
 **************************************************************************/
 bool server_packet_input(struct connection *pconn, void *packet, int type)
 {
-  log_normal("server_packet_input")
   struct player *pplayer;
 
   /* a NULL packet can be returned from receive_packet_goto_route() */
@@ -2210,7 +2207,6 @@ bool server_packet_input(struct connection *pconn, void *packet, int type)
 void check_for_full_turn_done(void)
 {
   bool connected = FALSE;
-  log_normal("DEBUG check_for_full_turn_done")
 
   if (S_S_RUNNING != server_state()) {
     /* Not in a running state, no turn done. */
@@ -3123,8 +3119,6 @@ static void srv_prepare(void)
 **************************************************************************/
 static void srv_scores(void)
 {
-  log_normal("srv_scores")
-
   /* Recalculate the scores in case of a spaceship victory */
   players_iterate(pplayer) {
     calc_civ_score(pplayer);
@@ -3183,7 +3177,6 @@ static void final_ruleset_adjustments(void)
 **************************************************************************/
 static void srv_ready(void)
 {
-  log_normal("srv_ready")
   (void) send_server_info_to_metaserver(META_INFO);
 
   if (game.server.auto_ai_toggle) {
@@ -3515,7 +3508,6 @@ void server_game_free(void)
 void fc__noreturn srv_main(void)
 {
   srv_prepare();
-  log_normal("srv_main")
 
   /* Run server loop */
   do {
@@ -3547,7 +3539,6 @@ void fc__noreturn srv_main(void)
       srv_running();
       srv_scores();
     }
-    log_normal("----------------------- After running")
 
     /* Remain in S_S_OVER until players log out */
     while (conn_list_size(game.est_connections) > 0) {
