@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "system_error": "c",
+        "ostream": "c",
+        "featured_text.h": "c",
+        "stdarg.h": "c",
+        "random": "c",
+        "limits": "c"
+    }
+}
