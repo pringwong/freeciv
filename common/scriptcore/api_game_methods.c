@@ -236,6 +236,16 @@ Tile *api_methods_city_tile_get(lua_State *L, City *pcity)
   return pcity->tile;
 }
 
+float api_methods_city_cri_get(lua_State *L, City *pcity)
+{
+  return pcity->city_resource_indic;
+}
+
+float api_methods_city_tri_get(lua_State *L, City *pcity)
+{
+  return pcity->total_tiles_resource_indic;
+}
+
 /**********************************************************************//**
   How much city inspires partisans for a player.
 **************************************************************************/

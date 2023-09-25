@@ -6509,11 +6509,15 @@ bool unit_activity_handling_targeted(struct unit *punit,
     unit_activity_targeted_internal(punit, new_activity, new_target);
   }
 
-#define ACTION_PERFORM_WORKER_BUILD()                                  \
-  script_server_signal_emit("action_started_worker_build");             \
-  return TRUE;
+  struct city *pcity = game_city_by_number(punit->homecity);
 
-  ACTION_PERFORM_WORKER_BUILD()
+  if (pcity != NULL){
+    log_normal("start new activity: %d", new_activity)
+    city_refresh_from_main_map(pcity, NULL);
+    city_tile_weight_score_calculation(pcity);
+    script_server_signal_emit("action_started_worker_build", pcity);
+  }
+
   return TRUE;
 }
 

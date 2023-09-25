@@ -735,6 +735,19 @@ static void do_reveal_effects(void)
 }
 
 /**********************************************************************//**
+  Calculate metrics for game initialized.
+**************************************************************************/
+static void initialize_metrics(void)
+{
+  phase_players_iterate(pplayer) {
+    city_list_iterate(pplayer->cities, pcity) {
+      city_refresh_from_main_map(pcity, NULL);
+      city_tile_weight_score_calculation(pcity);
+    } city_list_iterate_end;
+  } phase_players_iterate_end;
+}
+
+/**********************************************************************//**
   Give contact to players with the EFT_HAVE_CONTACTS effect (traditionally
   from Marco Polo's Embassy).
 **************************************************************************/
@@ -1394,7 +1407,7 @@ static void begin_phase(bool is_new_phase)
 **************************************************************************/
 static void end_phase(void)
 {
-  log_debug("Endphase");
+  log_normal("----------------------- END_PHASE ----------------------------");
 
   /*
    * This empties the client Messages window; put this before
@@ -1511,7 +1524,6 @@ static void end_phase(void)
     pplayer->server.bulbs_last_turn = 0;
 
     update_city_activities(pplayer);
-
     update_national_activities(pplayer, old_gold);
 
     city_refresh_queue_processing();
@@ -2871,6 +2883,7 @@ static void srv_running(void)
   lsend_packet_freeze_client(game.est_connections);
 
   fc_assert(S_S_RUNNING == server_state());
+
   while (S_S_RUNNING == server_state()) {
     /* The beginning of a turn.
      *
@@ -3531,6 +3544,14 @@ void fc__noreturn srv_main(void)
       /* When force_end_of_sniff is used in pregame, it means that the server
        * is ready to start (usually set within start_game()). */
     }
+
+    /*
+    * calculate metrics for game started
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_started", pplayer);
+    } phase_players_iterate_end;
 
     if (S_S_RUNNING > server_state()) {
       /* If restarting for lack of players, the state is S_S_OVER,
