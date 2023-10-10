@@ -3566,6 +3566,14 @@ void fc__noreturn srv_main(void)
       server_sniff_all_input();
     }
 
+    /*
+    * calculate metrics for game ended
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_ended", pplayer);
+    } phase_players_iterate_end;
+
     /* Close it even between games. */
     save_system_close();
 
