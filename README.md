@@ -15,3 +15,14 @@ Freeciv website: [Freeciv.org](https://www.freeciv.org/)
 Submit patches: [OSDN](https://osdn.net/projects/freeciv/ticket/)
 
 Community forum: [forum.freeciv.org](https://forum.freeciv.org/)
+
+Updates
+=====
+| type        | module                            | content                                                       |
+| ---   | --- | -- |
+| luascript   | server/scripting/script_server.c  | add luascript_signal: `action_started_worker_build`            |
+|             | server/scripting/script_server.c  | add luascript_signal: `action_finished_worker_build`            |
+|             | server/scripting/script_server.c  | add luascript_signal: `game_started`            |
+|             | server/scripting/script_server.c  | add luascript_signal: `game_ended`            |
+| score       | common/city.c                     | add weighted score calculation function: `city_tile_weight_score_calculation`            |
+|             | common/city.h                     | add float `total_tiles_resource_indic` and `city_resource_indic` for struct `city`     |
