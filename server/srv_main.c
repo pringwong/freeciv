@@ -513,7 +513,7 @@ bool check_for_game_over(void)
         log_normal(_("Allied victory to %s."), astr_str(&str));
         astr_free(&str);
         player_list_destroy(winner_list);
-        return TRUE;
+        return TRUE && game.server.end_victory;
       }
     }
 
@@ -539,7 +539,7 @@ bool check_for_game_over(void)
                     _("Game ended in conquest victory for %s."), player_name(victor));
         log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
         victor->is_winner = TRUE;
-        return TRUE;
+        return TRUE && game.server.end_victory;
       }
     }
   }
@@ -573,7 +573,7 @@ bool check_for_game_over(void)
                  player_name(best));
       best->is_winner = TRUE;
 
-      return TRUE;
+      return TRUE && game.server.end_victory;
     }
   }
 
@@ -650,7 +650,7 @@ bool check_for_game_over(void)
                     _("Game ended in victory for %s."), player_name(pplayer));
         pplayer->is_winner = TRUE;
       }
-      return TRUE;
+      return TRUE && game.server.end_victory;
     }
 
     /* Print notice(s) of imminent arrival. These are not infallible

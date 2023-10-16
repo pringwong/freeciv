@@ -523,8 +523,6 @@ static void incoming_client_packets(struct connection *pconn)
 *****************************************************************************/
 enum server_events server_sniff_all_input(void)
 {
-  log_normal("server_sniff_all_input")
-
   int i, s;
   int max_desc;
   bool excepting;

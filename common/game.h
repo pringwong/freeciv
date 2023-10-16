@@ -220,6 +220,7 @@ struct civ_game {
       char save_name[MAX_LEN_NAME];
       char orig_game_version[MAX_LEN_NAME];
       bool scorelog;
+      bool end_victory;
       enum scorelog_level scoreloglevel;
       char scorefile[MAX_LEN_PATH];
       int scoreturn;    /* Next make_history_report() */
@@ -589,6 +590,8 @@ static inline bool is_ruleset_compat_mode(void)
 #define GAME_DEFAULT_REVEALMAP       REVEAL_MAP_NONE
 
 #define GAME_DEFAULT_SCORELOG        FALSE
+#define GAME_DEFAULT_END_VICTORY        FALSE
+
 #define GAME_DEFAULT_SCORELOGLEVEL   SL_ALL
 #define GAME_DEFAULT_SCOREFILE       "freeciv-score.log"
 
