@@ -368,6 +368,7 @@ static void game_defaults(bool keep_ruleset_value)
     game.server.dispersion        = GAME_DEFAULT_DISPERSION;
     game.server.endspaceship      = GAME_DEFAULT_END_SPACESHIP;
     game.server.end_turn          = GAME_DEFAULT_END_TURN;
+
     game.server.event_cache.chat  = GAME_DEFAULT_EVENT_CACHE_CHAT;
     game.server.event_cache.info  = GAME_DEFAULT_EVENT_CACHE_INFO;
     game.server.event_cache.max_size = GAME_DEFAULT_EVENT_CACHE_MAX_SIZE;

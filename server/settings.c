@@ -376,6 +376,7 @@ static const struct sset_val_name *victory_conditions_name(int condition_bit)
   NAME_CASE(VC_SPACERACE, "SPACERACE", N_("Spacerace"));
   NAME_CASE(VC_ALLIED, "ALLIED", N_("Allied victory"));
   NAME_CASE(VC_CULTURE, "CULTURE", N_("Culture victory"));
+  NAME_CASE(VC_CONQUEST, "CULTURE", N_("Conquest victory"));
   };
 
   return NULL;

@@ -518,7 +518,7 @@ bool check_for_game_over(void)
     }
 
     /* Check for single player victory. */
-    if (1 == candidates && NULL != victor) {
+    if (1 == candidates && NULL != victor && victory_enabled(VC_CONQUEST)) {
       bool found = FALSE; /* We need at least one enemy defeated. */
 
       players_iterate(pplayer) {
