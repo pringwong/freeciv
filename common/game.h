@@ -590,7 +590,6 @@ static inline bool is_ruleset_compat_mode(void)
 #define GAME_DEFAULT_REVEALMAP       REVEAL_MAP_NONE
 
 #define GAME_DEFAULT_SCORELOG        FALSE
-#define GAME_DEFAULT_END_VICTORY        FALSE
 
 #define GAME_DEFAULT_SCORELOGLEVEL   SL_ALL
 #define GAME_DEFAULT_SCOREFILE       "freeciv-score.log"
@@ -600,7 +599,7 @@ static inline bool is_ruleset_compat_mode(void)
  * first report is already generated at (SCORETURN - 1) */
 #define GAME_DEFAULT_SCORETURN       20
 
-#define GAME_DEFAULT_VICTORY_CONDITIONS (1 << VC_SPACERACE | 1 << VC_ALLIED | 1 << VC_CONQUEST)
+#define GAME_DEFAULT_VICTORY_CONDITIONS (1 << VC_SPACERACE | 1 << VC_ALLIED )
 #define GAME_DEFAULT_END_SPACESHIP   TRUE
 
 #define GAME_DEFAULT_SPACESHIP_TRAVEL_PCT 100
@@ -610,6 +609,7 @@ static inline bool is_ruleset_compat_mode(void)
 #define GAME_DEFAULT_TURNBLOCK       TRUE
 
 #define GAME_DEFAULT_AUTO_AI_TOGGLE  FALSE
+#define GAME_DEFAULT_END_VICTORY  TRUE
 
 #define GAME_DEFAULT_TIMEOUT         0
 #define GAME_DEFAULT_FIRST_TIMEOUT   -1

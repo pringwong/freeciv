@@ -1238,8 +1238,7 @@ enum victory_condition_type
 {
   VC_SPACERACE = 0,
   VC_ALLIED,
-  VC_CULTURE,
-  VC_CONQUEST = 4
+  VC_CULTURE
 };
 
 enum environment_upset_type

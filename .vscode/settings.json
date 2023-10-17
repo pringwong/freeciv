@@ -32,7 +32,8 @@
     "time.h": "c",
     "tile.h": "c",
     "cm.h": "c",
-    "city.h": "c"
+    "city.h": "c",
+    "victory.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",

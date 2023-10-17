@@ -507,18 +507,27 @@ bool check_for_game_over(void)
           }
           pplayer->is_winner = TRUE;
         } player_list_iterate_end;
+        if (game.server.end_victory) {
+          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                      /* TRANS: There can be several winners listed */
+                      _("Game ended in Allied victory to %s."), astr_str(&str));
+          log_normal(_("Game ended in Allied victory to %s."), astr_str(&str));
+          astr_free(&str);
+          player_list_destroy(winner_list);
+          return TRUE;
+        }
         notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
                     /* TRANS: There can be several winners listed */
-                    _("Allied victory to %s."), astr_str(&str));
-        log_normal(_("Allied victory to %s."), astr_str(&str));
+                    _("Game continue in Allied victory to %s."), astr_str(&str));
+        log_normal(_("Game continue in Allied victory to %s."), astr_str(&str));
         astr_free(&str);
         player_list_destroy(winner_list);
-        return TRUE && game.server.end_victory;
+        return FALSE;
       }
     }
 
     /* Check for single player victory. */
-    if (1 == candidates && NULL != victor && victory_enabled(VC_CONQUEST)) {
+    if (1 == candidates && NULL != victor) {
       bool found = FALSE; /* We need at least one enemy defeated. */
 
       players_iterate(pplayer) {
@@ -535,11 +544,18 @@ bool check_for_game_over(void)
       } players_iterate_end;
 
       if (found) {
+        if (game.server.end_victory) {
+          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                      _("Game ended in conquest victory for %s."), player_name(victor));
+          log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+          victor->is_winner = TRUE;
+          return TRUE;
+        }
         notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in conquest victory for %s."), player_name(victor));
-        log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+                    _("Game continue in conquest victory for %s."), player_name(victor));
+        log_normal(_("Game continue in conquest victory for %s."), player_name(victor));
         victor->is_winner = TRUE;
-        return TRUE && game.server.end_victory;
+        return FALSE;
       }
     }
   }
@@ -566,14 +582,22 @@ bool check_for_game_over(void)
 
     if (best != NULL && best_value >= game.info.culture_vic_points
         && best_value > second_value * (100 + game.info.culture_vic_lead) / 100) {
-      notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                  _("Game ended in cultural domination victory for %s."),
+      if (game.server.end_victory) {
+        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                    _("Game ended in cultural domination victory for %s."),
+                    player_name(best));
+        log_normal(_("Game ended in cultural domination victory for %s."),
                   player_name(best));
-      log_normal(_("Game ended in cultural domination victory for %s."),
-                 player_name(best));
+        best->is_winner = TRUE;
+        return TRUE;
+      }
+      notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                  _("Game continue in cultural domination victory for %s."),
+                  player_name(best));
+      log_normal(_("Game continue in cultural domination victory for %s."),
+                player_name(best));
       best->is_winner = TRUE;
-
-      return TRUE && game.server.end_victory;
+      return FALSE;
     }
   }
 
@@ -646,10 +670,21 @@ bool check_for_game_over(void)
           pteammate->is_winner = TRUE;
         } player_list_iterate_end;
       } else {
-        notify_conn(NULL, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in victory for %s."), player_name(pplayer));
-        pplayer->is_winner = TRUE;
+        if (game.server.end_victory) {
+          notify_conn(NULL, NULL, E_GAME_END, ftc_server,
+                      _("Game ended in victory for %s."), player_name(pplayer));
+          log_normal(_("Game ended in victory for %s."),
+                    player_name(pplayer));
+          pplayer->is_winner = TRUE;
+        } else {
+          notify_conn(NULL, NULL, E_GAME_END, ftc_server,
+                      _("Game continue in victory for %s."), player_name(pplayer));
+          log_normal(_("Game continue in victory for %s."),
+                    player_name(pplayer));
+          pplayer->is_winner = TRUE;
+        }
       }
+
       return TRUE && game.server.end_victory;
     }
 

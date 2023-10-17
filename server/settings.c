@@ -376,7 +376,6 @@ static const struct sset_val_name *victory_conditions_name(int condition_bit)
   NAME_CASE(VC_SPACERACE, "SPACERACE", N_("Spacerace"));
   NAME_CASE(VC_ALLIED, "ALLIED", N_("Allied victory"));
   NAME_CASE(VC_CULTURE, "CULTURE", N_("Culture victory"));
-  NAME_CASE(VC_CONQUEST, "CULTURE", N_("Conquest victory"));
   };
 
   return NULL;
@@ -2912,6 +2911,13 @@ static struct setting settings[] = {
           N_("The game will end at the end of the given turn."),
           NULL, endturn_callback, NULL,
           GAME_MIN_END_TURN, GAME_MAX_END_TURN, GAME_DEFAULT_END_TURN)
+
+  GEN_BOOL("endvictory", game.server.end_victory,
+           SSET_META, SSET_NETWORK, SSET_SITUATIONAL,
+           ALLOW_NONE, ALLOW_BASIC,
+           N_("Whether game will end when victory"),
+           N_("If enabled, the game will end when victory."),
+           NULL, NULL, GAME_DEFAULT_END_VICTORY)
 
   GEN_BITWISE("revealmap", game.server.revealmap, SSET_GAME_INIT,
               SSET_MILITARY, SSET_SITUATIONAL, ALLOW_NONE, ALLOW_BASIC,
