@@ -4419,7 +4419,6 @@ static bool quit_game(struct connection *caller, bool check)
 **************************************************************************/
 bool handle_stdin_input(struct connection *caller, char *str)
 {
-  log_normal("handle_stdin_input")
   return handle_stdin_input_real(caller, str, FALSE, 0);
 }
 
@@ -4434,7 +4433,6 @@ bool handle_stdin_input(struct connection *caller, char *str)
 static bool handle_stdin_input_real(struct connection *caller, char *str,
                                     bool check, int read_recursion)
 {
-  log_normal("handle_stdin_input_real")
   char full_command[MAX_LEN_CONSOLE_LINE];
   char command[MAX_LEN_CONSOLE_LINE], arg[MAX_LEN_CONSOLE_LINE];
   char *cptr_s, *cptr_d;

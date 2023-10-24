@@ -2913,7 +2913,7 @@ static struct setting settings[] = {
           GAME_MIN_END_TURN, GAME_MAX_END_TURN, GAME_DEFAULT_END_TURN)
 
   GEN_BOOL("endvictory", game.server.end_victory,
-           SSET_META, SSET_NETWORK, SSET_SITUATIONAL,
+           SSET_META, SSET_SOCIOLOGY, SSET_VITAL,
            ALLOW_NONE, ALLOW_BASIC,
            N_("Whether game will end when victory"),
            N_("If enabled, the game will end when victory."),

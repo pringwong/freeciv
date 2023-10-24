@@ -27,7 +27,7 @@ Basic Updates
 | score       | common/city.c                     | add weighted score calculation function: `city_tile_weight_score_calculation`            |
 |             | common/city.h                     | add float `total_tiles_resource_indic` and `city_resource_indic` for struct `city`     |
 
-Import Updates
+Important Updates
 =====
 ## Control of succeeded conditions
 

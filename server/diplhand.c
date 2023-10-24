@@ -62,6 +62,7 @@
 static void call_treaty_evaluate(struct player *pplayer, struct player *aplayer,
                                  struct Treaty *ptreaty)
 {
+  log_normal("route to call_treaty_evaluate")
   if (is_ai(pplayer)) {
     CALL_PLR_AI_FUNC(treaty_evaluate, pplayer, pplayer, aplayer, ptreaty);
   }
@@ -147,6 +148,7 @@ void set_diplstate_type(struct player_diplstate *state1,
 void handle_diplomacy_accept_treaty_req(struct player *pplayer,
 					int counterpart)
 {
+  log_normal("route to handle_diplomacy_accept_treaty_req")
   struct Treaty *ptreaty;
   bool *player_accept, *other_accept;
   enum dipl_reason diplcheck;
@@ -190,6 +192,9 @@ void handle_diplomacy_accept_treaty_req(struct player *pplayer,
                                 &(info->receiver_reqs), RPT_POSSIBLE)) {
           log_error("Requirements of a clause between %s and %s not fullfilled",
                     player_name(pplayer), player_name(pother));
+          log_normal("Requirements of a clause between %s and %s not fullfilled",
+                    player_name(pplayer), player_name(pother));
+
           return;
         }
       }
@@ -197,6 +202,8 @@ void handle_diplomacy_accept_treaty_req(struct player *pplayer,
       if (pclause->from == pplayer || is_pact_clause(pclause->type)) {
 	switch (pclause->type) {
 	case CLAUSE_EMBASSY:
+          log_normal("route to CLAUSE_EMBASSY")
+
           if (player_has_real_embassy(pother, pplayer)) {
             log_error("%s tried to give embassy to %s, who already "
                       "has an embassy",
@@ -205,6 +212,8 @@ void handle_diplomacy_accept_treaty_req(struct player *pplayer,
           }
           break;
 	case CLAUSE_ADVANCE:
+          log_normal("route to CLAUSE_ADVANCE")
+
           if (!research_invention_gettable(research_get(pother),
                    pclause->value, game.info.tech_trade_allow_holes)) {
 	    /* It is impossible to give a technology to a civilization that
@@ -233,6 +242,8 @@ void handle_diplomacy_accept_treaty_req(struct player *pplayer,
 	  }
 	  break;
 	case CLAUSE_CITY:
+    log_normal("route to CLAUSE_CITY")
+
 	  pcity = game_city_by_number(pclause->value);
 	  if (!pcity) { /* Can't find out cityname any more. */
             notify_player(pplayer, NULL, E_DIPLOMACY, ftc_server,
@@ -754,6 +765,7 @@ void handle_diplomacy_create_clause_req(struct player *pplayer,
 					int counterpart, int giver,
 					enum clause_type type, int value)
 {
+  log_normal("ROUTE TO handle_diplomacy_create_clause_req")
   struct Treaty *ptreaty;
   struct player *pgiver = player_by_number(giver);
   struct player *pother = player_by_number(counterpart);
@@ -765,8 +777,10 @@ void handle_diplomacy_create_clause_req(struct player *pplayer,
   if (pgiver != pplayer && pgiver != pother) {
     return;
   }
+  log_normal("bef find_treaty")
 
   ptreaty = find_treaty(pplayer, pother);
+  log_normal("bef add_clause")
 
   if (ptreaty && add_clause(ptreaty, pgiver, type, value)) {
     /* 
@@ -784,6 +798,7 @@ void handle_diplomacy_create_clause_req(struct player *pplayer,
 	give_citymap_from_player_to_player(pcity, pplayer, pother);
       }
     }
+    log_normal("bef dlsend_packet_diplomacy_create_clause")
 
     dlsend_packet_diplomacy_create_clause(pplayer->connections,
 					  player_number(pother), giver, type,
@@ -791,9 +806,14 @@ void handle_diplomacy_create_clause_req(struct player *pplayer,
     dlsend_packet_diplomacy_create_clause(pother->connections,
 					  player_number(pplayer), giver, type,
 					  value);
+    log_normal("bef call_treaty_evaluate")
     call_treaty_evaluate(pplayer, pother, ptreaty);
     call_treaty_evaluate(pother, pplayer, ptreaty);
+    log_normal("aft call_treaty_evaluate")
+
   }
+  log_normal("end handle_diplomacy_create_clause_req")
+
 }
 
 /**********************************************************************//**
