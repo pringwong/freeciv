@@ -516,7 +516,7 @@ bool check_for_game_over(void)
           player_list_destroy(winner_list);
           return TRUE;
         }
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
                     /* TRANS: There can be several winners listed */
                     _("Game continue in Allied victory to %s."), astr_str(&str));
         log_normal(_("Game continue in Allied victory to %s."), astr_str(&str));
@@ -551,7 +551,7 @@ bool check_for_game_over(void)
           victor->is_winner = TRUE;
           return TRUE;
         }
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
                     _("Game continue in conquest victory for %s."), player_name(victor));
         log_normal(_("Game continue in conquest victory for %s."), player_name(victor));
         victor->is_winner = TRUE;
@@ -591,7 +591,7 @@ bool check_for_game_over(void)
         best->is_winner = TRUE;
         return TRUE;
       }
-      notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+      notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
                   _("Game continue in cultural domination victory for %s."),
                   player_name(best));
       log_normal(_("Game continue in cultural domination victory for %s."),
@@ -677,7 +677,7 @@ bool check_for_game_over(void)
                     player_name(pplayer));
           pplayer->is_winner = TRUE;
         } else {
-          notify_conn(NULL, NULL, E_GAME_END, ftc_server,
+          notify_conn(NULL, NULL, E_CHAT_MSG, ftc_server,
                       _("Game continue in victory for %s."), player_name(pplayer));
           log_normal(_("Game continue in victory for %s."),
                     player_name(pplayer));
