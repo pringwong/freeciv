@@ -2432,10 +2432,11 @@ static bool team_command(struct connection *caller, char *str, bool check)
       tslot = team_slot_by_number(teamno);
     }
   }
+
   if (NULL == tslot) {
     cmd_reply(CMD_TEAM, caller, C_SYNTAX,
               _("No such team %s. Please give a "
-              "valid team name or number."), arg[1]);
+                "valid team name or number."), arg[1]);
     goto cleanup;
   }
 
@@ -2444,19 +2445,23 @@ static bool team_command(struct connection *caller, char *str, bool check)
     cmd_reply(CMD_TEAM, caller, C_SYNTAX, _("Cannot team a barbarian."));
     goto cleanup;
   }
+
   if (!check) {
+    /* Should never fail when slot given is not nullptr */
     team_add_player(pplayer, team_new(tslot));
     send_player_info_c(pplayer, NULL);
     cmd_reply(CMD_TEAM, caller, C_OK, _("Player %s set to team %s."),
               player_name(pplayer),
               team_slot_name_translation(tslot));
   }
+
   res = TRUE;
 
   cleanup:
   for (i = 0; i < ntokens; i++) {
     free(arg[i]);
   }
+
   return res;
 }
 
@@ -3739,7 +3744,7 @@ static bool detach_command(struct connection *caller, char *str, bool check)
   /* The user explicitly wanted to detach, so if a player is marked for
    * them, reset its username. */
   players_iterate(aplayer) {
-    if (0 == strncmp(aplayer->username, pconn->username, MAX_LEN_NAME)) {
+    if (!fc_strncmp(aplayer->username, pconn->username, MAX_LEN_NAME)) {
       sz_strlcpy(aplayer->username, _(ANON_USER_NAME));
       aplayer->unassigned_user = TRUE;
       send_player_info_c(aplayer, NULL);
@@ -4415,11 +4420,26 @@ static bool quit_game(struct connection *caller, bool check)
 }
 
 /**********************************************************************//**
-  Main entry point for "command input".
+  Main entry point for "command input". Version to be used with
+  statically allocated 'str'
 **************************************************************************/
 bool handle_stdin_input(struct connection *caller, char *str)
 {
   return handle_stdin_input_real(caller, str, FALSE, 0);
+}
+
+/**********************************************************************//**
+  Entry point for "command input". Version that frees 'str' in the end.
+**************************************************************************/
+bool handle_stdin_input_free(struct connection *caller, char *str)
+{
+  bool ret = handle_stdin_input_real(caller, str, FALSE, 0);
+
+  /* Since handle_stdin_input_real() returned,
+   * we can be sure this was not freed in atexit(). */
+  free(str);
+
+  return ret;
 }
 
 /**********************************************************************//**
@@ -5075,7 +5095,7 @@ static bool lua_command(struct connection *caller, char *arg, bool check,
                   _("Freeciv script '%s' disallowed for security reasons."),
                   luafile);
         ret = FALSE;
-        goto cleanup;;
+        goto cleanup;
       }
       sz_strlcpy(tilde_filename, luafile);
     } else {

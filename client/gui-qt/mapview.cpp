@@ -295,7 +295,7 @@ void map_view::paint(QPainter *painter, QPaintEvent *event)
 }
 
 /**********************************************************************//**
-  Sets new point for new search 
+  Sets new point for new search
 **************************************************************************/
 void map_view::resume_searching(int pos_x, int pos_y, int &w, int &h,
                                 int wdth, int hght, int recursive_nr)
@@ -324,7 +324,7 @@ void map_view::resume_searching(int pos_x, int pos_y, int &w, int &h,
   Returns position as (w,h)
   Along with resume_searching its recursive function.
 **************************************************************************/
-void map_view::find_place(int pos_x, int pos_y, int &w, int &h, int wdth, 
+void map_view::find_place(int pos_x, int pos_y, int &w, int &h, int wdth,
                           int hght, int recursive_nr)
 {
   int i;
@@ -616,14 +616,14 @@ static void gui_to_overview(int *ovr_x, int *ovr_y, int gui_x, int gui_y)
            * OVERVIEW_TILE_SIZE);
 
   if (current_wrap_has_flag(WRAP_X)) {
-    *ovr_x = FC_WRAP(*ovr_x, NATURAL_WIDTH * OVERVIEW_TILE_SIZE);
+    *ovr_x = FC_WRAP(*ovr_x, MAP_NATURAL_WIDTH * OVERVIEW_TILE_SIZE);
   } else {
     if (MAP_IS_ISOMETRIC) {
       *ovr_x -= OVERVIEW_TILE_SIZE;
     }
   }
   if (current_wrap_has_flag(WRAP_Y)) {
-    *ovr_y = FC_WRAP(*ovr_y, NATURAL_HEIGHT * OVERVIEW_TILE_SIZE);
+    *ovr_y = FC_WRAP(*ovr_y, MAP_NATURAL_HEIGHT * OVERVIEW_TILE_SIZE);
   }
 }
 

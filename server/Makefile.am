@@ -2,15 +2,7 @@
 
 SUBDIRS = advisors generator savegame scripting
 
-if FREECIV_WEB
-srvbin = freeciv-web
-else
-srvbin = freeciv-server
-endif
-
-if SERVER
-bin_PROGRAMS = $(srvbin)
-endif
+bin_PROGRAMS = freeciv-server
 
 lib_LTLIBRARIES = libfreeciv-srv.la
 AM_CPPFLAGS = \
@@ -30,7 +22,7 @@ AM_CPPFLAGS = \
 	$(FCDB_MYSQL_CFLAGS) $(FCDB_POSTGRES_CFLAGS) $(FCDB_SQLITE3_CFLAGS)
 
 if MINGW
-SERVERICON=../windows/servericon.o
+SERVERICON = $(top_builddir)/platforms/windows/icons/servericon.o
 endif
 
 exe_sources = \
@@ -171,12 +163,6 @@ exe_ldadd = \
  $(TINYCTHR_LIBS) \
  $(SERVER_LIBS) $(SERVERICON)
 
-if FREECIV_WEB
-freeciv_web_SOURCES = $(exe_sources)
-freeciv_web_LDFLAGS = $(exe_ldflags)
-freeciv_web_LDADD = $(exe_ldadd)
-else
 freeciv_server_SOURCES = $(exe_sources)
 freeciv_server_LDFLAGS = $(exe_ldflags)
 freeciv_server_LDADD = $(exe_ldadd)
-endif

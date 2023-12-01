@@ -34,6 +34,7 @@ static struct user_flag user_extra_flags[MAX_NUM_USER_EXTRA_FLAGS];
 
 static struct extra_type_list *caused_by[EC_LAST];
 static struct extra_type_list *removed_by[ERM_COUNT];
+static struct extra_type_list *cleanable;
 static struct extra_type_list *unit_hidden;
 
 /************************************************************************//**
@@ -49,6 +50,7 @@ void extras_init(void)
   for (i = 0; i < ERM_COUNT; i++) {
     removed_by[i] = extra_type_list_new();
   }
+  cleanable = extra_type_list_new();
   unit_hidden = extra_type_list_new();
 
   for (i = 0; i < MAX_EXTRA_TYPES; i++) {
@@ -67,6 +69,7 @@ void extras_init(void)
     extras[i].rmcauses = 0;
     extras[i].helptext = NULL;
     extras[i].ruledit_disabled = FALSE;
+    extras[i].ruledit_dlg = NULL;
     extras[i].visibility_req = A_NONE;
   }
 }
@@ -107,6 +110,8 @@ void extras_free(void)
     removed_by[i] = NULL;
   }
 
+  extra_type_list_destroy(cleanable);
+  cleanable = NULL;
   extra_type_list_destroy(unit_hidden);
   unit_hidden = NULL;
 
@@ -288,7 +293,7 @@ void extra_to_caused_by_list(struct extra_type *pextra, enum extra_cause cause)
 }
 
 /************************************************************************//**
-  Returns extra type for given rmcause.
+  Returns extra type list for given rmcause.
 ****************************************************************************/
 struct extra_type_list *extra_type_list_by_rmcause(enum extra_rmcause rmcause)
 {
@@ -298,14 +303,24 @@ struct extra_type_list *extra_type_list_by_rmcause(enum extra_rmcause rmcause)
 }
 
 /************************************************************************//**
+  Returns extra type list of cleanables
+****************************************************************************/
+struct extra_type_list *extra_type_list_cleanable(void)
+{
+  return cleanable;
+}
+
+/************************************************************************//**
   Add extra type to list of extra removed by given cause.
 ****************************************************************************/
-void extra_to_removed_by_list(struct extra_type *pextra,
-                              enum extra_rmcause rmcause)
+void _extra_to_removed_by_list(struct extra_type *pextra,
+                               enum extra_rmcause rmcause)
 {
-  fc_assert(rmcause < ERM_COUNT);
-
   extra_type_list_append(removed_by[rmcause], pextra);
+
+  if (rmcause == ERM_CLEAN) {
+    extra_type_list_append(cleanable, pextra);
+  }
 }
 
 /************************************************************************//**
@@ -771,6 +786,32 @@ struct extra_type *prev_extra_in_tile(const struct tile *ptile,
 }
 
 /************************************************************************//**
+  Returns prev cleanable extra that unit or player can remove from tile.
+****************************************************************************/
+struct extra_type *prev_cleanable_in_tile(const struct tile *ptile,
+                                          const struct player *pplayer,
+                                          const struct unit *punit)
+{
+  fc_assert(punit != NULL || pplayer != NULL);
+
+  extra_type_cleanable_iterate(pextra) {
+    if (tile_has_extra(ptile, pextra)) {
+      if (punit != NULL) {
+        if (can_remove_extra(pextra, punit, ptile)) {
+          return pextra;
+        }
+      } else {
+        if (player_can_remove_extra(pextra, pplayer, ptile)) {
+          return pextra;
+        }
+      }
+    }
+  } extra_type_cleanable_iterate_end;
+
+  return NULL;
+}
+
+/************************************************************************//**
   Is extra native to unit class?
 ****************************************************************************/
 bool is_native_extra_to_uclass(const struct extra_type *pextra,
@@ -977,8 +1018,7 @@ bool is_extra_removed_by_worker_action(const struct extra_type *pextra)
 {
   /* Is any of the worker remove action bits set? */
   return (pextra->rmcauses
-          & (1 << ERM_CLEANPOLLUTION
-             | 1 << ERM_CLEANFALLOUT
+          & (1 << ERM_CLEAN
              | 1 << ERM_PILLAGE));
 }
 
@@ -1029,12 +1069,10 @@ enum extra_cause activity_to_extra_cause(enum unit_activity act)
 enum extra_rmcause activity_to_extra_rmcause(enum unit_activity act)
 {
   switch (act) {
+  case ACTIVITY_CLEAN:
+    return ERM_CLEAN;
   case ACTIVITY_PILLAGE:
     return ERM_PILLAGE;
-  case ACTIVITY_POLLUTION:
-    return ERM_CLEANPOLLUTION;
-  case ACTIVITY_FALLOUT:
-    return ERM_CLEANFALLOUT;
   default:
     break;
   }

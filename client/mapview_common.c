@@ -77,12 +77,21 @@ bool can_slide = TRUE;
 
 static bool frame_by_frame_animation = FALSE;
 
-struct tile *center_tile = NULL;
+const struct tile *center_tile = NULL;
 
 struct tile *infratile = NULL;
 
 static void base_canvas_to_map_pos(int *map_x, int *map_y,
                                    float canvas_x, float canvas_y);
+
+static void show_full_citybar(struct canvas *pcanvas,
+                              const int canvas_x0, const int canvas_y0,
+                              struct city *pcity, int *width, int *height)
+  fc__attribute((nonnull(5, 6)));
+static void show_city_desc(struct canvas *pcanvas,
+                           int canvas_x, int canvas_y,
+                           struct city *pcity, int *width, int *height)
+  fc__attribute((nonnull(5, 6)));
 
 enum update_type {
   /* Masks */
@@ -93,7 +102,7 @@ enum update_type {
 };
 
 /* A tile update has a tile associated with it as well as an area type.
- * See unqueue_mapview_updates for a thorough explanation. */
+ * See unqueue_mapview_updates() for a thorough explanation. */
 enum tile_update_type {
   TILE_UPDATE_TILE_SINGLE,
   TILE_UPDATE_TILE_FULL,
@@ -179,6 +188,29 @@ void animations_init(void)
 void animations_free(void)
 {
   if (animations != NULL) {
+    int i;
+    size_t last = animation_list_size(animations);
+
+    for (i = 0; i < last; i++) {
+      struct animation *anim = animation_list_get(animations, i);
+
+      switch (anim->type) {
+      case ANIM_MOVEMENT:
+        free(anim->movement.mover);
+        break;
+      case ANIM_BATTLE:
+        unit_virtual_destroy(anim->battle.virt_winner);
+        unit_virtual_destroy(anim->battle.virt_loser);
+        break;
+      case ANIM_EXPL:
+      case ANIM_NUKE:
+        /* Nothing to free */
+        break;
+      }
+
+      free(anim);
+    }
+
     animation_list_destroy(animations);
   }
 }
@@ -239,8 +271,9 @@ static bool movement_animation(struct animation *anim, double time_gone)
     if (time_gone >= timing_sec) {
       /* Animation over */
       if (--anim->movement.mover->refcount <= 0) {
-        FC_FREE(anim->movement.mover);
+        free(anim->movement.mover);
       }
+
       return TRUE;
     }
   } else {
@@ -667,11 +700,12 @@ static void gui_to_map_pos(const struct tileset *t,
   }
 
   This pixel is one position closer to the lower right, which may be
-  important to remember when doing some round-off operations. Other
-  parts of the code assume tileset_tile_width(tileset) and tileset_tile_height(tileset)
-  to be even numbers.
+  important to remember when doing some round-off operations.
+  Other parts of the code assume tileset_tile_width(tileset) and
+  tileset_tile_height(tileset) to be even numbers.
 ****************************************************************************/
-bool tile_to_canvas_pos(float *canvas_x, float *canvas_y, struct tile *ptile)
+bool tile_to_canvas_pos(float *canvas_x, float *canvas_y,
+                        const struct tile *ptile)
 {
   int center_map_x, center_map_y, dx, dy, tile_x, tile_y;
 
@@ -1194,9 +1228,9 @@ struct tile *get_center_tile_mapcanvas(void)
 }
 
 /************************************************************************//**
-  Centers the mapview around (map_x, map_y).
+  Centers the mapview around ptile.
 ****************************************************************************/
-void center_tile_mapcanvas(struct tile *ptile)
+void center_tile_mapcanvas(const struct tile *ptile)
 {
   float gui_x, gui_y;
   int tile_x, tile_y;
@@ -1701,10 +1735,26 @@ void update_map_canvas(int canvas_x, int canvas_y, int width, int height)
   bool full;
   struct canvas *tmp;
 
-  canvas_x = MAX(canvas_x, 0);
-  canvas_y = MAX(canvas_y, 0);
-  width = MIN(mapview.store_width - canvas_x, width);
-  height = MIN(mapview.store_height - canvas_y, height);
+  if (canvas_x < 0) {
+    width += canvas_x;
+    canvas_x = 0;
+  } else if (canvas_x > mapview.store_width) {
+    width -= (canvas_x - mapview.store_width);
+    canvas_x = mapview.store_width;
+  }
+
+  if (canvas_y < 0) {
+    height += canvas_y;
+    canvas_y = 0;
+  } else if (canvas_y > mapview.store_height) {
+    height -= (canvas_y - mapview.store_height);
+    canvas_y = mapview.store_height;
+  }
+
+  if (width <= 0 || height <= 0) {
+    /* Area outside mapview */
+    return;
+  }
 
   gui_x0 = mapview.gui_x0 + canvas_x;
   gui_y0 = mapview.gui_y0 + canvas_y;
@@ -1885,12 +1935,8 @@ static void show_full_citybar(struct canvas *pcanvas,
     || should_draw_trade_routes;
 
 
-  if (width != NULL) {
-    *width = 0;
-  }
-  if (height != NULL) {
-    *height = 0;
-  }
+  *width = 0;
+  *height = 0;
 
   if (!gui_options.draw_city_names && !should_draw_lower_bar) {
     return;
@@ -1900,10 +1946,11 @@ static void show_full_citybar(struct canvas *pcanvas,
   /* First: calculate rect dimensions (but not positioning). */
 
   get_sprite_dimensions(bg, &bg_w, &bg_h);
-  bg_w *= map_zoom; bg_h *= map_zoom;
+  bg_w *= map_zoom;
+  bg_h *= map_zoom;
   get_city_mapview_name_and_growth(pcity, name, sizeof(name),
-                                   growth, sizeof(growth), &growth_color,
-                                   &production_color);
+                                   growth, sizeof(growth),
+                                   &growth_color, &production_color);
 
   if (gui_options.draw_city_names) {
     fc_snprintf(size, sizeof(size), "%d", city_size_get(pcity));
@@ -1924,8 +1971,7 @@ static void show_full_citybar(struct canvas *pcanvas,
       }
     }
 
-    /* TODO: Configurable "svg_height" (here 44) */
-    get_flag_dimensions(flag, &flag_rect, 44);
+    get_flag_dimensions(flag, &flag_rect, tileset_svg_flag_height(tileset));
     flag_rect.w *= map_zoom; flag_rect.h *= map_zoom;
     get_sprite_dimensions(occupy, &occupy_rect.w, &occupy_rect.h);
     occupy_rect.w *= map_zoom; occupy_rect.h *= map_zoom;
@@ -1978,7 +2024,6 @@ static void show_full_citybar(struct canvas *pcanvas,
 
   *width = MAX(width1, width2);
   *height = height1 + height2;
-
 
   /* Next fill in X and Y locations. */
 
@@ -2411,7 +2456,7 @@ void show_tile_labels(int canvas_base_x, int canvas_base_y,
         /* The update was incomplete! We queue a new update. Note that
          * this is recursively queueing an update within a dequeuing of an
          * update. This is allowed specifically because of the code in
-         * unqueue_mapview_updates. See that function for more. */
+         * unqueue_mapview_updates(). See that function for more. */
         log_debug("Re-queuing tile label %s drawing.", ptile->label);
         update_tile_label(ptile);
       }
@@ -2446,22 +2491,22 @@ bool show_unit_orders(struct unit *punit)
         break;
       }
 
+      if (ptile == NULL) {
+        /* This shouldn't happen unless the server gives us invalid
+         * data. */
+        log_warn("Unit orders with illegal tile.");
+        break;
+      }
+
       order = &punit->orders.list[idx];
 
       switch (order->order) {
       case ORDER_MOVE:
         draw_segment(ptile, order->dir);
         ptile = mapstep(&(wld.map), ptile, order->dir);
-        if (!ptile) {
-          /* This shouldn't happen unless the server gives us invalid
-           * data. To avoid disaster we need to break out of the
-           * switch and the enclosing for loop. */
-          fc_assert(NULL != ptile);
-          i = punit->orders.length;
-        }
         break;
       default:
-        /* TODO: graphics for other orders. */
+        /* TODO: Graphics for other orders. */
         break;
       }
     }
@@ -2828,21 +2873,21 @@ struct city *find_city_or_settler_near_tile(const struct tile *ptile,
         if ((NULL == client.conn.playing
              || unit_owner(psettler) == client.conn.playing)
             && unit_can_do_action(psettler, ACTION_FOUND_CITY)
-            && city_can_be_built_here(unit_tile(psettler), psettler)) {
-          if (!closest_settler) {
+            && city_can_be_built_here(unit_tile(psettler), psettler, FALSE)) {
+          if (closest_settler == NULL) {
             closest_settler = psettler;
           }
-          if (!best_settler && psettler->client.colored) {
+          if (best_settler == NULL && psettler->client.colored) {
             best_settler = psettler;
           }
         }
       } unit_list_iterate_end;
     } city_tile_iterate_end;
 
-    if (best_settler) {
+    if (best_settler != NULL) {
       /* Rule e */
       *punit = best_settler;
-    } else if (closest_settler) {
+    } else if (closest_settler != NULL) {
       /* Rule f */
       *punit = closest_settler;
     }
@@ -3240,10 +3285,10 @@ static bool can_do_cached_drawing(void)
      * We divide by 4 below because we have to divide by 2 twice. The
      * first division by 2 is because the square must be half the size
      * of the (width+height). The second division by two is because for
-     * an iso-map, NATURAL_XXX has a scale of 2, whereas for iso-view
+     * an iso-map, MAP_NATURAL_XXX has a scale of 2, whereas for iso-view
      * NORMAL_TILE_XXX has a scale of 2. */
-    return (w <= (NATURAL_WIDTH + NATURAL_HEIGHT) * W / 4
-            && h <= (NATURAL_WIDTH + NATURAL_HEIGHT) * H / 4);
+    return (w <= (MAP_NATURAL_WIDTH + MAP_NATURAL_HEIGHT) * W / 4
+            && h <= (MAP_NATURAL_WIDTH + MAP_NATURAL_HEIGHT) * H / 4);
   } else {
     /* Matching. */
     const int isofactor = (tileset_is_isometric(tileset) ? 2 : 1);
@@ -3252,13 +3297,14 @@ static bool can_do_cached_drawing(void)
     /* Now we can use the full width and height, with the exception of a small
      * area on each side. */
     if (current_wrap_has_flag(WRAP_X)
-        && w > (NATURAL_WIDTH - isodiff) * W / isofactor) {
+        && w > (MAP_NATURAL_WIDTH - isodiff) * W / isofactor) {
       return FALSE;
     }
     if (current_wrap_has_flag(WRAP_Y)
-        && h > (NATURAL_HEIGHT - isodiff) * H / isofactor) {
+        && h > (MAP_NATURAL_HEIGHT - isodiff) * H / isofactor) {
       return FALSE;
     }
+
     return TRUE;
   }
 }

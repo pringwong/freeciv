@@ -120,6 +120,10 @@ static struct server_list *parse_metaserver_data(fz_FILE *f)
   const char *latest_ver;
   const char *comment;
 
+  /* Have the string outside Q_() so it won't get collected for translation here.
+   * Actual collected string lives in translations/Strings.txt */
+#define QUALIFIED_FOLLOWTAG "?vertag:" FOLLOWTAG
+
   /* This call closes f. */
   if (!(file = secfile_from_stream(f, TRUE))) {
     return NULL;
@@ -128,35 +132,46 @@ static struct server_list *parse_metaserver_data(fz_FILE *f)
   latest_ver = secfile_lookup_str_default(file, NULL, "versions." FOLLOWTAG);
   comment = secfile_lookup_str_default(file, NULL, "version_comments." FOLLOWTAG);
 
-  if (latest_ver != NULL) {
-    const char *my_comparable = fc_comparable_version();
+  if (latest_ver == NULL && comment == NULL) {
     char vertext[2048];
 
-    log_verbose("Metaserver says latest '" FOLLOWTAG "' version is '%s'; we have '%s'",
-                latest_ver, my_comparable);
-    if (cvercmp_greater(latest_ver, my_comparable)) {
-      const char *const followtag = "?vertag:" FOLLOWTAG;
+    fc_snprintf(vertext, sizeof(vertext),
+                /* TRANS: Type is version tag name like "stable", "S3_2",
+                 * "windows" (which can also be localised -- msgids start
+                 * '?vertag:') */
+                _("There's no %s release yet."), Q_(QUALIFIED_FOLLOWTAG));
+    log_verbose("%s", vertext);
+    version_message(vertext);
+  } else {
+    if (latest_ver != NULL) {
+      const char *my_comparable = fc_comparable_version();
+      char vertext[2048];
 
-      fc_snprintf(vertext, sizeof(vertext),
-                  /* TRANS: Type is version tag name like "stable", "S3_2",
-                   * "windows" (which can also be localised -- msgids start
-                   * '?vertag:') */
-                  _("Latest %s release of Freeciv is %s, this is %s."),
-                  Q_(followtag), latest_ver, my_comparable);
+      log_verbose("Metaserver says latest '" FOLLOWTAG "' version is '%s'; we have '%s'",
+                  latest_ver, my_comparable);
+      if (cvercmp_greater(latest_ver, my_comparable)) {
 
-      version_message(vertext);
-    } else if (comment == NULL) {
-      fc_snprintf(vertext, sizeof(vertext),
-                  _("There is no newer %s release of Freeciv available."),
-                  FOLLOWTAG);
+        fc_snprintf(vertext, sizeof(vertext),
+                    /* TRANS: Type is version tag name like "stable", "S3_2",
+                     * "windows" (which can also be localised -- msgids start
+                     * '?vertag:') */
+                    _("Latest %s release of Freeciv is %s, this is %s."),
+                    Q_(QUALIFIED_FOLLOWTAG), latest_ver, my_comparable);
 
-      version_message(vertext);
+        version_message(vertext);
+      } else if (comment == NULL) {
+        fc_snprintf(vertext, sizeof(vertext),
+                    _("There is no newer %s release of Freeciv available."),
+                    FOLLOWTAG);
+
+        version_message(vertext);
+      }
     }
-  }
 
-  if (comment != NULL) {
-    log_verbose("Mesaserver comment about '" FOLLOWTAG "': %s", comment);
-    version_message(comment);
+    if (comment != NULL) {
+      log_verbose("Mesaserver comment about '" FOLLOWTAG "': %s", comment);
+      version_message(comment);
+    }
   }
 
   server_list = server_list_new();
@@ -648,9 +663,9 @@ get_lan_server_list(struct server_scan *scan)
           inet_ntop(AF_INET6, &fromend.saddr_in6.sin6_addr,
                     dst, sizeof(dst));
         } else if (fromend.saddr.sa_family == AF_INET) {
-          inet_ntop(AF_INET, &fromend.saddr_in4.sin_addr, dst, sizeof(dst));;
+          inet_ntop(AF_INET, &fromend.saddr_in4.sin_addr, dst, sizeof(dst));
         } else {
-	  fc_assert(FALSE);
+          fc_assert(FALSE);
 
 	  log_error("Unsupported address family in get_lan_server_list()");
 

@@ -39,11 +39,11 @@
 #include "happiness.h"
 #include "mapview.h"
 
-/* semi-arbitrary number that controls the width of the happiness widget */
+/* Semi-arbitrary number that controls the width of the happiness widget */
 #define HAPPINESS_PIX_WIDTH 30
 
-#define	FEELING_WIDTH	(HAPPINESS_PIX_WIDTH * tileset_small_sprite_width(tileset))
-#define	FEELING_HEIGHT	(tileset_small_sprite_height(tileset))
+#define FEELING_WIDTH   (HAPPINESS_PIX_WIDTH * tileset_small_sprite_width(tileset))
+#define FEELING_HEIGHT  (tileset_small_sprite_height(tileset))
 
 #define NUM_HAPPINESS_MODIFIERS 6
 
@@ -210,7 +210,7 @@ static struct happiness_dialog *create_happiness_dialog(struct city *pcity,
     GtkWidget *pic;
     GtkEventController *controller;
 
-    /* Set spacing between lines of citizens*/
+    /* Set spacing between lines of citizens */
 
     /* Happiness labels */
     label = gtk_label_new(happiness_label_str[i]);
@@ -252,7 +252,7 @@ static struct happiness_dialog *create_happiness_dialog(struct city *pcity,
   gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
   gtk_grid_attach(GTK_GRID(table), label, 0, NUM_HAPPINESS_MODIFIERS, 2, 1);
 
-  gtk_widget_show(pdialog->shell);
+  gtk_widget_set_visible(pdialog->shell, TRUE);
   dialog_list_prepend(dialog_list, pdialog);
   refresh_happiness_dialog(pcity);
 
@@ -311,12 +311,12 @@ void close_happiness_dialog(struct city *pcity)
   struct happiness_dialog *pdialog = get_happiness_dialog(pcity);
   int i;
 
-  if (pdialog == NULL) {
+  if (pdialog == nullptr) {
     /* City which is being investigated doesn't contain happiness tab */
     return;
   }
 
-  gtk_widget_hide(pdialog->shell);
+  gtk_widget_set_visible(pdialog->shell, FALSE);
 
   dialog_list_remove(dialog_list, pdialog);
 

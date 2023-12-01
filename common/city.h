@@ -42,8 +42,8 @@ enum production_class_type {
   PCT_LAST
 };
 
-/* Various city options.  These are stored by the server and can be
- * toggled by the user.  Each one defaults to off.  Adding new ones
+/* Various city options. These are stored by the server and can be
+ * toggled by the user. Each one defaults to off. Adding new ones
  * will break network compatibility. If you want to reorder or remove
  * an option remember to load the city option order from the savegame.
  * It is stored in savefile.city_options_vector
@@ -62,6 +62,20 @@ enum production_class_type {
 #define SPECENUM_VALUE2NAME "Tax_Specialists"
 #define SPECENUM_COUNT CITYO_LAST
 #define SPECENUM_BITVECTOR bv_city_options
+#include "specenum_gen.h"
+
+/* Used in savegames, and there's currently no order of the values
+ * stored in the savegame. Implement that before touching the values. */
+#define SPECENUM_NAME city_wl_cancel_behavior
+#define SPECENUM_VALUE0 WLCB_SMART
+  /* TRANS: Worklist Cancelling behavior
+   * (when something cannot be built right away) */
+#define SPECENUM_VALUE0NAME N_("?wlcb:Smart")
+#define SPECENUM_VALUE1 WLCB_ALWAYS_PURGE
+#define SPECENUM_VALUE1NAME N_("?wlcb:Always Purge")
+#define SPECENUM_VALUE2 WLCB_ALWAYS_POSTPONE
+#define SPECENUM_VALUE2NAME N_("?wlcb:Always Postpone")
+#define SPECENUM_COUNT WLCB_LAST
 #include "specenum_gen.h"
 
 /* The city includes all tiles dx^2 + dy^2 <= CITY_MAP_*_RADIUS_SQ */
@@ -318,8 +332,9 @@ struct city {
   int id;
   int style;
   enum capital_type capital;
+  enum city_acquire_type acquire_t;
 
-  /* the people */
+  /* The people */
   citizens size;
   citizens feel[CITIZEN_LAST][FEELING_LAST];
 
@@ -331,7 +346,7 @@ struct city {
 
   citizens *nationality;      /* Nationality of the citizens. */
 
-  /* trade routes */
+  /* Trade routes */
   struct trade_route_list *routes;
 
   /* Tile output, regardless of if the tile is actually worked. It is used
@@ -394,6 +409,7 @@ struct city {
   struct worklist worklist;
 
   bv_city_options city_options;
+  enum city_wl_cancel_behavior wlcb;
 
   struct unit_list *units_supported;
 
@@ -403,7 +419,7 @@ struct city {
 
   struct worker_task_list *task_reqs;
 
-  int steal; /* diplomats steal once; for spies, gets harder */
+  int steal; /* Diplomats steal once; for spies, gets harder */
 
   struct {
     size_t length;
@@ -675,11 +691,11 @@ void generate_city_map_indices(void);
 void free_city_map_index(void);
 void city_production_caravan_shields_init(void);
 
-/* output on spot */
+/* Output on spot */
 int city_tile_output(const struct city *pcity, const struct tile *ptile,
-		     bool is_celebrating, Output_type_id otype);
+                     bool is_celebrating, Output_type_id otype);
 int city_tile_output_now(const struct city *pcity, const struct tile *ptile,
-			 Output_type_id otype);
+                         Output_type_id otype);
 
 bool base_city_can_work_tile(const struct player *restriction,
                              const struct city *pcity,
@@ -689,10 +705,11 @@ bool city_can_work_tile(const struct city *pcity, const struct tile *ptile);
 bool citymindist_prevents_city_on_tile(const struct tile *ptile);
 
 bool city_can_be_built_here(const struct tile *ptile,
-                            const struct unit *punit);
+                            const struct unit *punit,
+                            bool hut_test);
 bool city_can_be_built_tile_only(const struct tile *ptile);
 
-/* list functions */
+/* List functions */
 struct city *city_list_find_number(struct city_list *This, int id);
 struct city *city_list_find_name(struct city_list *This, const char *name);
 

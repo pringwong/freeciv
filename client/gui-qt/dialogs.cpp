@@ -127,8 +127,7 @@ static void transform_terrain(QVariant data1, QVariant data2);
 static void cultivate(QVariant data1, QVariant data2);
 static void plant(QVariant data1, QVariant data2);
 static void pillage(QVariant data1, QVariant data2);
-static void clean_pollution(QVariant data1, QVariant data2);
-static void clean_fallout(QVariant data1, QVariant data2);
+static void clean(QVariant data1, QVariant data2);
 static void road(QVariant data1, QVariant data2);
 static void base(QVariant data1, QVariant data2);
 static void mine(QVariant data1, QVariant data2);
@@ -293,8 +292,7 @@ static const QHash<action_id, pfcn_void> af_map_init(void)
   action_function[ACTION_CULTIVATE] = cultivate;
   action_function[ACTION_PLANT] = plant;
   action_function[ACTION_PILLAGE] = pillage;
-  action_function[ACTION_CLEAN_POLLUTION] = clean_pollution;
-  action_function[ACTION_CLEAN_FALLOUT] = clean_fallout;
+  action_function[ACTION_CLEAN] = clean;
   action_function[ACTION_ROAD] = road;
   action_function[ACTION_BASE] = base;
   action_function[ACTION_MINE] = mine;
@@ -463,7 +461,7 @@ races_dialog::races_dialog(struct player *pplayer,
   selected_nation_tabs->setEditTriggers(QAbstractItemView::NoEditTriggers);
   selected_nation_tabs->setShowGrid(false);
   selected_nation_tabs->setAlternatingRowColors(true);
- 
+
   nation_tabs->setRowCount(0);
   nation_tabs->setColumnCount(1);
   nation_tabs->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -2887,36 +2885,16 @@ static void pillage(QVariant data1, QVariant data2)
 }
 
 /***********************************************************************//**
-  Action "Clean Pollution" for choice dialog
+  Action "Clean" for choice dialog
 ***************************************************************************/
-static void clean_pollution(QVariant data1, QVariant data2)
+static void clean(QVariant data1, QVariant data2)
 {
   int actor_id = data1.toInt();
   int target_id = data2.toInt();
 
   if (NULL != game_unit_by_number(actor_id)
       && NULL != index_to_tile(&(wld.map), target_id)) {
-    request_do_action(ACTION_CLEAN_POLLUTION,
-                      actor_id, target_id,
-                      /* FIXME: will cause problems if more than
-                       * one action selection dialog at a time
-                       * becomes supported. */
-                      action_selection_target_extra(),
-                      "");
-  }
-}
-
-/***********************************************************************//**
-  Action "Clean Fallout" for choice dialog
-***************************************************************************/
-static void clean_fallout(QVariant data1, QVariant data2)
-{
-  int actor_id = data1.toInt();
-  int target_id = data2.toInt();
-
-  if (NULL != game_unit_by_number(actor_id)
-      && NULL != index_to_tile(&(wld.map), target_id)) {
-    request_do_action(ACTION_CLEAN_FALLOUT,
+    request_do_action(ACTION_CLEAN,
                       actor_id, target_id,
                       /* FIXME: will cause problems if more than
                        * one action selection dialog at a time
@@ -4348,28 +4326,41 @@ void show_tech_gained_dialog(Tech_type_id tech)
 /***********************************************************************//**
   Show tileset error dialog.
 ***************************************************************************/
-void show_tileset_error(const char *tset_name, const char *msg)
+void show_tileset_error(bool fatal, const char *tset_name, const char *msg)
 {
-  char buf[1024];
+  QWidget *parent;
+  fc_client *std_gui = gui();
 
-  if (tset_name != NULL) {
-    fc_snprintf(buf, sizeof(buf),
-                _("Tileset \"%s\" problem, it's probably incompatible with the"
-                  " ruleset:\n%s"), tset_name, msg);
+  if (std_gui != nullptr) {
+    parent = std_gui->central_wdg;
   } else {
-    fc_snprintf(buf, sizeof(buf),
-                _("Tileset problem, it's probably incompatible with the"
-                  " ruleset:\n%s"), msg);
+    parent = nullptr;
   }
 
-  if (QCoreApplication::instance() != nullptr) {
-    QMessageBox *ask = new QMessageBox(gui()->central_wdg);
+  if (std_gui != nullptr || fatal) {
+    char buf[1024];
+    QMessageBox *ask = new QMessageBox(parent);
+
+    if (tset_name != NULL) {
+      fc_snprintf(buf, sizeof(buf),
+                  _("Tileset \"%s\" problem, it's probably incompatible with "
+                    "the ruleset:\n%s"), tset_name, msg);
+    } else {
+      fc_snprintf(buf, sizeof(buf),
+                  _("Tileset problem, it's probably incompatible with "
+                    "the ruleset:\n%s"), msg);
+    }
 
     ask->setText(buf);
     ask->setStandardButtons(QMessageBox::Ok);
     ask->setWindowTitle(_("Tileset error"));
-    ask->setAttribute(Qt::WA_DeleteOnClose);
-    ask->show();
+
+    if (std_gui != nullptr) {
+      ask->setAttribute(Qt::WA_DeleteOnClose);
+      ask->show();
+    } else {
+      ask->exec();
+    }
   }
 }
 
@@ -4379,13 +4370,15 @@ void show_tileset_error(const char *tset_name, const char *msg)
 void popup_upgrade_dialog(struct unit_list *punits)
 {
   char buf[512];
-  hud_message_box *ask = new hud_message_box(gui()->central_wdg);
+  hud_message_box *ask;
   QString title;
   QVector<int> *punit_ids;
 
   if (!punits || unit_list_size(punits) == 0) {
     return;
   }
+
+  ask = new hud_message_box(gui()->central_wdg);
 
   punit_ids = new QVector<int>();
   unit_list_iterate(punits, punit) {

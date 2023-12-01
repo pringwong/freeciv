@@ -23,6 +23,25 @@
 extern "C" {
 #endif /* __cplusplus */
 
+/* If 'enum gen_action' has currently unused values that should
+ * not be used in 'switch - cases', put those cases here. E.g.:
+ *
+ *#define ASSERT_UNUSED_ACTION_CASES              \
+ *   case ACTION_UNUSED_1:                        \
+ *     fc_assert_msg(FALSE, "ACTION_UNUSED_1");   \
+ *     break;                                     \
+  *   case ACTION_UNUSED_2:                       \
+ *     fc_assert_msg(FALSE, "ACTION_UNUSED_2");   \
+ *     break;
+ */
+#define ASSERT_UNUSED_ACTION_CASES            \
+  case ACTION_UNUSED_1:                       \
+    fc_assert_msg(FALSE, "ACTION_UNUSED_1");  \
+    break;                                    \
+  case ACTION_UNUSED_2:                       \
+    fc_assert_msg(FALSE, "ACTION_UNUSED_2");  \
+    break;
+
 #define SPECENUM_NAME action_actor_kind
 #define SPECENUM_VALUE0 AAK_UNIT
 #define SPECENUM_VALUE0NAME N_("a unit")
@@ -166,10 +185,11 @@ const char *gen_action_name_update_cb(const char *old_name);
 #define SPECENUM_VALUE64NAME "Build Base"
 #define SPECENUM_VALUE65 ACTION_PILLAGE
 #define SPECENUM_VALUE65NAME "Pillage"
-#define SPECENUM_VALUE66 ACTION_CLEAN_POLLUTION
-#define SPECENUM_VALUE66NAME "Clean Pollution"
-#define SPECENUM_VALUE67 ACTION_CLEAN_FALLOUT
-#define SPECENUM_VALUE67NAME "Clean Fallout"
+/* TODO: Rearrange actions to get rid of these */
+#define SPECENUM_VALUE66 ACTION_UNUSED_1
+#define SPECENUM_VALUE66NAME "Unused1"
+#define SPECENUM_VALUE67 ACTION_UNUSED_2
+#define SPECENUM_VALUE67NAME "Unused2"
 #define SPECENUM_VALUE68 ACTION_TRANSPORT_BOARD
 #define SPECENUM_VALUE68NAME "Transport Board"
 #define SPECENUM_VALUE69 ACTION_TRANSPORT_BOARD2
@@ -261,14 +281,20 @@ const char *gen_action_name_update_cb(const char *old_name);
 /* TODO: Move next to "Move" */
 #define SPECENUM_VALUE112 ACTION_TELEPORT
 #define SPECENUM_VALUE112NAME "Teleport"
-#define SPECENUM_VALUE113 ACTION_USER_ACTION1
-#define SPECENUM_VALUE113NAME "User Action 1"
-#define SPECENUM_VALUE114 ACTION_USER_ACTION2
-#define SPECENUM_VALUE114NAME "User Action 2"
-#define SPECENUM_VALUE115 ACTION_USER_ACTION3
-#define SPECENUM_VALUE115NAME "User Action 3"
-#define SPECENUM_VALUE116 ACTION_USER_ACTION4
-#define SPECENUM_VALUE116NAME "User Action 4"
+
+/* Enabler checks only */
+#define SPECENUM_VALUE113 ACTION_GAIN_VETERANCY
+#define SPECENUM_VALUE113NAME "Gain Veterancy"
+
+/* User actions */
+#define SPECENUM_VALUE114 ACTION_USER_ACTION1
+#define SPECENUM_VALUE114NAME "User Action 1"
+#define SPECENUM_VALUE115 ACTION_USER_ACTION2
+#define SPECENUM_VALUE115NAME "User Action 2"
+#define SPECENUM_VALUE116 ACTION_USER_ACTION3
+#define SPECENUM_VALUE116NAME "User Action 3"
+#define SPECENUM_VALUE117 ACTION_USER_ACTION4
+#define SPECENUM_VALUE117NAME "User Action 4"
 #define SPECENUM_BITVECTOR bv_actions
 #define SPECENUM_COUNT ACTION_COUNT
 #define SPECENUM_NAME_UPDATER
@@ -418,37 +444,62 @@ struct action_enabler
     }                                                                 \
   } action_enabler_list_iterate_end
 
-#define action_iterate(_act_)                                             \
+#define action_iterate_all(_act_)                                         \
 {                                                                         \
   action_id _act_;                                                        \
   for (_act_ = 0; _act_ < NUM_ACTIONS; _act_++) {
 
-#define action_iterate_end                             \
-  }                                                    \
+#define action_iterate_all_end                                            \
+  }                                                                       \
 }
 
-#define action_by_result_iterate(_paction_, _act_id_, _result_)           \
+#define action_iterate(_act_)                                             \
 {                                                                         \
-  action_iterate(_act_id_) {                                              \
-    struct action *_paction_ = action_by_number(_act_id_);                \
-    if (!action_has_result(_paction_, _result_)) {                        \
-      continue;                                                           \
-    }
+  action_iterate_all(_act_) {                                             \
+    if (_act_ != ACTION_UNUSED_1 && _act_ != ACTION_UNUSED_2) {
+
+#define action_iterate_end                                                \
+    }                                                                     \
+  } action_iterate_all_end;                                               \
+}
+
+/* Get 'struct action_id_list' and related functions: */
+#define SPECLIST_TAG action
+#define SPECLIST_TYPE struct action
+#include "speclist.h"
+
+#define action_list_iterate(_list_, _act_) \
+  TYPED_LIST_ITERATE(struct action, _list_, _act_)
+#define action_list_iterate_end LIST_ITERATE_END
+
+struct action_list *action_list_by_result(enum action_result result);
+struct action_list *action_list_by_activity(enum unit_activity activity);
+
+/* TODO: Turn this to an iteration over precalculated list */
+#define action_noninternal_iterate(_act_)              \
+{                                                      \
+  action_iterate(_act_) {                              \
+    if (!action_id_is_internal(_act_)) {
+
+#define action_noninternal_iterate_end                 \
+    }                                                  \
+  } action_iterate_end;                                \
+}
+
+#define action_by_result_iterate(_paction_, _result_)                     \
+{                                                                         \
+  action_list_iterate(action_list_by_result(_result_), _paction_) {       \
 
 #define action_by_result_iterate_end                                      \
-  } action_iterate_end;                                                   \
+  } action_list_iterate_end;                                              \
 }
 
-#define action_by_activity_iterate(_paction_, _act_id_, _activity_)       \
+#define action_by_activity_iterate(_paction_, _activity_)                 \
 {                                                                         \
-  action_iterate(_act_id_) {                                              \
-    struct action *_paction_ = action_by_number(_act_id_);                \
-    if (action_get_activity(_paction_) != _activity_) {                   \
-      continue;                                                           \
-    }
+  action_list_iterate(action_list_by_activity(_activity_), _paction_) {
 
 #define action_by_activity_iterate_end                                    \
-  } action_iterate_end;                                                   \
+  } action_list_iterate_end;                                              \
 }
 
 #define action_array_iterate(_act_array_, _act_id_)                         \
@@ -630,7 +681,8 @@ bool action_requires_details(const struct action *paction);
 int action_get_act_time(const struct action *paction,
                         const struct unit *actor_unit,
                         const struct tile *tgt_tile,
-                        const struct extra_type *tgt_extra);
+                        const struct extra_type *tgt_extra)                \
+  fc__attribute((nonnull (1)));
 #define action_id_get_act_time(act_id, actor_unit, tgt_tile, tgt_extra)    \
   action_get_act_time(action_by_number(act_id),                            \
                       actor_unit, tgt_tile, tgt_extra)
@@ -659,14 +711,15 @@ int action_get_role(const struct action *paction);
 #define action_id_get_role(act_id)                                        \
   action_get_role(action_by_number(act_id))
 
-enum unit_activity action_get_activity(const struct action *paction);
+#define action_get_activity(_pact_)                                       \
+  actres_activity_result(_pact_->result)
 #define action_id_get_activity(act_id)                                    \
   action_get_activity(action_by_number(act_id))
 
 const char *action_rule_name(const struct action *action);
 const char *action_id_rule_name(action_id act_id);
 
-const char *action_name_translation(const struct action *action);
+const char *action_name_translation(const struct action *paction);
 const char *action_id_name_translation(action_id act_id);
 const char *action_get_ui_name_mnemonic(action_id act_id,
                                         const char *mnemonic);
@@ -906,6 +959,9 @@ bool action_mp_full_makes_legal(const struct unit *actor,
                                 const action_id act_id);
 
 bool action_is_in_use(struct action *paction);
+
+bool action_is_internal(struct action *paction);
+bool action_id_is_internal(action_id act);
 
 /* Action lists */
 void action_array_end(action_id *act_array, int size);

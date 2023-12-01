@@ -110,7 +110,7 @@ struct theme_icons {
   SDL_Surface *o_wait_icon;
   SDL_Surface *o_done_icon;
   SDL_Surface *o_autoexp_icon;
-  SDL_Surface *o_autosett_icon;
+  SDL_Surface *o_autowork_icon;
   SDL_Surface *o_autoconnect_icon;
   SDL_Surface *o_unload_icon;
   SDL_Surface *o_build_city_icon;
@@ -133,8 +133,6 @@ struct theme_icons {
   SDL_Surface *o_nuke_icon;
   SDL_Surface *o_fortress_icon;
   SDL_Surface *o_clean_icon;
-  SDL_Surface *o_fallout_icon;
-  SDL_Surface *o_pollution_icon;
   SDL_Surface *o_airbase_icon;
   SDL_Surface *o_transform_icon;
   SDL_Surface *OAddCity_Icon;

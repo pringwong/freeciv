@@ -152,9 +152,10 @@ static void wipe_unit_full(struct unit *punit, bool transported,
                            enum unit_loss_reason reason,
                            struct player *killer);
 
-static int get_unit_vision_base(struct unit *punit, enum vision_layer vlayer,
+static int get_unit_vision_base(const struct unit *punit,
+                                enum vision_layer vlayer,
                                 const int base);
-static int unit_vision_range_modifiers(struct unit *punit,
+static int unit_vision_range_modifiers(const struct unit *punit,
                                        const struct tile *ptile);
 
 /**********************************************************************//**
@@ -250,7 +251,7 @@ static bool maybe_become_veteran_real(struct unit *punit, int base_chance,
   fc_assert_ret_val(vlevel != NULL, FALSE);
 
   if (punit->veteran + 1 >= vsystem->levels
-      || unit_has_type_flag(punit, UTYF_NO_VETERAN)) {
+      || !is_action_enabled_unit_on_self(ACTION_GAIN_VETERANCY, punit)) {
     return FALSE;
   } else if (!settler) {
     int mod = base_chance + get_unit_bonus(punit, EFT_VETERAN_COMBAT);
@@ -293,6 +294,7 @@ bool unit_versus_unit(struct unit *attacker, struct unit *defender,
   int attack_firepower, defense_firepower;
   struct player *plr1 = unit_owner(attacker);
   struct player *plr2 = unit_owner(defender);
+  struct civ_map *nmap = &(wld.map);
   int max_rounds;
   int rounds;
   int att_strength;
@@ -300,7 +302,7 @@ bool unit_versus_unit(struct unit *attacker, struct unit *defender,
 
   *att_hp = attacker->hp;
   *def_hp = defender->hp;
-  get_modified_firepower(attacker, defender,
+  get_modified_firepower(nmap, attacker, defender,
 			 &attack_firepower, &defense_firepower);
 
   log_verbose("attack:%d, defense:%d, attack firepower:%d, "
@@ -356,16 +358,16 @@ void unit_bombs_unit(struct unit *attacker, struct unit *defender,
 {
   int i;
   int rate = unit_bombard_rate(attacker);
-
   int attackpower = get_total_attack_power(attacker, defender, paction);
   int defensepower = get_total_defense_power(attacker, defender);
   int attack_firepower, defense_firepower;
   struct player *plr1 = unit_owner(attacker);
   struct player *plr2 = unit_owner(defender);
+  struct civ_map *nmap = &(wld.map);
 
   *att_hp = attacker->hp;
   *def_hp = defender->hp;
-  get_modified_firepower(attacker, defender,
+  get_modified_firepower(nmap, attacker, defender,
                          &attack_firepower, &defense_firepower);
 
   log_verbose("attack:%d, defense:%d, attack firepower:%d, "
@@ -474,6 +476,8 @@ static void do_upgrade_effects(struct player *pplayer)
 **************************************************************************/
 void player_restore_units(struct player *pplayer)
 {
+  const struct civ_map *nmap = &(wld.map);
+
   /* 1) get Leonardo out of the way first: */
   do_upgrade_effects(pplayer);
 
@@ -518,12 +522,11 @@ void player_restore_units(struct player *pplayer)
         if (carrier) {
           unit_transport_load_tp_status(punit, carrier, FALSE);
         } else {
-          bool alive = true;
-
           struct pf_map *pfm;
           struct pf_parameter parameter;
+          bool alive = TRUE;
 
-          pft_fill_unit_parameter(&parameter, punit);
+          pft_fill_unit_parameter(&parameter, nmap, punit);
           parameter.omniscience = !has_handicap(pplayer, H_MAP);
           pfm = pf_map_new(&parameter);
 
@@ -902,14 +905,12 @@ static void update_unit_activity(struct unit *punit)
     break;
 
   case ACTIVITY_CLEAN:
-  case ACTIVITY_POLLUTION:
   case ACTIVITY_MINE:
   case ACTIVITY_IRRIGATE:
   case ACTIVITY_PILLAGE:
   case ACTIVITY_CULTIVATE:
   case ACTIVITY_PLANT:
   case ACTIVITY_TRANSFORM:
-  case ACTIVITY_FALLOUT:
   case ACTIVITY_BASE:
   case ACTIVITY_GEN_ROAD:
     punit->activity_count += get_activity_rate_this_turn(punit);
@@ -956,32 +957,18 @@ static void update_unit_activity(struct unit *punit)
      *       set */
     {
       struct extra_type *pextra;
-      struct extra_type *fextra;
 
       if (punit->activity_target == NULL) {
-        pextra = prev_extra_in_tile(ptile, ERM_CLEANPOLLUTION,
+        pextra = prev_extra_in_tile(ptile, ERM_CLEAN,
                                     NULL, punit);
-
         if (pextra != NULL) {
           punit->activity_target = pextra;
-          fextra = NULL; /* fextra not needed, keep compiler happy */
-        } else {
-          fextra = prev_extra_in_tile(ptile, ERM_CLEANFALLOUT,
-                                      NULL, punit);
-          punit->activity_target = fextra;
         }
       } else {
-        if (is_extra_removed_by(punit->activity_target, ERM_CLEANPOLLUTION)) {
+        if (is_extra_removed_by(punit->activity_target, ERM_CLEAN)) {
           pextra = punit->activity_target;
-          fextra = NULL; /* fextra not needed, keep compiler happy */
         } else {
           pextra = NULL;
-
-          if (is_extra_removed_by(punit->activity_target, ERM_CLEANFALLOUT)) {
-            fextra = punit->activity_target;
-          } else {
-            fextra = NULL;
-          }
         }
       }
 
@@ -990,38 +977,7 @@ static void update_unit_activity(struct unit *punit)
           destroy_extra(ptile, pextra);
           unit_activity_done = TRUE;
         }
-      } else if (fextra != NULL) {
-        if (total_activity_done(ptile, ACTIVITY_CLEAN, fextra)) {
-          destroy_extra(ptile, fextra);
-          unit_activity_done = TRUE;
-        }
       }
-    }
-    break;
-
-  case ACTIVITY_POLLUTION:
-    /* TODO: Remove this fallback target setting when target always correctly
-     *       set */
-    if (punit->activity_target == NULL) {
-      punit->activity_target = prev_extra_in_tile(ptile, ERM_CLEANPOLLUTION,
-                                                  NULL, punit);
-    }
-    if (total_activity_done(ptile, ACTIVITY_POLLUTION, punit->activity_target)) {
-      destroy_extra(ptile, punit->activity_target);
-      unit_activity_done = TRUE;
-    }
-    break;
-
-  case ACTIVITY_FALLOUT:
-    /* TODO: Remove this fallback target setting when target always correctly
-     *       set */
-    if (punit->activity_target == NULL) {
-      punit->activity_target = prev_extra_in_tile(ptile, ERM_CLEANFALLOUT,
-                                                  NULL, punit);
-    }
-    if (total_activity_done(ptile, ACTIVITY_FALLOUT, punit->activity_target)) {
-      destroy_extra(ptile, punit->activity_target);
-      unit_activity_done = TRUE;
     }
     break;
 
@@ -1200,9 +1156,10 @@ static bool find_a_good_partisan_spot(struct tile *pcenter,
                                       struct tile **dst_tile)
 {
   int bestvalue = 0;
+  struct civ_map *nmap = &(wld.map);
 
   /* coords of best tile in arg pointers */
-  circle_iterate(&(wld.map), pcenter, sq_radius, ptile) {
+  circle_iterate(nmap, pcenter, sq_radius, ptile) {
     int value;
 
     if (!is_native_tile(u_type, ptile)) {
@@ -1218,8 +1175,8 @@ static bool find_a_good_partisan_spot(struct tile *pcenter,
     }
 
     /* City may not have changed hands yet; see place_partisans(). */
-    value = get_virtual_defense_power(NULL, u_type, powner,
-				      ptile, FALSE, 0);
+    value = get_virtual_defense_power(nmap, NULL, u_type, powner,
+                                      ptile, FALSE, 0);
     value *= 10;
 
     if (tile_continent(ptile) != tile_continent(pcenter)) {
@@ -1306,7 +1263,6 @@ void bounce_unit(struct unit *punit, bool verbose)
 {
   struct player *pplayer;
   struct tile *punit_tile;
-  struct unit_list *pcargo_units;
   int count = 0;
 
   /* I assume that there are no topologies that have more than
@@ -1346,6 +1302,7 @@ void bounce_unit(struct unit *punit, bool verbose)
                     _("Moved your %s."),
                     unit_link(punit));
     }
+
     /* TODO: should a unit be able to bounce to a transport like is done
      * below? What if the unit can't legally enter the transport, say
      * because the transport is Unreachable and the unit doesn't have it in
@@ -1358,10 +1315,12 @@ void bounce_unit(struct unit *punit, bool verbose)
   /* Didn't find a place to bounce the unit, going to disband it.
    * Try to bounce transported units. */
   if (0 < get_transporter_occupancy(punit)) {
+    struct unit_list *pcargo_units;
+
     pcargo_units = unit_transport_cargo(punit);
-    unit_list_iterate(pcargo_units, pcargo) {
+    unit_list_iterate_safe(pcargo_units, pcargo) {
       bounce_unit(pcargo, verbose);
-    } unit_list_iterate_end;
+    } unit_list_iterate_safe_end;
   }
 
   if (verbose) {
@@ -1370,9 +1329,9 @@ void bounce_unit(struct unit *punit, bool verbose)
                   _("Disbanded your %s."),
                   unit_tile_link(punit));
   }
+
   wipe_unit(punit, ULR_STACK_CONFLICT, NULL);
 }
-
 
 /**********************************************************************//**
   Throw pplayer's units from non-allied cities
@@ -1458,10 +1417,10 @@ static void resolve_stack_conflicts(struct player *pplayer,
           bounce_unit(aunit, verbose);
         }
       } unit_list_iterate_safe_end;
-    }    
+    }
   } unit_list_iterate_safe_end;
 }
-				
+
 /**********************************************************************//**
   When in civil war or an alliance breaks there will potentially be units
   from both sides coexisting on the same squares.  This routine resolves
@@ -1657,7 +1616,7 @@ void transform_unit(struct unit *punit, const struct unit_type *to_unit,
     unit_activities_cancel(punit);
   }
 
-  /* update unit upkeep */
+  /* Update unit upkeep */
   city_units_upkeep(game_city_by_number(punit->homecity));
 
   conn_list_do_buffer(pplayer->connections);
@@ -2022,6 +1981,7 @@ static void wipe_unit_full(struct unit *punit, bool transported,
   struct unit_list *unsaved = unit_list_new();
   struct unit *ptrans = unit_transport_get(punit);
   struct city *pexclcity;
+  struct civ_map *nmap = &(wld.map);
 
   if (killer != NULL
       && (game.info.gameloss_style & GAMELOSS_STYLE_LOOT)
@@ -2058,16 +2018,16 @@ static void wipe_unit_full(struct unit *punit, bool transported,
       if (!can_unit_unload(pcargo, punit)) {
         unit_list_prepend(helpless, pcargo);
       } else {
-        if (!can_unit_exist_at_tile(&(wld.map), pcargo, ptile)) {
+        if (!can_unit_exist_at_tile(nmap, pcargo, ptile)) {
           unit_list_prepend(imperiled, pcargo);
         } else {
-        /* These units do not need to be saved. */
+          /* These units do not need to be saved. */
           healthy = TRUE;
         }
       }
 
-      /* Could use unit_transport_unload_send here, but that would
-       * call send_unit_info for the transporter unnecessarily.
+      /* Could use unit_transport_unload_send() here, but that would
+       * call send_unit_info() for the transporter unnecessarily.
        * Note that this means that unit might to get seen briefly
        * by clients other than owner's, for example as a result of
        * update of homecity common to this cargo and some other
@@ -2254,6 +2214,7 @@ static bool try_to_save_unit(struct unit *punit, const struct unit_type *pttype,
       }
     }
   }
+
   /* The unit could not use transport on the tile, and could not teleport. */
   return FALSE;
 }
@@ -2321,6 +2282,7 @@ struct unit *unit_change_owner(struct unit *punit, struct player *pplayer,
     /* Destroyed by a script */
     return NULL;
   }
+
   return gained_unit;   /* Returns the replacement. */
 }
 
@@ -3371,6 +3333,7 @@ static bool unit_survive_autoattack(struct unit *punit)
   struct autoattack_prob_list *autoattack;
   int moves = punit->moves_left;
   int sanity1 = punit->id;
+  struct civ_map *nmap = &(wld.map);
 
   if (!game.server.autoattack) {
     return TRUE;
@@ -3381,7 +3344,7 @@ static bool unit_survive_autoattack(struct unit *punit)
   /* Kludge to prevent attack power from dropping to zero during calc */
   punit->moves_left = MAX(punit->moves_left, 1);
 
-  adjc_iterate(&(wld.map), unit_tile(punit), ptile) {
+  adjc_iterate(nmap, unit_tile(punit), ptile) {
     /* First add all eligible units to a autoattack list */
     unit_list_iterate(ptile->units, penemy) {
       struct autoattack_prob *probability = fc_malloc(sizeof(*probability));
@@ -3413,7 +3376,7 @@ static bool unit_survive_autoattack(struct unit *punit)
   autoattack_prob_list_iterate_safe(autoattack, peprob, penemy) {
     int sanity2 = penemy->id;
     struct tile *ptile = unit_tile(penemy);
-    struct unit *enemy_defender = get_defender(punit, ptile, NULL);
+    struct unit *enemy_defender = get_defender(nmap, punit, ptile, NULL);
     double punitwin, penemywin;
     double threshold = 0.25;
     struct tile *tgt_tile = unit_tile(punit);
@@ -3426,7 +3389,7 @@ static bool unit_survive_autoattack(struct unit *punit)
     }
 
     if (NULL != enemy_defender) {
-      punitwin = unit_win_chance(punit, enemy_defender, NULL);
+      punitwin = unit_win_chance(nmap, punit, enemy_defender, NULL);
     } else {
       /* 'penemy' can attack 'punit' but it may be not reciproque. */
       punitwin = 1.0;
@@ -3658,7 +3621,7 @@ static bool unit_move_consequences(struct unit *punit,
     }
   }
 
-  /* entering/leaving a fortress or friendly territory */
+  /* Entering/leaving a fortress or friendly territory */
   if (homecity_start_pos || homecity_end_pos) {
     bool friendly_end = FALSE;
 
@@ -3719,8 +3682,6 @@ static void check_unit_activity(struct unit *punit)
   case ACTIVITY_GOTO:
     break;
   case ACTIVITY_CLEAN:
-  case ACTIVITY_POLLUTION:
-  case ACTIVITY_FALLOUT:
   case ACTIVITY_MINE:
   case ACTIVITY_IRRIGATE:
   case ACTIVITY_CULTIVATE:
@@ -3741,9 +3702,9 @@ static void check_unit_activity(struct unit *punit)
 /**********************************************************************//**
   Create a new unit move data, or use previous one if available.
 **************************************************************************/
-static struct unit_move_data *unit_move_data(struct unit *punit,
-                                             struct tile *psrctile,
-                                             struct tile *pdesttile)
+static struct unit_move_data *unit_move_data_get(struct unit *punit,
+                                                 const struct tile *psrctile,
+                                                 const struct tile *pdesttile)
 {
   struct unit_move_data *pdata;
   struct player *powner = unit_owner(punit);
@@ -3777,15 +3738,16 @@ static struct unit_move_data *unit_move_data(struct unit *punit,
   Move the unit using move_data.
 **************************************************************************/
 static void unit_move_by_data(struct unit_move_data *pdata,
-                              struct tile *psrctile, struct tile *pdesttile)
+                              const struct tile *psrctile,
+                              struct tile *pdesttile)
 {
   struct vision *new_vision;
   struct unit *punit = pdata->punit;
   int mod = unit_vision_range_modifiers(punit, pdesttile);
-  const v_radius_t radius_sq =
-    V_RADIUS(get_unit_vision_base(punit, V_MAIN, mod),
-             get_unit_vision_base(punit, V_INVIS, mod),
-             get_unit_vision_base(punit, V_SUBSURFACE, mod));
+  const v_radius_t radius_sq
+    = V_RADIUS(get_unit_vision_base(punit, V_MAIN, mod),
+               get_unit_vision_base(punit, V_INVIS, mod),
+               get_unit_vision_base(punit, V_SUBSURFACE, mod));
 
   /* Remove unit from the source tile. */
   fc_assert(unit_tile(punit) == psrctile);
@@ -3845,8 +3807,79 @@ static void unit_move_data_unref(struct unit_move_data *pdata)
 }
 
 /**********************************************************************//**
+  Construct list of move datas of the unit and it its cargo.
+**************************************************************************/
+static struct unit_move_data_list *construct_move_data_list(struct unit *punit,
+                                                            const struct tile *psrctile,
+                                                            struct tile *pdesttile,
+                                                            bool adj)
+{
+  struct unit_move_data_list *plist
+    = unit_move_data_list_new_full(unit_move_data_unref);
+  struct unit_move_data *pdata;
+
+  /* Make new data for 'punit'. */
+  pdata = unit_move_data_get(punit, psrctile, pdesttile);
+  unit_move_data_list_prepend(plist, pdata);
+
+  /* Add all contained units. */
+  unit_cargo_iterate(punit, pcargo) {
+    struct unit_move_data *cargo_data;
+
+    cargo_data = unit_move_data_get(pcargo, psrctile, pdesttile);
+    unit_move_data_list_append(plist, cargo_data);
+  } unit_cargo_iterate_end;
+
+  /* Determine the players able to see the move(s), now that the player
+   * vision has been increased. */
+  if (adj) {
+    /* Main unit for adjacent move: the move is visible for every player
+     * able to see on the matching unit layer. */
+    enum vision_layer vlayer = unit_type_get(punit)->vlayer;
+
+    players_iterate(oplayer) {
+      if (map_is_known_and_seen(psrctile, oplayer, vlayer)
+          || map_is_known_and_seen(pdesttile, oplayer, vlayer)) {
+        BV_SET(pdata->can_see_unit, player_index(oplayer));
+        BV_SET(pdata->can_see_move, player_index(oplayer));
+      }
+    } players_iterate_end;
+  }
+
+  unit_move_data_list_iterate(plist, pmove_data) {
+
+    unit_move_by_data(pmove_data, psrctile, pdesttile);
+
+    if (adj && pmove_data->punit == punit) {
+      /* If positions are adjacent, we have already handled 'punit'. See
+       * above. */
+      continue;
+    }
+
+    players_iterate(oplayer) {
+      if ((adj
+           && can_player_see_unit_at(oplayer, pmove_data->punit, psrctile,
+                                     pmove_data != pdata))
+          || can_player_see_unit_at(oplayer, pmove_data->punit, pdesttile,
+                                    pmove_data != pdata)) {
+        BV_SET(pmove_data->can_see_unit, player_index(oplayer));
+        BV_SET(pmove_data->can_see_move, player_index(oplayer));
+      }
+      if (can_player_see_unit_at(oplayer, pmove_data->punit, psrctile,
+                                 pmove_data != pdata)) {
+        /* The unit was seen with its source tile even if it was
+         * teleported. */
+        BV_SET(pmove_data->can_see_unit, player_index(oplayer));
+      }
+    } players_iterate_end;
+  } unit_move_data_list_iterate_end;
+
+  return plist;
+}
+
+/**********************************************************************//**
   Moves a unit. No checks whatsoever! This is meant as a practical
-  function for other functions, like do_airline, which do the checking
+  function for other functions, like do_airline(), which do the checking
   themselves.
 
   If you move a unit you should always use this function, as it also sets
@@ -3862,12 +3895,12 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
 {
   struct player *pplayer;
   struct tile *psrctile;
-  struct city *pcity;
+  struct city *psrccity;
+  struct city *pdestcity;
   struct unit *ptransporter;
   struct packet_unit_info src_info, dest_info;
   struct packet_unit_short_info src_sinfo, dest_sinfo;
-  struct unit_move_data_list *plist =
-      unit_move_data_list_new_full(unit_move_data_unref);
+  struct unit_move_data_list *plist;
   struct unit_move_data *pdata;
   int saved_id;
   bool unit_lives;
@@ -3906,15 +3939,13 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
     package_short_unit(punit, &src_sinfo, UNIT_INFO_IDENTITY, 0);
   }
 
-  /* Make new data for 'punit'. */
-  pdata = unit_move_data(punit, psrctile, pdesttile);
-  unit_move_data_list_prepend(plist, pdata);
-
   /* Set unit orientation */
   if (adj) {
     /* Only change orientation when moving to adjacent tile */
     punit->facing = facing;
   }
+
+  plist = construct_move_data_list(punit, psrctile, pdesttile, adj);
 
   /* Move magic. */
   punit->moved = TRUE;
@@ -3928,8 +3959,7 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   punit->action_decision_tile = NULL;
   punit->action_decision_want = ACT_DEC_NOTHING;
 
-  if (!adj
-      && action_tgt_city(punit, pdesttile, FALSE)) {
+  if (!adj && action_tgt_city(punit, pdesttile, FALSE)) {
     /* The unit can perform an action to the city at the destination tile.
      * A long distance move (like an airlift) doesn't ask what action to
      * perform before moving. Ask now. */
@@ -3948,63 +3978,15 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
     tile_claim_bases(pdesttile, pplayer);
   }
 
-  /* Move all contained units. */
-  unit_cargo_iterate(punit, pcargo) {
-    pdata = unit_move_data(pcargo, psrctile, pdesttile);
-    unit_move_data_list_append(plist, pdata);
-  } unit_cargo_iterate_end;
-
-  /* Get data for 'punit'. */
   pdata = unit_move_data_list_front(plist);
-
-  /* Determine the players able to see the move(s), now that the player
-   * vision has been increased. */
-  if (adj) {
-    /*  Main unit for adjacent move: the move is visible for every player
-     * able to see on the matching unit layer. */
-    enum vision_layer vlayer = unit_type_get(punit)->vlayer;
-
-    players_iterate(oplayer) {
-      if (map_is_known_and_seen(psrctile, oplayer, vlayer)
-          || map_is_known_and_seen(pdesttile, oplayer, vlayer)) {
-        BV_SET(pdata->can_see_unit, player_index(oplayer));
-        BV_SET(pdata->can_see_move, player_index(oplayer));
-      }
-    } players_iterate_end;
-  }
-
-  unit_move_data_list_iterate(plist, pmove_data) {
-
-    unit_move_by_data(pmove_data, psrctile, pdesttile);
-
-    if (adj && pmove_data == pdata) {
-      /* If positions are adjacent, we have already handled 'punit'. See
-       * above. */
-      continue;
-    }
-
-    players_iterate(oplayer) {
-      if ((adj
-           && can_player_see_unit_at(oplayer, pmove_data->punit, psrctile,
-                                     pmove_data != pdata))
-          || can_player_see_unit_at(oplayer, pmove_data->punit, pdesttile,
-                                    pmove_data != pdata)) {
-        BV_SET(pmove_data->can_see_unit, player_index(oplayer));
-        BV_SET(pmove_data->can_see_move, player_index(oplayer));
-      }
-      if (can_player_see_unit_at(oplayer, pmove_data->punit, psrctile,
-                                 pmove_data != pdata)) {
-        /* The unit was seen with its source tile even if it was
-         * teleported. */
-        BV_SET(pmove_data->can_see_unit, player_index(oplayer));
-      }
-    } players_iterate_end;
-  } unit_move_data_list_iterate_end;
+  fc_assert(pdata->punit == punit);
 
   /* Check timeout settings. */
   if (current_turn_timeout() != 0 && game.server.timeoutaddenemymove > 0) {
     bool new_information_for_enemy = FALSE;
 
+    /* FIXME: Seen enemy cargo in a non-enemy transport should count too,
+    *         if they are ever seen. */
     phase_players_iterate(penemy) {
       /* Increase the timeout if an enemy unit moves and the
        * timeoutaddenemymove setting is in use. */
@@ -4158,7 +4140,8 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   /* Inform the owner's client about actor unit arrival. Can, depending on
    * the client settings, cause the client to start the process that makes
    * the action selection dialog pop up. */
-  if ((pcity = tile_city(pdesttile))) {
+  pdestcity = tile_city(pdesttile);
+  if (pdestcity != NULL) {
     /* Arrival in a city counts. */
 
     unit_move_data_list_iterate(plist, pmove_data) {
@@ -4231,13 +4214,13 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   }
 
   unit_move_data_list_destroy(plist);
-
   /* Check cities at source and destination. */
-  if ((pcity = tile_city(psrctile))) {
-    refresh_dumb_city(pcity);
+  psrccity = tile_city(psrctile);
+  if (psrccity != NULL) {
+    refresh_dumb_city(psrccity);
   }
-  if ((pcity = tile_city(pdesttile))) {
-    refresh_dumb_city(pcity);
+  if (pdestcity != NULL) {
+    refresh_dumb_city(pdestcity);
   }
 
   if (unit_lives) {
@@ -4766,7 +4749,8 @@ bool execute_orders(struct unit *punit, const bool fresh)
   Note that vision MUST be independent of transported_by for this to work
   properly.
 **************************************************************************/
-static int get_unit_vision_base(struct unit *punit, enum vision_layer vlayer,
+static int get_unit_vision_base(const struct unit *punit,
+                                enum vision_layer vlayer,
                                 const int base)
 {
   switch (vlayer) {
@@ -4787,7 +4771,7 @@ static int get_unit_vision_base(struct unit *punit, enum vision_layer vlayer,
 /**********************************************************************//**
   Return unit vision range modifiers unit would have at the given tile.
 **************************************************************************/
-static int unit_vision_range_modifiers(struct unit *punit,
+static int unit_vision_range_modifiers(const struct unit *punit,
                                        const struct tile *ptile)
 {
   const struct unit_type *utype = unit_type_get(punit);
@@ -4805,7 +4789,7 @@ static int unit_vision_range_modifiers(struct unit *punit,
   Note that vision MUST be independent of transported_by for this to work
   properly.
 **************************************************************************/
-int get_unit_vision_at(struct unit *punit, const struct tile *ptile,
+int get_unit_vision_at(const struct unit *punit, const struct tile *ptile,
                        enum vision_layer vlayer)
 {
   return get_unit_vision_base(punit, vlayer,
@@ -4823,8 +4807,8 @@ void unit_refresh_vision(struct unit *punit)
   struct vision *uvision = punit->server.vision;
   const struct tile *utile = unit_tile(punit);
   int mod = unit_vision_range_modifiers(punit, utile);
-  const v_radius_t radius_sq =
-      V_RADIUS(get_unit_vision_base(punit, V_MAIN, mod),
+  const v_radius_t radius_sq
+    = V_RADIUS(get_unit_vision_base(punit, V_MAIN, mod),
                get_unit_vision_base(punit, V_INVIS, mod),
                get_unit_vision_base(punit, V_SUBSURFACE, mod));
 
@@ -4922,11 +4906,8 @@ void random_movements(struct player *pplayer)
       int id = punit->id;
 
       while (moved && unit_is_alive(id) && punit->moves_left > 0) {
-        /* Search for random direction to move to mostly copied from
-         * rand_neighbour() */
-
         /*
-         * list of all 8 directions
+         * List of all 8 directions
          */
         enum direction8 dirs[8] = {
           DIR8_NORTHWEST, DIR8_NORTH, DIR8_NORTHEAST, DIR8_WEST, DIR8_EAST,
@@ -4941,7 +4922,8 @@ void random_movements(struct player *pplayer)
           struct tile *dest = mapstep(&(wld.map), curtile, dirs[choice]);
 
           if (dest != NULL) {
-            if (action_prob_possible(action_prob_vs_units(punit, ACTION_ATTACK, dest))) {
+            if (action_prob_possible(action_prob_vs_units(punit, ACTION_ATTACK,
+                                                          dest))) {
               if (unit_perform_action(pplayer, id, tile_index(dest), NO_TARGET,
                                       "", ACTION_ATTACK, ACT_REQ_RULES)) {
                 moved = TRUE;
@@ -4950,21 +4932,25 @@ void random_movements(struct player *pplayer)
             }
 
             if (!moved) {
-              if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE, punit, dest, NULL)) {
-                if (unit_perform_action(pplayer, id, tile_index(dest), NO_TARGET,
-                                        "", ACTION_UNIT_MOVE, ACT_REQ_RULES)) {
+              if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE, punit, dest,
+                                                 NULL)) {
+                if (unit_perform_action(pplayer, id, tile_index(dest),
+                                        NO_TARGET, "", ACTION_UNIT_MOVE,
+                                        ACT_REQ_RULES)) {
                   moved = TRUE;
                 }
-              } else if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE2, punit, dest,
-                                                        NULL)) {
-                if (unit_perform_action(pplayer, id, tile_index(dest), NO_TARGET,
-                                        "", ACTION_UNIT_MOVE2, ACT_REQ_RULES)) {
+              } else if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE2,
+                                                        punit, dest, NULL)) {
+                if (unit_perform_action(pplayer, id, tile_index(dest),
+                                        NO_TARGET, "", ACTION_UNIT_MOVE2,
+                                        ACT_REQ_RULES)) {
                   moved = TRUE;
                 }
-              } else if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE3, punit, dest,
-                                                        NULL)) {
-                if (unit_perform_action(pplayer, id, tile_index(dest), NO_TARGET,
-                                        "", ACTION_UNIT_MOVE3, ACT_REQ_RULES)) {
+              } else if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE3,
+                                                        punit, dest, NULL)) {
+                if (unit_perform_action(pplayer, id, tile_index(dest),
+                                        NO_TARGET, "", ACTION_UNIT_MOVE3,
+                                        ACT_REQ_RULES)) {
                   moved = TRUE;
                 }
               }
@@ -4972,8 +4958,9 @@ void random_movements(struct player *pplayer)
           }
 
           if (!moved) {
-            /* Choice was bad, so replace it with the last direction in the list.
-             * On the next iteration, one fewer choices will remain. */
+            /* Choice was bad, so replace it with the last direction
+             * in the list. On the next iteration, one fewer choice
+             * will remain. */
             dirs[choice] = dirs[n - 1];
           }
         }

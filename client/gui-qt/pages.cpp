@@ -524,7 +524,7 @@ void fc_client::create_load_page()
   connect(saves_load->selectionModel(),
           &QItemSelectionModel::selectionChanged, this,
           &fc_client::slot_selection_changed);
-  connect(show_preview, &QCheckBox::stateChanged, this, 
+  connect(show_preview, &QCheckBox::stateChanged, this,
           &fc_client::state_preview);
   pages_layout[PAGE_LOAD]->addWidget(wdg, 1, 0);
   pages_layout[PAGE_LOAD]->addWidget(load_save_text, 2, 0, 1, 2);
@@ -1362,7 +1362,11 @@ void fc_client::slot_selection_changed(const QItemSelection &selected,
           load_pix->setPixmap(*(new QPixmap));
         }
 
+#ifdef FC_QT5_MODE
         QPixmap pm = load_pix->pixmap(Qt::ReturnByValue);
+#else  // FC_QT5_MODE
+        QPixmap pm = load_pix->pixmap();
+#endif // FC_QT5_MODE
 
         load_pix->setFixedSize(pm.width(),
                                pm.height());
@@ -1625,7 +1629,7 @@ void fc_client::slot_connect()
     sz_strlcpy(reply.password,
                ba_bytes.data());
 
-    if (strncmp(reply.password, fc_password, MAX_LEN_NAME) == 0) {
+    if (!fc_strncmp(reply.password, fc_password, MAX_LEN_NAME)) {
       fc_password[0] = '\0';
       send_packet_authentication_reply(&client.conn, &reply);
       set_connection_state(WAITING_TYPE);
@@ -1946,22 +1950,17 @@ void fc_client::update_buttons()
 void fc_client::start_page_menu(QPoint pos)
 {
   QAction *action;
-  QMenu *menu, *submenu_AI, *submenu_team;
   QPoint global_pos = start_players_tree->mapToGlobal(pos);
   QString me, splayer, str, sp;
   bool need_empty_team;
   const char *level_cmd, *level_name;
   int level, count;
-  player *selected_player;
   QVariant qvar, qvar2;
 
   me = client.conn.username;
   QTreeWidgetItem *item = start_players_tree->itemAt(pos);
 
-  menu = new QMenu(this);
-  submenu_AI = new QMenu(this);
-  submenu_team = new QMenu(this);
-  if (!item) {
+  if (item == nullptr) {
     return;
   }
 
@@ -1973,16 +1972,15 @@ void fc_client::start_page_menu(QPoint pos)
    * qvar = 1 -> selected player (stored in qvar2)
    */
 
-  selected_player = NULL;
-  if (qvar == 0) {
-    return;
-  }
   if (qvar == 1) {
-    selected_player = (player *) qvar2.value < void *>();
-  }
+    player *pplayer = (player *) qvar2.value < void *>();
 
-  players_iterate(pplayer) {
-    if (selected_player && selected_player == pplayer) {
+    if (pplayer != nullptr) {
+      QMenu *page_menu = new QMenu(this);
+
+      page_submenu_AI = new QMenu(this);
+      page_submenu_team = new QMenu(this);
+
       splayer = QString(pplayer->name);
       sp = "\"" + splayer + "\"";
       if (me != splayer) {
@@ -1992,7 +1990,7 @@ void fc_client::start_page_menu(QPoint pos)
         QObject::connect(action, &QAction::triggered, [this,str]() {
           send_fake_chat_message(str);
         });
-        menu->addAction(action);
+        page_menu->addAction(action);
 
         if (ALLOW_CTRL <= client.conn.access_level) {
           str = QString(_("Remove player"));
@@ -2001,7 +1999,7 @@ void fc_client::start_page_menu(QPoint pos)
           QObject::connect(action, &QAction::triggered, [this,str]() {
             send_fake_chat_message(str);
           });
-          menu->addAction(action);
+          page_menu->addAction(action);
         }
         str = QString(_("Take this player"));
         action = new QAction(str, start_players_tree);
@@ -2009,7 +2007,7 @@ void fc_client::start_page_menu(QPoint pos)
         QObject::connect(action, &QAction::triggered, [this,str]() {
           send_fake_chat_message(str);
         });
-        menu->addAction(action);
+        page_menu->addAction(action);
       }
 
       if (can_conn_edit_players_nation(&client.conn, pplayer)) {
@@ -2019,14 +2017,14 @@ void fc_client::start_page_menu(QPoint pos)
         QObject::connect(action, &QAction::triggered, [this,str]() {
           send_fake_chat_message(str);
         });
-        menu->addAction(action);
+        page_menu->addAction(action);
       }
 
       if (is_ai(pplayer)) {
         // Set AI difficulty submenu
         if (ALLOW_CTRL <= client.conn.access_level) {
-          submenu_AI->setTitle(_("Set difficulty"));
-          menu->addMenu(submenu_AI);
+          page_submenu_AI->setTitle(_("Set difficulty"));
+          page_menu->addMenu(page_submenu_AI);
 
           for (level = 0; level < AI_LEVEL_COUNT; level++) {
             if (is_settable_ai_level(static_cast < ai_level > (level))) {
@@ -2037,19 +2035,19 @@ void fc_client::start_page_menu(QPoint pos)
               QObject::connect(action, &QAction::triggered, [this,str]() {
                 send_fake_chat_message(str);
               });
-              submenu_AI->addAction(action);
+              page_submenu_AI->addAction(action);
             }
           }
         }
       }
 
       // Put to Team X submenu
-      if (pplayer && game.info.is_new_game) {
-        menu->addMenu(submenu_team);
-        submenu_team->setTitle(_("Put on team"));
-        menu->addMenu(submenu_team);
+      if (game.info.is_new_game) {
+        page_menu->addMenu(page_submenu_team);
+        page_submenu_team->setTitle(_("Put on team"));
+        page_menu->addMenu(page_submenu_team);
         count = pplayer->team ?
-            player_list_size(team_members(pplayer->team)) : 0;
+          player_list_size(team_members(pplayer->team)) : 0;
         need_empty_team = (count != 1);
         team_slots_iterate(tslot) {
           if (!team_slot_is_used(tslot)) {
@@ -2061,33 +2059,31 @@ void fc_client::start_page_menu(QPoint pos)
           str = team_slot_name_translation(tslot);
           action = new QAction(str, start_players_tree);
           str = "/team" + sp + " \"" + QString(team_slot_rule_name(tslot))
-              + "\"";
+            + "\"";
           QObject::connect(action, &QAction::triggered, [this,str]() {
             send_fake_chat_message(str);
           });
-          submenu_team->addAction(action);
+          page_submenu_team->addAction(action);
         } team_slots_iterate_end;
       }
 
-      if (ALLOW_CTRL <= client.conn.access_level && NULL != pplayer) {
+      if (ALLOW_CTRL <= client.conn.access_level) {
         str = QString(_("Aitoggle player"));
         action = new QAction(str, start_players_tree);
         str = "/aitoggle " + sp;
         QObject::connect(action, &QAction::triggered, [this,str]() {
           send_fake_chat_message(str);
         });
-        menu->addAction(action);
+        page_menu->addAction(action);
       }
 
-      menu->popup(global_pos);
-      return;
+      page_menu->popup(global_pos);
     }
-  } players_iterate_end;
-
+  }
 }
 
 /**********************************************************************//**
-  Calls dialg selecting nations
+  Calls dialog selecting nations
 **************************************************************************/
 void fc_client::slot_pick_nation()
 {

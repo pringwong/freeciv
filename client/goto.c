@@ -552,8 +552,8 @@ bool goto_pop_waypoint(void)
   PF callback to get the path with the minimal number of steps (out of 
   all shortest paths).
 ****************************************************************************/
-static int get_EC(const struct tile *ptile, enum known_type known,
-                  const struct pf_parameter *param)
+static unsigned get_EC(const struct tile *ptile, enum known_type known,
+                       const struct pf_parameter *param)
 {
   return 1;
 }
@@ -688,7 +688,7 @@ static bool is_non_allied_city_adjacent(const struct player *pplayer,
 static int get_connect_road(const struct tile *src_tile, enum direction8 dir,
                             const struct tile *dest_tile,
                             int src_cost, int src_extra,
-                            int *dest_cost, int *dest_extra,
+                            unsigned *dest_cost, unsigned *dest_extra,
                             const struct pf_parameter *param)
 {
   int activity_time, move_cost, moves_left;
@@ -745,7 +745,7 @@ static int get_connect_road(const struct tile *src_tile, enum direction8 dir,
     total_cost += move_cost;
   }
 
-  /* Now need to include the activity cost.  If we have moves left, they
+  /* Now need to include the activity cost. If we have moves left, they
    * will count as a full turn towards the activity time */
   moves_left = param->move_rate - (total_cost % param->move_rate);
   if (activity_time > 0) {
@@ -758,9 +758,9 @@ static int get_connect_road(const struct tile *src_tile, enum direction8 dir,
   }
   total_cost += activity_time * param->move_rate;
 
-  /* Now we determine if we have found a better path.  When building
+  /* Now we determine if we have found a better path. When building
    * road type with positive move_cost, we care most about the length
-   * of the result.  When building road type with move_cost 0, we
+   * of the result. When building road type with move_cost 0, we
    * care most about construction time. */
 
   /* *dest_cost == -1 means we haven't reached dest until now */
@@ -799,7 +799,7 @@ static int get_connect_irrig(const struct tile *src_tile,
                              enum direction8 dir,
                              const struct tile *dest_tile,
                              int src_cost, int src_extra,
-                             int *dest_cost, int *dest_extra,
+                             unsigned *dest_cost, unsigned *dest_extra,
                              const struct pf_parameter *param)
 {
   int activity_time, move_cost, moves_left, total_cost;
@@ -888,7 +888,7 @@ no_fights_or_unknown_goto(const struct tile *ptile,
 static void goto_fill_parameter_base(struct pf_parameter *parameter,
                                      const struct unit *punit)
 {
-  pft_fill_unit_parameter(parameter, punit);
+  pft_fill_unit_parameter(parameter, &(wld.map), punit);
 
   fc_assert(parameter->get_EC == NULL);
   fc_assert(parameter->get_TB == NULL);
@@ -966,7 +966,7 @@ static void goto_fill_parameter_full(struct goto_map *goto_map,
     if (action_id_has_result_safe(goto_last_action, ACTRES_NUKE_UNITS)
         || action_id_has_result_safe(goto_last_action, ACTRES_NUKE)) {
       /* TODO: consider doing the same for other actor consuming actions. */
-      /* We only want targets reachable immediatly... */
+      /* We only want targets reachable immediately... */
       parameter->move_rate = 0;
       /* ...then we don't need to deal with dangers or refuel points. */
       parameter->is_pos_dangerous = NULL;
@@ -1506,6 +1506,7 @@ static void send_path_orders(struct unit *punit, struct pf_path *path,
 ****************************************************************************/
 static void send_rally_path_orders(struct city *pcity, struct unit *punit,
                                    struct pf_path *path, bool vigilant,
+                                   bool persistent,
                                    enum unit_orders orders,
                                    struct unit_order *final_order)
 {
@@ -1514,6 +1515,7 @@ static void send_rally_path_orders(struct city *pcity, struct unit *punit,
   memset(&p, 0, sizeof(p));
   p.id = pcity->id;
   p.vigilant = vigilant;
+  p.persistent = persistent;
 
   log_goto_packet("Rally orders for city %d:", pcity->id);
   log_goto_packet("  Vigilant: %d.", p.vigilant);
@@ -1536,10 +1538,11 @@ void send_goto_path(struct unit *punit, struct pf_path *path,
 /************************************************************************//**
   Send an arbitrary rally path for the city to the server.
 ****************************************************************************/
-void send_rally_path(struct city *pcity, struct unit *punit,
-                     struct pf_path *path, struct unit_order *final_order)
+static void send_rally_path(struct city *pcity, struct unit *punit,
+                            bool persistent, struct pf_path *path,
+                            struct unit_order *final_order)
 {
-  send_rally_path_orders(pcity, punit, path, FALSE,
+  send_rally_path_orders(pcity, punit, path, FALSE, persistent,
                          ORDER_MOVE, final_order);
 }
 
@@ -1571,11 +1574,10 @@ bool send_goto_tile(struct unit *punit, struct tile *ptile)
   Send rally orders for the city to move new units to the arbitrary tile.
   Returns FALSE if no path is found for the currently produced unit type.
 ****************************************************************************/
-bool send_rally_tile(struct city *pcity, struct tile *ptile)
+bool send_rally_tile(struct city *pcity, struct tile *ptile, bool persistent)
 {
   const struct unit_type *putype;
   struct unit *punit;
-
   struct pf_parameter parameter;
   struct pf_map *pfm;
   struct pf_path *path;
@@ -1588,10 +1590,11 @@ bool send_rally_tile(struct city *pcity, struct tile *ptile)
     /* Can only give orders to units. */
     return FALSE;
   }
+
   putype = pcity->production.value.utype;
-  punit = unit_virtual_create(
-    client_player(), pcity, putype,
-    city_production_unit_veteran_level(pcity, putype));
+  punit = unit_virtual_create(client_player(), pcity, putype,
+                              city_production_unit_veteran_level(pcity,
+                                                                 putype));
 
   /* Use the unit to find a path to the destination tile. */
   goto_fill_parameter_base(&parameter, punit);
@@ -1601,12 +1604,14 @@ bool send_rally_tile(struct city *pcity, struct tile *ptile)
 
   if (path) {
     /* Send orders to server. */
-    send_rally_path(pcity, punit, path, NULL);
+    send_rally_path(pcity, punit, persistent, path, NULL);
     unit_virtual_destroy(punit);
     pf_path_destroy(path);
+
     return TRUE;
   } else {
     unit_virtual_destroy(punit);
+
     return FALSE;
   }
 }
@@ -1725,9 +1730,11 @@ void send_connect_route(enum unit_activity activity,
 
     memset(&p, 0, sizeof(p));
 
-    for (i = 0; i < goto_map->num_parts; i++) {
+    i = 0;
+    do {
       path = pf_path_concat(path, goto_map->parts[i].path);
-    }
+      i++;
+    } while (i < goto_map->num_parts);
 
     p.unit_id = punit->id;
     p.src_tile = tile_index(unit_tile(punit));
@@ -1857,8 +1864,9 @@ static bool order_demands_direction(enum unit_orders order, action_id act_id)
 
 /************************************************************************//**
   Send the current goto route (i.e., the one generated via
-  HOVER_STATE) to the server.  The route might involve more than one
-  part if waypoints were used.  FIXME: danger paths are not supported.
+  HOVER_STATE) to the server. The route might involve more than one
+  part, if waypoints were used.
+  FIXME: danger paths are not supported.
 ****************************************************************************/
 void send_goto_route(void)
 {
@@ -1874,9 +1882,11 @@ void send_goto_route(void)
       continue;
     }
 
-    for (i = 0; i < goto_map->num_parts; i++) {
+    i = 0;
+    do {
       path = pf_path_concat(path, goto_map->parts[i].path);
-    }
+      i++;
+    } while (i < goto_map->num_parts);
 
     clear_unit_orders(punit);
 

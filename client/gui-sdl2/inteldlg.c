@@ -33,6 +33,7 @@
 
 /* client */
 #include "client_main.h"
+#include "spaceshipdlg_g.h"
 
 /* gui-sdl2 */
 #include "graphics.h"
@@ -41,7 +42,6 @@
 #include "gui_tilespec.h"
 #include "mapview.h"
 #include "repodlgs.h"
-#include "spaceshipdlg.h"
 #include "sprite.h"
 #include "widget.h"
 
@@ -249,7 +249,8 @@ void update_intel_dialog(struct player *p)
                                   pdialog->pdialog->end_widget_list);
     }
 
-    pstr = create_utf8_from_char(_("Foreign Intelligence Report") , adj_font(12));
+    pstr = create_utf8_from_char_fonto(_("Foreign Intelligence Report"),
+                                       FONTO_ATTENTION);
     pstr->style |= TTF_STYLE_BOLD;
 
     pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -264,12 +265,12 @@ void update_intel_dialog(struct player *p)
     area = pwindow->area;
 
     /* ---------- */
-    /* exit button */
+    /* Exit button */
     buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                            WF_WIDGET_HAS_INFO_LABEL
                            | WF_RESTORE_BACKGROUND);
-    buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                            adj_font(12));
+    buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                  FONTO_ATTENTION);
     area.w = MAX(area.w, buf->size.w + adj_size(10));
     buf->action = exit_intel_dlg_callback;
     set_wstate(buf, FC_WS_NORMAL);
@@ -298,7 +299,7 @@ void update_intel_dialog(struct player *p)
     fc_snprintf(cbuf, sizeof(cbuf),
                 _("Intelligence Information about the %s Spaceship"),
                 nation_adjective_for_player(p));
-    buf->info_label = create_utf8_from_char(cbuf, adj_font(12));
+    buf->info_label = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
 
     add_to_gui_list(ID_ICON, buf);
 
@@ -307,7 +308,7 @@ void update_intel_dialog(struct player *p)
                 _("Intelligence Information for the %s Empire"),
                 nation_adjective_for_player(p));
 
-    pstr = create_utf8_from_char(cbuf, adj_font(14));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_HEADING);
     pstr->style |= TTF_STYLE_BOLD;
     pstr->bgcol = (SDL_Color) {0, 0, 0, 0};
 
@@ -319,7 +320,7 @@ void update_intel_dialog(struct player *p)
 
     pcapital = player_primary_capital(p);
     research = research_get(p);
-    change_ptsize_utf8(pstr, adj_font(10));
+    change_fonto_utf8(pstr, FONTO_DEFAULT);
     pstr->style &= ~TTF_STYLE_BOLD;
 
     /* FIXME: these should use common gui code, and avoid duplication! */
@@ -398,9 +399,10 @@ void update_intel_dialog(struct player *p)
         buf->action = tech_callback;
         set_wstate(buf, FC_WS_NORMAL);
 
-        buf->info_label =
-            create_utf8_from_char(advance_name_translation
-                                  (advance_by_number(i)), adj_font(12));
+        buf->info_label
+          = create_utf8_from_char_fonto(advance_name_translation
+                                        (advance_by_number(i)),
+                                        FONTO_ATTENTION);
 
         add_to_gui_list(ID_ICON, buf);
 

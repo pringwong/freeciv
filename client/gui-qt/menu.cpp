@@ -729,7 +729,7 @@ void go_act_menu::create()
 
   // Group goto and perform action menu items by target kind.
   for (tgt_kind_group = 0; tgt_kind_group < ATK_COUNT; tgt_kind_group++) {
-    action_iterate(act_id) {
+    action_noninternal_iterate(act_id) {
       struct action *paction = action_by_number(act_id);
       QString action_name = (QString(action_name_translation(paction))
                              .replace("&", "&&"));
@@ -819,7 +819,7 @@ void go_act_menu::create()
       QObject::connect(item, &QAction::triggered, [this,act_id]() {
         start_go_act(act_id, NO_TARGET);
       });
-    } action_iterate_end;
+    } action_noninternal_iterate_end;
   }
 }
 
@@ -1122,12 +1122,12 @@ void mr_menu::setup_menus()
   act->setCheckable(true);
   act->setChecked(gui_options.draw_city_buycost);
   connect(act, &QAction::triggered, this, &mr_menu::slot_city_buycost);
-  act = main_menu->addAction(_("City Traderoutes"));
+  act = main_menu->addAction(_("City Trade Routes"));
   act->setCheckable(true);
   act->setChecked(gui_options.draw_city_trade_routes);
   act->setShortcut(QKeySequence(shortcut_to_string(
                    fc_shortcuts::sc()->get_shortcut(SC_TRADE_ROUTES))));
-  connect(act, &QAction::triggered, this, &mr_menu::slot_city_traderoutes);
+  connect(act, &QAction::triggered, this, &mr_menu::slot_city_trade_routes);
   act = main_menu->addAction(_("Unit Stack Size"));
   act->setCheckable(true);
   act->setChecked(gui_options.draw_unit_stack_size);
@@ -1153,12 +1153,12 @@ void mr_menu::setup_menus()
   act = main_menu->addAction(_("Same Type on Continent"));
   act->setShortcut(QKeySequence(tr("shift+c")));
   menu_list.insert(STANDARD, act);
-  connect(act, &QAction::triggered, this, 
+  connect(act, &QAction::triggered, this,
           &mr_menu::slot_select_same_continent);
   act = main_menu->addAction(_("Same Type Everywhere"));
   act->setShortcut(QKeySequence(tr("shift+x")));
   menu_list.insert(STANDARD, act);
-  connect(act, &QAction::triggered, this, 
+  connect(act, &QAction::triggered, this,
           &mr_menu::slot_select_same_everywhere);
   main_menu->addSeparator();
   act = main_menu->addAction(_("Wait"));
@@ -1301,11 +1301,11 @@ void mr_menu::setup_menus()
                    fc_shortcuts::sc()->get_shortcut(SC_BUILDCITY))));
   menu_list.insert(BUILD, act);
   connect(act, &QAction::triggered, this, &mr_menu::slot_build_city);
-  act = main_menu->addAction(_("Auto Settler"));
+  act = main_menu->addAction(_("Auto Worker"));
   act->setShortcut(QKeySequence(shortcut_to_string(
                    fc_shortcuts::sc()->get_shortcut(SC_AUTOMATE))));
-  menu_list.insert(AUTOSETTLER, act);
-  connect(act, &QAction::triggered, this, &mr_menu::slot_auto_settler);
+  menu_list.insert(AUTOWORKER, act);
+  connect(act, &QAction::triggered, this, &mr_menu::slot_auto_worker);
   main_menu->addSeparator();
   act = main_menu->addAction(_("Build Road"));
   menu_list.insert(ROAD, act);
@@ -1356,15 +1356,11 @@ void mr_menu::setup_menus()
   act->setShortcut(QKeySequence(shortcut_to_string(
                    fc_shortcuts::sc()->get_shortcut(SC_TRANSFORM))));
   connect(act, &QAction::triggered, this, &mr_menu::slot_transform);
-  act = main_menu->addAction(_("Clean Pollution"));
+  act = main_menu->addAction(_("Clean"));
   menu_list.insert(CLEAN, act);
   act->setShortcut(QKeySequence(shortcut_to_string(
                    fc_shortcuts::sc()->get_shortcut(SC_CLEAN))));
-  connect(act, &QAction::triggered, this, &mr_menu::slot_clean_pollution);
-  act = main_menu->addAction(_("Clean Nuclear Fallout"));
-  menu_list.insert(FALLOUT, act);
-  act->setShortcut(QKeySequence(tr("n")));
-  connect(act, &QAction::triggered, this, &mr_menu::slot_clean_fallout);
+  connect(act, &QAction::triggered, this, &mr_menu::slot_clean);
   act = main_menu->addAction(QString(action_id_name_translation(ACTION_HELP_WONDER))
                              .replace("&", "&&"));
   act->setShortcut(QKeySequence(tr("b")));
@@ -1373,7 +1369,7 @@ void mr_menu::setup_menus()
   act = main_menu->addAction(QString(action_id_name_translation(ACTION_TRADE_ROUTE))
                              .replace("&", "&&"));
   act->setShortcut(QKeySequence(tr("r")));
-  menu_list.insert(ORDER_TRADEROUTE, act);
+  menu_list.insert(ORDER_TRADE_ROUTE, act);
   connect(act, &QAction::triggered, this, &mr_menu::slot_build_road);
 
   multiplayer_menu = this->addMenu(_("Multiplayer"));
@@ -2134,7 +2130,7 @@ void mr_menu::menus_sensitive()
         break;
 
       case DEBOARD:
-        if (units_can_unload(punits)) {
+        if (units_can_unload(&(wld.map), punits)) {
           i.value()->setEnabled(true);
         }
         break;
@@ -2348,13 +2344,7 @@ void mr_menu::menus_sensitive()
         break;
 
       case CLEAN:
-        if (can_units_do_activity(punits, ACTIVITY_POLLUTION)) {
-          i.value()->setEnabled(true);
-        }
-        break;
-
-      case FALLOUT:
-        if (can_units_do_activity(punits, ACTIVITY_FALLOUT)) {
+        if (can_units_do_activity(punits, ACTIVITY_CLEAN)) {
           i.value()->setEnabled(true);
         }
         break;
@@ -2391,8 +2381,8 @@ void mr_menu::menus_sensitive()
         }
         break;
 
-      case AUTOSETTLER:
-        if (can_units_do(punits, can_unit_do_autosettlers)) {
+      case AUTOWORKER:
+        if (can_units_do(punits, can_unit_do_autoworker)) {
           i.value()->setEnabled(true);
         }
         if (units_contain_cityfounder(punits)) {
@@ -2485,7 +2475,7 @@ void mr_menu::menus_sensitive()
         }
         break;
 
-      case ORDER_TRADEROUTE:
+      case ORDER_TRADE_ROUTE:
         i.value()->setText(
           QString(action_id_name_translation(ACTION_TRADE_ROUTE))
           .replace("&", "&&"));
@@ -2591,25 +2581,18 @@ void mr_menu::slot_build_city()
 }
 
 /**********************************************************************//**
-  Action "CLEAN FALLOUT"
+  Action "CLEAN"
 **************************************************************************/
-void mr_menu::slot_clean_fallout()
-{
-  key_unit_fallout();
-}
-
-/**********************************************************************//**
-  Action "CLEAN POLLUTION"
-**************************************************************************/
-void mr_menu::slot_clean_pollution()
+void mr_menu::slot_clean()
 {
   unit_list_iterate(get_units_in_focus(), punit) {
     struct extra_type *pextra;
 
-    pextra = prev_extra_in_tile(unit_tile(punit), ERM_CLEANPOLLUTION,
+    pextra = prev_extra_in_tile(unit_tile(punit), ERM_CLEAN,
                                 unit_owner(punit), punit);
+
     if (pextra != NULL) {
-      request_new_unit_activity_targeted(punit, ACTIVITY_POLLUTION, pextra);
+      request_new_unit_activity_targeted(punit, ACTIVITY_CLEAN, pextra);
     }
   } unit_list_iterate_end;
 }
@@ -2728,11 +2711,11 @@ void mr_menu::slot_action()
 }
 
 /**********************************************************************//**
-  Action "AUTO_SETTLER"
+  Action "AUTO_WORKER"
 **************************************************************************/
-void mr_menu::slot_auto_settler()
+void mr_menu::slot_auto_worker()
 {
-  key_unit_auto_settle();
+  key_unit_auto_work();
 }
 
 /**********************************************************************//**
@@ -3171,15 +3154,9 @@ void enable_interface(bool enable)
 **************************************************************************/
 void mr_menu::slot_fullscreen()
 {
-  if (!gui_options.gui_qt_fullscreen) {
-    gui()->showFullScreen();
-    gui()->game_tab_widget->showFullScreen();
-  } else {
-    // FIXME Doesnt return properly, probably something with sidebar
-    gui()->showNormal();
-    gui()->game_tab_widget->showNormal();
-  }
   gui_options.gui_qt_fullscreen = !gui_options.gui_qt_fullscreen;
+
+  gui()->apply_fullscreen();
 }
 
 /**********************************************************************//**
@@ -3335,9 +3312,9 @@ void mr_menu::slot_city_production()
 }
 
 /**********************************************************************//**
-  Action "SHOW CITY TRADEROUTES"
+  Action "SHOW CITY TRADE ROUTES"
 **************************************************************************/
-void mr_menu::slot_city_traderoutes()
+void mr_menu::slot_city_trade_routes()
 {
   key_city_trade_routes_toggle();
 }

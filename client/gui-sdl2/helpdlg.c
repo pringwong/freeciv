@@ -243,7 +243,8 @@ void popup_impr_info(Impr_type_id impr)
     store = fc_calloc(1, sizeof(struct units_buttons));
 
     /* Create window */
-    title = create_utf8_from_char(_("Help : Improvements"), adj_font(12));
+    title = create_utf8_from_char_fonto(_("Help : Improvements"),
+                                        FONTO_ATTENTION);
     title->style |= TTF_STYLE_BOLD;
 
     pwindow = create_window_skeleton(NULL, title, WF_FREE_DATA);
@@ -258,11 +259,13 @@ void popup_impr_info(Impr_type_id impr)
     /* ------------------ */
 
     /* Close button */
-    close_button = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
+    close_button = create_themeicon(current_theme->small_cancel_icon,
+                                    pwindow->dst,
                                     WF_WIDGET_HAS_INFO_LABEL
                                     | WF_RESTORE_BACKGROUND);
-    close_button->info_label =
-        create_utf8_from_char(_("Close Dialog (Esc)"), adj_font(12));
+    close_button->info_label
+      = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                    FONTO_ATTENTION);
     close_button->action = exit_help_dlg_callback;
     set_wstate(close_button, FC_WS_NORMAL);
     close_button->key = SDLK_ESCAPE;
@@ -272,7 +275,7 @@ void popup_impr_info(Impr_type_id impr)
     /* ------------------ */
     dock = close_button;
 
-    pstr = create_utf8_str(NULL, 0, adj_font(10));
+    pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
     pstr->style |= (TTF_STYLE_BOLD | SF_CENTER);
 
     /* Background template for entries in scroll list */
@@ -330,10 +333,11 @@ void popup_impr_info(Impr_type_id impr)
     }
 
     /* Toggle techs list button */
-    list_toggle_button = create_themeicon_button_from_chars(current_theme->up_icon,
+    list_toggle_button = create_themeicon_button_from_chars_fonto(
+                                                            current_theme->up_icon,
                                                             pwindow->dst,
                                                             _("Improvements"),
-                                                            adj_font(10), 0);
+                                                            FONTO_DEFAULT, 0);
 #if 0
    list_toggle_button->action = toggle_full_tree_mode_in_help_dlg_callback;
    if (store->show_tree) {
@@ -380,16 +384,18 @@ void popup_impr_info(Impr_type_id impr)
   if (!is_convert_improvement(pimpr_type)) {
     sprintf(buffer, "%s %d", _("Base Cost:"),
             impr_base_build_shield_cost(pimpr_type));
-    cost_label = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                             buffer, adj_font(12), 0);
+    cost_label = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                   buffer,
+                                                   FONTO_ATTENTION, 0);
     cost_label->id = ID_LABEL;
     widget_add_as_prev(cost_label, dock);
     dock = cost_label;
 
     if (!is_wonder(pimpr_type)) {
       sprintf(buffer, "%s %d", _("Upkeep:"), pimpr_type->upkeep);
-      upkeep_label = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                 buffer, adj_font(12), 0);
+      upkeep_label = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                       buffer,
+                                                       FONTO_ATTENTION, 0);
       upkeep_label->id = ID_LABEL;
       widget_add_as_prev(upkeep_label, dock);
       dock = upkeep_label;
@@ -397,9 +403,9 @@ void popup_impr_info(Impr_type_id impr)
   }
 
   /* Requirement */
-  requirement_label = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                  _("Requirement:"),
-                                                  adj_font(12), 0);
+  requirement_label = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                        _("Requirement:"),
+                                                        FONTO_ATTENTION, 0);
   requirement_label->id = ID_LABEL;
   widget_add_as_prev(requirement_label, dock);
   dock = requirement_label;
@@ -412,9 +418,11 @@ void popup_impr_info(Impr_type_id impr)
     if (!preq->present) {
       continue;
     }
-    requirement_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
+    requirement_label2
+      = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
                              universal_name_translation(&preq->source, buffer, sizeof(buffer)),
-                                                     adj_font(12), WF_RESTORE_BACKGROUND);
+                                          FONTO_ATTENTION,
+                                          WF_RESTORE_BACKGROUND);
     if (preq->source.kind != VUT_ADVANCE) {
       break; /* FIXME */
     }
@@ -427,9 +435,9 @@ void popup_impr_info(Impr_type_id impr)
   } requirement_vector_iterate_end;
 
   if (requirement_label2 == NULL) {
-    requirement_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                     Q_("?req:None"),
-                                                     adj_font(12), 0);
+    requirement_label2 = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                           Q_("?req:None"),
+                                                           FONTO_ATTENTION, 0);
     requirement_label2->id = ID_LABEL;
   }
 
@@ -438,9 +446,9 @@ void popup_impr_info(Impr_type_id impr)
   store->requirement_button = requirement_label2;
 
   /* Obsolete by */
-  obsolete_by_label = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                  _("Obsolete by:"),
-                                                  adj_font(12), 0);
+  obsolete_by_label = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                        _("Obsolete by:"),
+                                                        FONTO_ATTENTION, 0);
   obsolete_by_label->id = ID_LABEL;
   widget_add_as_prev(obsolete_by_label, dock);
   dock = obsolete_by_label;
@@ -453,15 +461,19 @@ void popup_impr_info(Impr_type_id impr)
   } requirement_vector_iterate_end;
 
   if (obsTech == NULL) {
-    obsolete_by_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                    _("Never"), adj_font(12), 0);
+    obsolete_by_label2 = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                           _("Never"),
+                                                           FONTO_ATTENTION, 0);
     obsolete_by_label2->id = ID_LABEL;
   } else {
-    obsolete_by_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                    advance_name_translation(obsTech),
-                                                    adj_font(12), WF_RESTORE_BACKGROUND);
+    obsolete_by_label2
+      = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                          advance_name_translation(obsTech),
+                                          FONTO_ATTENTION,
+                                          WF_RESTORE_BACKGROUND);
     obsolete_by_label2->id = MAX_ID - advance_number(obsTech);
-    obsolete_by_label2->string_utf8->fgcol = *get_tech_color(advance_number(obsTech));
+    obsolete_by_label2->string_utf8->fgcol
+      = *get_tech_color(advance_number(obsTech));
     obsolete_by_label2->action = change_tech_callback;
     set_wstate(obsolete_by_label2, FC_WS_NORMAL);
   }
@@ -476,7 +488,7 @@ void popup_impr_info(Impr_type_id impr)
   helptext_building(buffer, sizeof(buffer), client.conn.playing, NULL,
                     pimpr_type);
   if (buffer[0] != '\0') {
-    utf8_str *bstr = create_utf8_from_char(buffer, adj_font(12));
+    utf8_str *bstr = create_utf8_from_char_fonto(buffer, FONTO_ATTENTION);
 
     convert_utf8_str_to_const_surface_width(bstr, adj_size(640) - start_x - adj_size(20));
     help_text_label = create_iconlabel(NULL, pwindow->dst, bstr, 0);
@@ -646,7 +658,7 @@ void popup_unit_info(Unit_type_id type_id)
     popdown_help_dialog();
   }
 
-  /* create new dialog if it doesn't exist yet */
+  /* Create new dialog if it doesn't exist yet */
   if (!help_dlg) {
     SDL_Surface *background_tmpl, *background, *unit_name, *icon;
     SDL_Rect dst;
@@ -654,12 +666,12 @@ void popup_unit_info(Unit_type_id type_id)
     current_help_dlg = HELP_UNIT;
     created = TRUE;
 
-    /* create dialog */
+    /* Create dialog */
     help_dlg = fc_calloc(1, sizeof(struct advanced_dialog));
     store = fc_calloc(1, sizeof(struct units_buttons));
 
-    /* create window */
-    title = create_utf8_from_char(_("Help : Units"), adj_font(12));
+    /* Create window */
+    title = create_utf8_from_char_fonto(_("Help : Units"), FONTO_ATTENTION);
     title->style |= TTF_STYLE_BOLD;
 
     pwindow = create_window_skeleton(NULL, title, WF_FREE_DATA);
@@ -674,12 +686,13 @@ void popup_unit_info(Unit_type_id type_id)
 
     /* ------------------ */
 
-    /* close button */
-    close_button = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
+    /* Close button */
+    close_button = create_themeicon(current_theme->small_cancel_icon,
+                                    pwindow->dst,
                                     WF_WIDGET_HAS_INFO_LABEL
                                     | WF_RESTORE_BACKGROUND);
-    close_button->info_label =
-        create_utf8_from_char(_("Close Dialog (Esc)"), adj_font(12));
+    close_button->info_label
+      = create_utf8_from_char_fonto(_("Close Dialog (Esc)"), FONTO_ATTENTION);
     close_button->action = exit_help_dlg_callback;
     set_wstate(close_button, FC_WS_NORMAL);
     close_button->key = SDLK_ESCAPE;
@@ -691,7 +704,7 @@ void popup_unit_info(Unit_type_id type_id)
 
     /* --- Create scrollable unit list on the left side ---*/
 
-    pstr = create_utf8_str(NULL, 0, adj_font(10));
+    pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
     pstr->style |= (TTF_STYLE_BOLD | SF_CENTER);
 
     /* Background template for entries in scroll list */
@@ -749,9 +762,11 @@ void popup_unit_info(Unit_type_id type_id)
     }
 
     /* Toggle techs list button */
-    list_toggle_button = create_themeicon_button_from_chars(current_theme->up_icon,
+    list_toggle_button = create_themeicon_button_from_chars_fonto(
+                                                            current_theme->up_icon,
                                                             pwindow->dst,
-                                                            _("Units"), adj_font(10), 0);
+                                                            _("Units"),
+                                                            FONTO_DEFAULT, 0);
 #if 0
     list_toggle_button->action = toggle_full_tree_mode_in_help_dlg_callback;
     if (store->show_tree) {
@@ -837,17 +852,17 @@ void popup_unit_info(Unit_type_id type_id)
               _("Firepower:"), punittype->firepower,
               _("Hitpoints:"), punittype->hp);
 
-    unit_info_label = create_iconlabel_from_chars(NULL, pwindow->dst, buf,
-                                                 adj_font(12), 0);
+    unit_info_label = create_iconlabel_from_chars_fonto(NULL, pwindow->dst, buf,
+                                                        FONTO_ATTENTION, 0);
     unit_info_label->id = ID_LABEL;
     widget_add_as_prev(unit_info_label, dock);
     dock = unit_info_label;
   }
 
   /* Requirement */
-  requirement_label = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                  _("Requirement:"),
-                                                  adj_font(12), 0);
+  requirement_label = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                        _("Requirement:"),
+                                                        FONTO_ATTENTION, 0);
   requirement_label->id = ID_LABEL;
   widget_add_as_prev(requirement_label, dock);
   dock = requirement_label;
@@ -855,17 +870,18 @@ void popup_unit_info(Unit_type_id type_id)
   req = utype_primary_tech_req(punittype);
 
   if (advance_number(req) == A_NONE) {
-    requirement_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                     Q_("?tech:None"),
-                                                     adj_font(12), 0);
+    requirement_label2 = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                           Q_("?tech:None"),
+                                                           FONTO_ATTENTION, 0);
     requirement_label2->id = ID_LABEL;
   } else {
     Tech_type_id req_id = advance_number(req);
 
-    requirement_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
-          advance_name_translation(req),
-          adj_font(12),
-          WF_RESTORE_BACKGROUND);
+    requirement_label2
+      = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                          advance_name_translation(req),
+                                          FONTO_ATTENTION,
+                                          WF_RESTORE_BACKGROUND);
     requirement_label2->id = MAX_ID - req_id;
     requirement_label2->string_utf8->fgcol = *get_tech_color(req_id);
     requirement_label2->action = change_tech_callback;
@@ -876,27 +892,29 @@ void popup_unit_info(Unit_type_id type_id)
   store->requirement_button = requirement_label2;
 
   /* Obsolete by */
-  obsolete_by_label = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                 _("Obsolete by:"),
-                                                 adj_font(12), 0);
+  obsolete_by_label = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                        _("Obsolete by:"),
+                                                        FONTO_ATTENTION, 0);
   obsolete_by_label->id = ID_LABEL;
   widget_add_as_prev(obsolete_by_label, dock);
   dock = obsolete_by_label;
 
   if (punittype->obsoleted_by == U_NOT_OBSOLETED) {
-    obsolete_by_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                    Q_("?utype:None"),
-                                                    adj_font(12), 0);
+    obsolete_by_label2 = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                                           Q_("?utype:None"),
+                                                           FONTO_ATTENTION, 0);
     obsolete_by_label2->id = ID_LABEL;
   } else {
     const struct unit_type *utype = punittype->obsoleted_by;
     struct advance *obs_req = utype_primary_tech_req(utype);
 
-    obsolete_by_label2 = create_iconlabel_from_chars(NULL, pwindow->dst,
-                                                    utype_name_translation(utype),
-                                                    adj_font(12),
-                                                    WF_RESTORE_BACKGROUND);
-    obsolete_by_label2->string_utf8->fgcol = *get_tech_color(advance_number(obs_req));
+    obsolete_by_label2
+      = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                                          utype_name_translation(utype),
+                                          FONTO_ATTENTION,
+                                          WF_RESTORE_BACKGROUND);
+    obsolete_by_label2->string_utf8->fgcol
+      = *get_tech_color(advance_number(obs_req));
     obsolete_by_label2->id = MAX_ID - utype_number(utype);
     obsolete_by_label2->action = change_unit_callback;
     set_wstate(obsolete_by_label2, FC_WS_NORMAL);
@@ -911,7 +929,7 @@ void popup_unit_info(Unit_type_id type_id)
   buffer[0] = '\0';
   helptext_unit(buffer, sizeof(buffer), client.conn.playing, "", utype_by_number(type_id));
   if (buffer[0] != '\0') {
-    utf8_str *ustr = create_utf8_from_char(buffer, adj_font(12));
+    utf8_str *ustr = create_utf8_from_char_fonto(buffer, FONTO_ATTENTION);
 
     convert_utf8_str_to_const_surface_width(ustr, adj_size(640) - start_x - adj_size(20));
     help_text_label = create_iconlabel(NULL, pwindow->dst, ustr, 0);
@@ -1059,7 +1077,7 @@ static void redraw_tech_info_dlg(void)
                get_theme_color(COLOR_THEME_HELPDLG_FRAME));
 
   /* -------------------------- */
-  pstr = create_utf8_from_char(_("Allows"), adj_font(14));
+  pstr = create_utf8_from_char_fonto(_("Allows"), FONTO_HEADING);
   pstr->style |= TTF_STYLE_BOLD;
 
   text0 = create_text_surf_from_utf8(pstr);
@@ -1077,7 +1095,7 @@ static void redraw_tech_info_dlg(void)
   if (store->sub_targets[0]) {
     int i;
 
-    change_ptsize_utf8(pstr, adj_font(12));
+    change_fonto_utf8(pstr, FONTO_ATTENTION);
 
     copy_chars_to_utf8_str(pstr, _("( with "));
     text0 = create_text_surf_from_utf8(pstr);
@@ -1150,10 +1168,11 @@ static struct widget *create_tech_info(Tech_type_id tech, int width,
     if ((targets_count < 6)
         && (advance_required(aidx, AR_ONE) == tech
             || advance_required(aidx, AR_TWO) == tech)) {
-      pwidget = create_iconlabel_from_chars(NULL, pwindow->dst,
-              advance_name_translation(advance_by_number(aidx)),
-              adj_font(12),
-              WF_RESTORE_BACKGROUND);
+      pwidget
+        = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
+                 advance_name_translation(advance_by_number(aidx)),
+                                            FONTO_ATTENTION,
+                                            WF_RESTORE_BACKGROUND);
       pwidget->string_utf8->fgcol = *get_tech_color(aidx);
       max_width = MAX(max_width, pwidget->size.w);
       set_wstate(pwidget, FC_WS_NORMAL);
@@ -1183,10 +1202,11 @@ static struct widget *create_tech_info(Tech_type_id tech, int width,
       } else {
         continue;
       }
-      pwidget = create_iconlabel_from_chars(NULL, pwindow->dst,
+      pwidget
+        = create_iconlabel_from_chars_fonto(NULL, pwindow->dst,
               advance_name_translation(advance_by_number(sub_tech)),
-              adj_font(12),
-              WF_RESTORE_BACKGROUND);
+                                            FONTO_ATTENTION,
+                                            WF_RESTORE_BACKGROUND);
       pwidget->string_utf8->fgcol = *get_tech_color(sub_tech);
       set_wstate(pwidget, FC_WS_NORMAL);
       pwidget->action = change_tech_callback;
@@ -1210,10 +1230,11 @@ static struct widget *create_tech_info(Tech_type_id tech, int width,
       if (VUT_ADVANCE == preq->source.kind
           && advance_number(preq->source.value.advance) == tech) {
 
-        pwidget = create_iconlabel_from_chars(adj_surf(get_government_surface(gov)),
+        pwidget
+          = create_iconlabel_from_chars_fonto(adj_surf(get_government_surface(gov)),
                 pwindow->dst,
                 government_name_translation(gov),
-                adj_font(14),
+                FONTO_HEADING,
                 WF_RESTORE_BACKGROUND | WF_SELECT_WITHOUT_BAR | WF_FREE_THEME);
         set_wstate(pwidget, FC_WS_NORMAL);
         pwidget->action = change_gov_callback;
@@ -1236,12 +1257,12 @@ static struct widget *create_tech_info(Tech_type_id tech, int width,
         if (VUT_ADVANCE == preq->source.kind
             && advance_number(preq->source.value.advance) == tech) {
           surf = get_building_surface(pimprove);
-          pwidget = create_iconlabel_from_chars(
+          pwidget = create_iconlabel_from_chars_fonto(
                   resize_surface_box(surf, adj_size(48), adj_size(48), 1, TRUE,
                                      TRUE),
                   pwindow->dst,
                   improvement_name_translation(pimprove),
-                  adj_font(14),
+                  FONTO_HEADING,
                   WF_RESTORE_BACKGROUND | WF_SELECT_WITHOUT_BAR);
           set_wstate(pwidget, FC_WS_NORMAL);
           if (is_wonder(pimprove)) {
@@ -1262,10 +1283,10 @@ static struct widget *create_tech_info(Tech_type_id tech, int width,
   unit_count = 0;
   unit_type_iterate(un) {
     if (is_tech_req_for_utype(un, advance_by_number(tech))) {
-      pwidget = create_iconlabel_from_chars(
+      pwidget = create_iconlabel_from_chars_fonto(
                                    resize_surface_box(get_unittype_surface(un, direction8_invalid()),
                                    adj_size(48), adj_size(48), 1, TRUE, TRUE),
-                  pwindow->dst, utype_name_translation(un), adj_font(14),
+                  pwindow->dst, utype_name_translation(un), FONTO_HEADING,
                   (WF_FREE_THEME | WF_RESTORE_BACKGROUND | WF_SELECT_WITHOUT_BAR));
       set_wstate(pwidget, FC_WS_NORMAL);
       pwidget->action = change_unit_callback;
@@ -1281,7 +1302,7 @@ static struct widget *create_tech_info(Tech_type_id tech, int width,
     helptext_advance(buffer, sizeof(buffer), client.conn.playing, "", tech);
   }
   if (buffer[0] != '\0') {
-    utf8_str *pstr = create_utf8_from_char(buffer, adj_font(12));
+    utf8_str *pstr = create_utf8_from_char_fonto(buffer, FONTO_ATTENTION);
 
     convert_utf8_str_to_const_surface_width(pstr, adj_size(640) - start_x - adj_size(20));
     pwidget = create_iconlabel(NULL, pwindow->dst, pstr, 0);
@@ -1653,14 +1674,14 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
                                        struct widget *pwindow,
                                        struct techs_buttons *store)
 {
-  int i, w, h, req_count , targets_count, sub_req_count, sub_targets_count;
+  int i, w, h, req_count, targets_count, sub_req_count, sub_targets_count;
   struct widget *pwidget;
   struct widget *ptech;
   utf8_str *pstr;
   SDL_Surface *surf;
   struct widget *dock = store->dock;
 
-  pstr = create_utf8_str(NULL, 0, adj_font(10));
+  pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD | SF_CENTER);
 
   copy_chars_to_utf8_str(pstr, advance_name_translation(advance_by_number(tech)));
@@ -1675,7 +1696,7 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
   ptech = pwidget;
   dock = pwidget;
 
-  req_count  = 0;
+  req_count = 0;
   for (i = AR_ONE; i <= AR_TWO; i++) {
     Tech_type_id ar = advance_required(tech, i);
     struct advance *vap = valid_advance_by_number(ar);
@@ -1690,16 +1711,13 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
       pwidget->id = MAX_ID - ar;
       widget_add_as_prev(pwidget, dock);
       dock = pwidget;
-      store->requirement_button[i] = pwidget;
-      req_count++;
-    } else {
-      store->requirement_button[i] = NULL;
+      store->requirement_button[req_count++] = pwidget;
     }
   }
 
   sub_req_count = 0;
 
-  if (store->show_full_tree && req_count) {
+  if (store->show_full_tree && req_count > 0) {
     int j, sub_tech;
 
     for (j = 0; j < req_count; j++) {
@@ -1751,7 +1769,7 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
   }
 
   sub_targets_count = 0;
-  if (targets_count) {
+  if (targets_count > 0) {
     int sub_tech;
 
     for (i = 0; i < targets_count; i++) {
@@ -1785,13 +1803,15 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
   FREEUTF8STR(pstr);
 
   /* ------------------------------------------ */
-  if (sub_req_count) {
+  if (sub_req_count > 0) {
     w = (adj_size(20) + store->sub_req[0]->size.w) * 2;
     w += (pwindow->size.w - (20 + store->sub_req[0]->size.w + w + ptech->size.w)) / 2;
   } else {
-    if (req_count) {
-      w = (pwindow->area.x + 1 + width + store->requirement_button[0]->size.w * 2 + adj_size(20));
-      w += (pwindow->size.w - ((adj_size(20) + store->requirement_button[0]->size.w) + w + ptech->size.w)) / 2;
+    if (req_count > 0) {
+      w = (pwindow->area.x + 1
+           + width + store->requirement_button[0]->size.w * 2 + adj_size(20));
+      w += (pwindow->size.w - ((adj_size(20) + store->requirement_button[0]->size.w)
+                               + w + ptech->size.w)) / 2;
     } else {
       w = (pwindow->size.w - ptech->size.w) / 2;
     }
@@ -1800,29 +1820,31 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
   ptech->size.x = pwindow->size.x + w;
   ptech->size.y = pwindow->area.y + (pwindow->area.h - ptech->size.h) / 2;
 
-  if (req_count) {
+  if (req_count > 0) {
     h = (req_count == 1 ? store->requirement_button[0]->size.h :
         req_count * (store->requirement_button[0]->size.h + adj_size(80)) - adj_size(80));
     h = ptech->size.y + (ptech->size.h - h) / 2;
     for (i = 0; i < req_count; i++) {
-      store->requirement_button[i]->size.x = ptech->size.x - adj_size(20) - store->requirement_button[i]->size.w;
+      store->requirement_button[i]->size.x
+        = ptech->size.x - adj_size(20) - store->requirement_button[i]->size.w;
       store->requirement_button[i]->size.y = h;
       h += (store->requirement_button[i]->size.h + adj_size(80));
     }
   }
 
-  if (sub_req_count) {
+  if (sub_req_count > 0) {
     h = (sub_req_count == 1 ? store->sub_req[0]->size.h :
      sub_req_count * (store->sub_req[0]->size.h + adj_size(20)) - adj_size(20));
     h = ptech->size.y + (ptech->size.h - h) / 2;
     for (i = 0; i < sub_req_count; i++) {
-      store->sub_req[i]->size.x = ptech->size.x - (adj_size(20) + store->sub_req[i]->size.w) * 2;
+      store->sub_req[i]->size.x
+        = ptech->size.x - (adj_size(20) + store->sub_req[i]->size.w) * 2;
       store->sub_req[i]->size.y = h;
       h += (store->sub_req[i]->size.h + adj_size(20));
     }
   }
 
-  if (targets_count) {
+  if (targets_count > 0) {
     h = (targets_count == 1 ? store->targets[0]->size.h :
      targets_count * (store->targets[0]->size.h + adj_size(20)) - adj_size(20));
     h = ptech->size.y + (ptech->size.h - h) / 2;
@@ -1833,22 +1855,29 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
     }
   }
 
-  if (sub_targets_count) {
+  if (sub_targets_count > 0) {
     if (sub_targets_count < 3) {
-      store->sub_targets[0]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[0]->size.w;
-      store->sub_targets[0]->size.y = ptech->size.y - store->sub_targets[0]->size.h - adj_size(10);
+      store->sub_targets[0]->size.x
+        = ptech->size.x + ptech->size.w - store->sub_targets[0]->size.w;
+      store->sub_targets[0]->size.y
+        = ptech->size.y - store->sub_targets[0]->size.h - adj_size(10);
       if (store->sub_targets[1]) {
-        store->sub_targets[1]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[1]->size.w;
+        store->sub_targets[1]->size.x
+          = ptech->size.x + ptech->size.w - store->sub_targets[1]->size.w;
         store->sub_targets[1]->size.y = ptech->size.y + ptech->size.h + adj_size(10);
       }
     } else {
       if (sub_targets_count < 5) {
         for (i = 0; i < MIN(sub_targets_count, 4); i++) {
-          store->sub_targets[i]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
+          store->sub_targets[i]->size.x
+            = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
           if (i < 2) {
-            store->sub_targets[i]->size.y = ptech->size.y - (store->sub_targets[i]->size.h + adj_size(5)) * ( 2 - i );
+            store->sub_targets[i]->size.y
+              = ptech->size.y - (store->sub_targets[i]->size.h + adj_size(5)) * (2 - i);
           } else {
-            store->sub_targets[i]->size.y = ptech->size.y + ptech->size.h + adj_size(5)  + (store->sub_targets[i]->size.h + adj_size(5)) * ( i - 2 );
+            store->sub_targets[i]->size.y
+              = ptech->size.y + ptech->size.h + adj_size(5)
+                + (store->sub_targets[i]->size.h + adj_size(5)) * (i - 2);
           }
         }
       } else {
@@ -1856,28 +1885,37 @@ static struct widget *create_tech_tree(Tech_type_id tech, int width,
         for (i = 0; i < MIN(sub_targets_count, 6); i++) {
           switch (i) {
           case 0:
-            store->sub_targets[i]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
+            store->sub_targets[i]->size.x
+              = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
             store->sub_targets[i]->size.y = ptech->size.y - h * 2;
             break;
           case 1:
-            store->sub_targets[i]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w * 2 - adj_size(10);
+            store->sub_targets[i]->size.x
+              = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w * 2
+                - adj_size(10);
             store->sub_targets[i]->size.y = ptech->size.y - h - h / 2;
             break;
           case 2:
-            store->sub_targets[i]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
+            store->sub_targets[i]->size.x
+              = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
             store->sub_targets[i]->size.y = ptech->size.y - h;
             break;
           case 3:
-            store->sub_targets[i]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
+            store->sub_targets[i]->size.x
+              = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
             store->sub_targets[i]->size.y = ptech->size.y + ptech->size.h + adj_size(6);
             break;
           case 4:
-            store->sub_targets[i]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
+            store->sub_targets[i]->size.x
+              = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w;
             store->sub_targets[i]->size.y = ptech->size.y + ptech->size.h + adj_size(6) + h;
             break;
           default:
-            store->sub_targets[i]->size.x = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w * 2 - adj_size(10);
-            store->sub_targets[i]->size.y = ptech->size.y + ptech->size.h + adj_size(6) + h / 2 ;
+            store->sub_targets[i]->size.x
+              = ptech->size.x + ptech->size.w - store->sub_targets[i]->size.w * 2
+                - adj_size(10);
+            store->sub_targets[i]->size.y
+              = ptech->size.y + ptech->size.h + adj_size(6) + h / 2 ;
             break;
           }
         }
@@ -1924,19 +1962,18 @@ void popup_tech_info(Tech_type_id tech)
     store->show_full_tree = FALSE;
 
     /* Create window */
-    title = create_utf8_from_char(_("Help : Advances Tree"), adj_font(12));
+    title = create_utf8_from_char_fonto(_("Help : Advances Tree"),
+                                        FONTO_ATTENTION);
     title->style |= TTF_STYLE_BOLD;
 
     pwindow = create_window_skeleton(NULL, title, WF_FREE_DATA);
     pwindow->data.ptr = (void *)store;
     pwindow->action = help_dlg_window_callback;
-    set_wstate(pwindow , FC_WS_NORMAL);
+    set_wstate(pwindow, FC_WS_NORMAL);
 
     add_to_gui_list(ID_WINDOW, pwindow);
 
     help_dlg->end_widget_list = pwindow;
-
-    area = pwindow->area;
 
     /* ------------------ */
 
@@ -1944,8 +1981,8 @@ void popup_tech_info(Tech_type_id tech)
     close_button = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                                     WF_WIDGET_HAS_INFO_LABEL
                                     | WF_RESTORE_BACKGROUND);
-    close_button->info_label =
-        create_utf8_from_char(_("Close Dialog (Esc)"), adj_font(12));
+    close_button->info_label
+      = create_utf8_from_char_fonto(_("Close Dialog (Esc)"), FONTO_ATTENTION);
     close_button->action = exit_help_dlg_callback;
     set_wstate(close_button, FC_WS_NORMAL);
     close_button->key = SDLK_ESCAPE;
@@ -1956,7 +1993,7 @@ void popup_tech_info(Tech_type_id tech)
     dock = close_button;
 
     /* --- Create scrollable advance list on the left side ---*/
-    pstr = create_utf8_str(NULL, 0, adj_font(10));
+    pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
     pstr->style |= (TTF_STYLE_BOLD | SF_CENTER);
 
     tech_count = 0;
@@ -1991,10 +2028,11 @@ void popup_tech_info(Tech_type_id tech)
     }
 
     /* Toggle techs list button */
-    list_toggle_button = create_themeicon_button_from_chars(current_theme->up_icon,
+    list_toggle_button = create_themeicon_button_from_chars_fonto(
+                                                            current_theme->up_icon,
                                                             pwindow->dst,
                                                             _("Advances"),
-                                                            adj_font(10), 0);
+                                                            FONTO_DEFAULT, 0);
     list_toggle_button->action = toggle_full_tree_mode_in_help_dlg_callback;
     if (store->show_tree) {
       set_wstate(list_toggle_button, FC_WS_NORMAL);
@@ -2012,8 +2050,6 @@ void popup_tech_info(Tech_type_id tech)
     pwindow = help_dlg->end_widget_list;
     store = (struct techs_buttons *)pwindow->data.ptr;
     dock = store->dock;
-
-    area = pwindow->area;
 
     /* Selete any previous list entries */
     if (dock != help_dlg->begin_widget_list) {

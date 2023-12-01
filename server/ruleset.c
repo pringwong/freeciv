@@ -2234,6 +2234,9 @@ static bool load_ruleset_units(struct section_file *file,
       sz_strlcpy(u->graphic_alt,
                  secfile_lookup_str_default(file, "-", "%s.graphic_alt",
                                             sec_name));
+      sz_strlcpy(u->graphic_alt2,
+                 secfile_lookup_str_default(file, "-", "%s.graphic_alt2",
+                                            sec_name));
 
       if (!secfile_lookup_int(file, &u->build_cost,
                               "%s.build_cost", sec_name)
@@ -2720,6 +2723,9 @@ static bool load_ruleset_buildings(struct section_file *file,
       sz_strlcpy(b->graphic_alt,
                  secfile_lookup_str_default(file, "-",
                                             "%s.graphic_alt", sec_name));
+      sz_strlcpy(b->graphic_alt2,
+                 secfile_lookup_str_default(file, "-",
+                                            "%s.graphic_alt2", sec_name));
 
       sz_strlcpy(b->soundtag,
                  secfile_lookup_str_default(file, "-",
@@ -3619,6 +3625,9 @@ static bool load_ruleset_terrain(struct section_file *file,
       sz_strlcpy(pextra->rmact_gfx_alt,
                  secfile_lookup_str_default(file, "-",
                                             "%s.rmact_gfx_alt", section));
+      sz_strlcpy(pextra->rmact_gfx_alt2,
+                 secfile_lookup_str_default(file, "-",
+                                            "%s.rmact_gfx_alt2", section));
       sz_strlcpy(pextra->graphic_str,
                  secfile_lookup_str_default(file, "-", "%s.graphic", section));
       sz_strlcpy(pextra->graphic_alt,
@@ -3738,30 +3747,16 @@ static bool load_ruleset_terrain(struct section_file *file,
         const char *sval = slist[j];
         enum extra_flag_id flag;
 
-        if (compat->compat_mode && !fc_strcasecmp("NoAggressive", sval)) {
-          if (pextra->no_aggr_near_city >= 0) {
-            ruleset_error(NULL, LOG_ERROR,
-                          "\"%s\" extra \"%s\" has both no_aggr_near_city set and old style "
-                          "NoAggressive flag",
-                          filename, extra_rule_name(pextra));
-            ok = FALSE;
-            break;
-          }
-          /* Old NoAggressive flag meant distance of 3. */
-          pextra->no_aggr_near_city = 3;
+        flag = extra_flag_id_by_name(sval, fc_strcasecmp);
+
+        if (!extra_flag_id_is_valid(flag)) {
+          ruleset_error(NULL, LOG_ERROR,
+                        "\"%s\" extra \"%s\": unknown flag \"%s\".",
+                        filename, extra_rule_name(pextra), sval);
+          ok = FALSE;
+          break;
         } else {
-
-          flag = extra_flag_id_by_name(sval, fc_strcasecmp);
-
-          if (!extra_flag_id_is_valid(flag)) {
-            ruleset_error(NULL, LOG_ERROR,
-                          "\"%s\" extra \"%s\": unknown flag \"%s\".",
-                          filename, extra_rule_name(pextra), sval);
-            ok = FALSE;
-            break;
-          } else {
-            BV_SET(pextra->flags, flag);
-          }
+          BV_SET(pextra->flags, flag);
         }
       }
       free(slist);
@@ -3861,10 +3856,11 @@ static bool load_ruleset_terrain(struct section_file *file,
 
   if (ok) {
     int i = 0;
-    /* resource details */
+    /* Resource details */
 
     extra_type_by_cause_iterate(EC_RESOURCE, presource) {
       char identifier[MAX_LEN_NAME];
+      const char *id;
       const char *rsection = &resource_sections[i * MAX_SECTION_LABEL];
 
       if (!presource->data.resource) {
@@ -3882,23 +3878,29 @@ static bool load_ruleset_terrain(struct section_file *file,
                                      get_output_identifier(o));
       } output_type_iterate_end;
 
-      sz_strlcpy(identifier,
-                 secfile_lookup_str(file, "%s.identifier", rsection));
-      presource->data.resource->id_old_save = identifier[0];
-      if (RESOURCE_NULL_IDENTIFIER == presource->data.resource->id_old_save) {
-        ruleset_error(NULL, LOG_ERROR,
-                      "\"%s\" [%s] identifier missing value.",
-                      filename, rsection);
-        ok = FALSE;
-        break;
-      }
-      if (RESOURCE_NONE_IDENTIFIER == presource->data.resource->id_old_save) {
-        ruleset_error(NULL, LOG_ERROR,
-                      "\"%s\" [%s] cannot use '%c' as an identifier;"
-                      " it is reserved.",
-                      filename, rsection, presource->data.resource->id_old_save);
-        ok = FALSE;
-        break;
+      id = secfile_lookup_str_default(file, NULL, "%s.identifier", rsection);
+
+      if (id == NULL) {
+        presource->data.resource->id_old_save = '\0';
+      } else {
+        sz_strlcpy(identifier, id);
+
+        presource->data.resource->id_old_save = identifier[0];
+        if (RESOURCE_NULL_IDENTIFIER == presource->data.resource->id_old_save) {
+          ruleset_error(NULL, LOG_ERROR,
+                        "\"%s\" [%s] identifier missing value.",
+                        filename, rsection);
+          ok = FALSE;
+          break;
+        }
+        if (RESOURCE_NONE_IDENTIFIER == presource->data.resource->id_old_save) {
+          ruleset_error(NULL, LOG_ERROR,
+                        "\"%s\" [%s] cannot use '%c' as an identifier;"
+                        " it is reserved.",
+                        filename, rsection, presource->data.resource->id_old_save);
+          ok = FALSE;
+          break;
+        }
       }
 
       if (!ok) {
@@ -3928,27 +3930,29 @@ static bool load_ruleset_terrain(struct section_file *file,
      * ruleset to play havoc on us when we have only some resource identifiers loaded
      * from the new ruleset. */
     extra_type_by_cause_iterate(EC_RESOURCE, pres) {
-      extra_type_by_cause_iterate(EC_RESOURCE, pres2) {
-        if (pres->data.resource->id_old_save == pres2->data.resource->id_old_save
-            && pres != pres2) {
-          ruleset_error(NULL, LOG_ERROR,
-                        "\"%s\" [%s] has the same identifier as [%s].",
-                        filename,
-                        extra_rule_name(pres),
-                        extra_rule_name(pres2));
-          ok = FALSE;
+      if (pres->data.resource->id_old_save != '\0') {
+        extra_type_by_cause_iterate(EC_RESOURCE, pres2) {
+          if (pres->data.resource->id_old_save == pres2->data.resource->id_old_save
+              && pres != pres2) {
+            ruleset_error(NULL, LOG_ERROR,
+                          "\"%s\" [%s] has the same identifier as [%s].",
+                          filename,
+                          extra_rule_name(pres),
+                          extra_rule_name(pres2));
+            ok = FALSE;
+            break;
+          }
+        } extra_type_by_cause_iterate_end;
+
+        if (!ok) {
           break;
         }
-      } extra_type_by_cause_iterate_end;
-
-      if (!ok) {
-        break;
       }
     } extra_type_by_cause_iterate_end;
   }
 
   if (ok) {
-    /* base details */
+    /* Base details */
     extra_type_by_cause_iterate(EC_BASE, pextra) {
       struct base_type *pbase = extra_base_get(pextra);
       const char *section;
@@ -6252,8 +6256,13 @@ static bool load_action_ui_name(struct section_file *file, int act,
   const char *text;
   const char *def = action_ui_name_default(act);
 
-  text = secfile_lookup_str_default(file, def,
-                                    "actions.%s", entry_name);
+  if (entry_name == NULL) {
+    text = def;
+  } else {
+    text = secfile_lookup_str_default(file, def,
+                                      "actions.%s", entry_name);
+  }
+
   sz_strlcpy(action_by_number(act)->ui_name, text);
 
   return TRUE;
@@ -7323,21 +7332,21 @@ static bool load_ruleset_game(struct section_file *file, bool act,
                                                     "trade.settings%d.pct", i);
         cancelling = secfile_lookup_str_default(file, "Active",
                                                 "trade.settings%d.cancelling", i);
-        set->cancelling = traderoute_cancelling_type_by_name(cancelling);
+        set->cancelling = trade_route_cancelling_type_by_name(cancelling);
         if (set->cancelling == TRI_LAST) {
           ruleset_error(NULL, LOG_ERROR,
-                        "\"%s\" unknown traderoute cancelling type \"%s\".",
+                        "\"%s\" unknown trade route cancelling type \"%s\".",
                         filename, cancelling);
           ok = FALSE;
         }
 
         bonus = secfile_lookup_str_default(file, "None", "trade.settings%d.bonus", i);
 
-        set->bonus_type = traderoute_bonus_type_by_name(bonus, fc_strcasecmp);
+        set->bonus_type = trade_route_bonus_type_by_name(bonus, fc_strcasecmp);
 
-        if (!traderoute_bonus_type_is_valid(set->bonus_type)) {
+        if (!trade_route_bonus_type_is_valid(set->bonus_type)) {
           ruleset_error(NULL, LOG_ERROR,
-                        "\"%s\" unknown traderoute bonus type \"%s\".",
+                        "\"%s\" unknown trade route bonus type \"%s\".",
                         filename, bonus);
           ok = FALSE;
         }
@@ -7501,6 +7510,7 @@ static bool load_ruleset_game(struct section_file *file, bool act,
           break;
         }
 
+        pcount->helptext = lookup_strvec(file, sec_name, "helptext");
         pcount->type = cb;
         if (!secfile_lookup_int(file, &pcount->checkpoint,
                                 "%s.checkpoint", sec_name)) {
@@ -7626,8 +7636,13 @@ static bool load_ruleset_actions(struct section_file *file,
         } else if (!load_action_actor_consuming_always(file, act_id)) {
           ok = FALSE;
         } else {
-          load_action_ui_name(file, act_id,
-                              action_ui_name_ruleset_var_name(act_id));
+          const char *entry_name = NULL;
+
+          if (!action_id_is_internal(act_id)) {
+            entry_name = action_ui_name_ruleset_var_name(act_id);
+          }
+
+          load_action_ui_name(file, act_id, entry_name);
         }
 
         if (!ok) {
@@ -7671,7 +7686,7 @@ static bool load_ruleset_actions(struct section_file *file,
       /* Hard code action sub results for now. */
 
       /* Unit Enter Hut */
-      action_by_result_iterate(paction, act_id, ACTRES_HUT_ENTER) {
+      action_by_result_iterate(paction, ACTRES_HUT_ENTER) {
         BV_SET(paction->sub_results, ACT_SUB_RES_HUT_ENTER);
       } action_by_result_iterate_end;
       BV_SET(action_by_number(ACTION_PARADROP_ENTER)->sub_results,
@@ -7680,7 +7695,7 @@ static bool load_ruleset_actions(struct section_file *file,
              ACT_SUB_RES_HUT_ENTER);
 
       /* Unit Frighten Hut */
-      action_by_result_iterate(paction, act_id, ACTRES_HUT_FRIGHTEN) {
+      action_by_result_iterate(paction, ACTRES_HUT_FRIGHTEN) {
         BV_SET(paction->sub_results, ACT_SUB_RES_HUT_FRIGHTEN);
       } action_by_result_iterate_end;
       BV_SET(action_by_number(ACTION_PARADROP_FRIGHTEN)->sub_results,
@@ -7922,6 +7937,7 @@ static void send_ruleset_units(struct conn_list *dest)
     sz_strlcpy(packet.sound_fight_alt, u->sound_fight_alt);
     sz_strlcpy(packet.graphic_str, u->graphic_str);
     sz_strlcpy(packet.graphic_alt, u->graphic_alt);
+    sz_strlcpy(packet.graphic_alt2, u->graphic_alt2);
     packet.unit_class_id = uclass_number(utype_class(u));
     packet.build_cost = u->build_cost;
     packet.pop_cost = u->pop_cost;
@@ -8126,7 +8142,7 @@ static void send_ruleset_techs(struct conn_list *dest)
       packet.research_reqs[i++]
           = req_from_values(VUT_ADVANCE, REQ_RANGE_PLAYER,
                             FALSE, TRUE, FALSE,
-                            advance_number(a->require[AR_TWO]));;
+                            advance_number(a->require[AR_TWO]));
     }
 
     /* The requirements of the tech's research_reqs also goes in the
@@ -8167,6 +8183,7 @@ static void send_ruleset_counters(struct conn_list *dest)
     packet.type = pcount->target;
     packet.def = pcount->def;
 
+    PACKET_STRVEC_COMPUTE(packet.helptext, pcount->helptext);
     lsend_packet_ruleset_counter(dest, &packet);
   } city_counters_iterate_end;
 }
@@ -8213,6 +8230,7 @@ static void send_ruleset_buildings(struct conn_list *dest)
     sz_strlcpy(packet.rule_name, rule_name_get(&b->name));
     sz_strlcpy(packet.graphic_str, b->graphic_str);
     sz_strlcpy(packet.graphic_alt, b->graphic_alt);
+    sz_strlcpy(packet.graphic_alt2, b->graphic_alt2);
     j = 0;
     requirement_vector_iterate(&b->reqs, preq) {
       packet.reqs[j++] = *preq;
@@ -8421,6 +8439,7 @@ static void send_ruleset_extras(struct conn_list *dest)
     sz_strlcpy(packet.act_gfx_alt2, e->act_gfx_alt2);
     sz_strlcpy(packet.rmact_gfx, e->rmact_gfx);
     sz_strlcpy(packet.rmact_gfx_alt, e->rmact_gfx_alt);
+    sz_strlcpy(packet.rmact_gfx_alt2, e->rmact_gfx_alt2);
     sz_strlcpy(packet.graphic_str, e->graphic_str);
     sz_strlcpy(packet.graphic_alt, e->graphic_alt);
 

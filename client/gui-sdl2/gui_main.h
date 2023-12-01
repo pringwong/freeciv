@@ -32,8 +32,13 @@
 /* client/include */
 #include "gui_main_g.h"
 
+struct theme;
+
+#define GUI_SDL_OPTION(optname) gui_options.gui_sdl2_##optname
+#define GUI_SDL_OPTION_STR(optname) "gui_sdl2_" #optname
+
 /* Enable this to adjust sizes for 320x240 resolution */
-/* #define SMALL_SCREEN */
+/* #define GUI_SDL2_SMALL_SCREEN */
 
 /* SDL2 client Flags */
 #define CF_NONE				0
@@ -124,8 +129,13 @@ Uint16 gui_event_loop(void *data, void (*loop_action)(void *data),
                       Uint16 (*mouse_motion_handler)(SDL_MouseMotionEvent *motion_event,
                                                      void *data));
 
-/* shrink sizes for 320x240 screen */
-#ifdef SMALL_SCREEN
+unsigned default_font_size(struct theme *act_theme);
+void update_font_from_theme(int theme_font_size);
+
+bool flush_event(void);
+
+/* Shrink sizes for 320x240 screen */
+#ifdef GUI_SDL2_SMALL_SCREEN
   #define adj_size(size) ((size) / 2)
 #else
   #define adj_size(size) (size)

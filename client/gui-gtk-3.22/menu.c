@@ -244,7 +244,7 @@ static void unit_upgrade_callback(GtkMenuItem *item, gpointer data);
 static void unit_convert_callback(GtkMenuItem *item, gpointer data);
 static void unit_disband_callback(GtkMenuItem *item, gpointer data);
 static void build_city_callback(GtkMenuItem *item, gpointer data);
-static void auto_settle_callback(GtkMenuItem *item, gpointer data);
+static void auto_work_callback(GtkMenuItem *item, gpointer data);
 static void build_road_callback(GtkMenuItem *item, gpointer data);
 static void build_irrigation_callback(GtkMenuItem *item, gpointer data);
 static void cultivate_callback(GtkMenuItem *item, gpointer data);
@@ -255,8 +255,7 @@ static void connect_rail_callback(GtkMenuItem *item, gpointer data);
 static void connect_maglev_callback(GtkMenuItem *item, gpointer data);
 static void connect_irrigation_callback(GtkMenuItem *item, gpointer data);
 static void transform_terrain_callback(GtkMenuItem *item, gpointer data);
-static void clean_pollution_callback(GtkMenuItem *item, gpointer data);
-static void clean_fallout_callback(GtkMenuItem *item, gpointer data);
+static void clean_nuisance_callback(GtkMenuItem *item, gpointer data);
 static void fortify_callback(GtkMenuItem *item, gpointer data);
 static void build_fortress_callback(GtkMenuItem *item, gpointer data);
 static void build_airbase_callback(GtkMenuItem *item, gpointer data);
@@ -275,7 +274,7 @@ static struct menu_entry_info menu_entries[] =
   { "MENU_CIVILIZATION", N_("C_ivilization"), 0, 0,
     NULL, MGROUP_SAFE },
   { "MENU_BATTLE_GROUPS", N_("_Battle Groups"), 0, 0,
-    NULL, MGROUP_SAFE },
+    NULL, MGROUP_PLAYING },
   { "MENU_HELP", N_("_Help"), 0, 0, NULL, MGROUP_SAFE },
   { "CLEAR_CHAT_LOGS", N_("_Clear Chat Log"), 0, 0,
     G_CALLBACK(clear_chat_logs_callback), MGROUP_SAFE },
@@ -516,6 +515,7 @@ static struct menu_entry_info menu_entries[] =
   { "MENU_COMBAT", N_("_Combat"), 0, 0, NULL, MGROUP_UNIT },
   { "MENU_BUILD_BASE", N_("Build _Base"), 0, 0, NULL, MGROUP_UNIT },
   { "MENU_BUILD_PATH", N_("Build _Path"), 0, 0, NULL, MGROUP_UNIT },
+  { "MENU_CLEAN", N_("_Clean Nuisance"), 0, 0, NULL, MGROUP_UNIT },
   { "SELECT_SINGLE", N_("_Single Unit (Unselect Others)"), GDK_KEY_z, 0,
     G_CALLBACK(select_single_callback), MGROUP_UNIT },
   { "SELECT_ALL_ON_TILE", N_("_All On Tile"), GDK_KEY_v, 0,
@@ -566,8 +566,8 @@ static struct menu_entry_info menu_entries[] =
     G_CALLBACK(unit_disband_callback), MGROUP_UNIT },
   { "BUILD_CITY", N_("_Build City"), GDK_KEY_b, 0,
     G_CALLBACK(build_city_callback), MGROUP_UNIT },
-  { "AUTO_SETTLER", N_("_Auto Settler"), GDK_KEY_a, 0,
-    G_CALLBACK(auto_settle_callback), MGROUP_UNIT },
+  { "AUTO_WORKER", N_("_Auto Worker"), GDK_KEY_a, 0,
+    G_CALLBACK(auto_work_callback), MGROUP_UNIT },
   { "BUILD_ROAD", N_("Build _Road"), GDK_KEY_r, 0,
     G_CALLBACK(build_road_callback), MGROUP_UNIT },
   { "BUILD_IRRIGATION", N_("Build _Irrigation"), GDK_KEY_i, 0,
@@ -589,10 +589,8 @@ static struct menu_entry_info menu_entries[] =
     G_CALLBACK(connect_irrigation_callback), MGROUP_UNIT },
   { "TRANSFORM_TERRAIN", N_("Transf_orm Terrain"), GDK_KEY_o, 0,
     G_CALLBACK(transform_terrain_callback), MGROUP_UNIT },
-  { "CLEAN_POLLUTION", N_("Clean _Pollution"), GDK_KEY_p, 0,
-    G_CALLBACK(clean_pollution_callback), MGROUP_UNIT },
-  { "CLEAN_FALLOUT", N_("Clean _Nuclear Fallout"), GDK_KEY_n, 0,
-    G_CALLBACK(clean_fallout_callback), MGROUP_UNIT },
+  { "CLEAN", N_("_Clean"), GDK_KEY_p, 0,
+    G_CALLBACK(clean_nuisance_callback), MGROUP_UNIT },
   { "FORTIFY", N_("Fortify"), GDK_KEY_f, 0,
     G_CALLBACK(fortify_callback), MGROUP_UNIT },
   { "BUILD_FORTRESS", N_("Build Fortress"), GDK_KEY_f, GDK_SHIFT_MASK,
@@ -1454,11 +1452,7 @@ static void full_screen_callback(GtkCheckMenuItem *item, gpointer data)
   if (GUI_GTK_OPTION(fullscreen) ^ gtk_check_menu_item_get_active(item)) {
     GUI_GTK_OPTION(fullscreen) ^= 1;
 
-    if (GUI_GTK_OPTION(fullscreen)) {
-      gtk_window_fullscreen(GTK_WINDOW(toplevel));
-    } else {
-      gtk_window_unfullscreen(GTK_WINDOW(toplevel));
-    }
+    fullscreen_opt_refresh(NULL);
   }
 }
 
@@ -1767,11 +1761,11 @@ static void build_city_callback(GtkMenuItem *item, gpointer data)
 }
 
 /************************************************************************//**
-  Action "AUTO_SETTLE" callback.
+  Action "AUTO_WORK" callback.
 ****************************************************************************/
-static void auto_settle_callback(GtkMenuItem *action, gpointer data)
+static void auto_work_callback(GtkMenuItem *action, gpointer data)
 {
-  key_unit_auto_settle();
+  key_unit_auto_work();
 }
 
 /************************************************************************//**
@@ -1905,28 +1899,11 @@ static void transform_terrain_callback(GtkMenuItem *action, gpointer data)
 }
 
 /************************************************************************//**
-  Action "CLEAN_POLLUTION" callback.
+  Action "CLEAN" callback.
 ****************************************************************************/
-static void clean_pollution_callback(GtkMenuItem *action, gpointer data)
+static void clean_nuisance_callback(GtkMenuItem *action, gpointer data)
 {
-  unit_list_iterate(get_units_in_focus(), punit) {
-    struct extra_type *pextra;
-
-    pextra = prev_extra_in_tile(unit_tile(punit), ERM_CLEANPOLLUTION,
-                                unit_owner(punit), punit);
-
-    if (pextra != NULL) {
-      request_new_unit_activity_targeted(punit, ACTIVITY_POLLUTION, pextra);
-    }
-  } unit_list_iterate_end;
-}
-
-/************************************************************************//**
-  Action "CLEAN_FALLOUT" callback.
-****************************************************************************/
-static void clean_fallout_callback(GtkMenuItem *action, gpointer data)
-{
-  key_unit_fallout();
+  key_unit_clean();
 }
 
 /************************************************************************//**
@@ -2025,6 +2002,21 @@ static void road_callback(GtkMenuItem *item, gpointer data)
   unit_list_iterate(get_units_in_focus(), punit) {
     request_new_unit_activity_targeted(punit, ACTIVITY_GEN_ROAD,
                                        pextra);
+  } unit_list_iterate_end;
+}
+
+/************************************************************************//**
+  The player has chosen a nuisance to clean from the menu.
+****************************************************************************/
+static void clean_callback(GtkMenuItem *item, gpointer data)
+{
+  struct extra_type *pextra = data;
+
+  unit_list_iterate(get_units_in_focus(), punit) {
+    if (can_unit_do_activity_targeted(punit, ACTIVITY_CLEAN, pextra)) {
+      request_new_unit_activity_targeted(punit, ACTIVITY_CLEAN,
+                                         pextra);
+    }
   } unit_list_iterate_end;
 }
 
@@ -2503,6 +2495,24 @@ void real_menus_update(void)
     g_list_free(list);
   }
 
+  /* Set cleaning menu sensitivity. */
+  if ((menu = find_menu("<MENU>/CLEAN"))) {
+    GList *list, *iter;
+    struct extra_type *pextra;
+
+    list = gtk_container_get_children(GTK_CONTAINER(menu));
+    for (iter = list; NULL != iter; iter = g_list_next(iter)) {
+      pextra = g_object_get_data(G_OBJECT(iter->data), "nuisance");
+      if (NULL != pextra) {
+        gtk_widget_set_sensitive(GTK_WIDGET(iter->data),
+                                 can_units_do_activity_targeted(punits,
+                                                                ACTIVITY_CLEAN,
+                                                                pextra));
+      }
+    }
+    g_list_free(list);
+  }
+
   /* Set Go to and... action visibility. */
   if ((menu = find_menu("<MENU>/GOTO_AND"))) {
     GList *list, *iter;
@@ -2561,16 +2571,15 @@ void real_menus_update(void)
                            can_units_do_base_gui(punits, BASE_GUI_FORTRESS));
   menu_entry_set_sensitive("BUILD_AIRBASE",
                            can_units_do_base_gui(punits, BASE_GUI_AIRBASE));
-  menu_entry_set_sensitive("CLEAN_POLLUTION",
-                           can_units_do_activity(punits, ACTIVITY_POLLUTION));
-  menu_entry_set_sensitive("CLEAN_FALLOUT",
-                           can_units_do_activity(punits, ACTIVITY_FALLOUT));
+  menu_entry_set_sensitive("CLEAN",
+                           can_units_do_activity(punits, ACTIVITY_CLEAN));
   menu_entry_set_sensitive("UNIT_SENTRY",
                            can_units_do_activity(punits, ACTIVITY_SENTRY));
   menu_entry_set_sensitive("DO_PARADROP",
                            can_units_do(punits, can_unit_paradrop));
-  /* FIXME: should conditionally rename "Pillage" to "Pillage..." in cases where
-   * selecting the command results in a dialog box listing options of what to pillage */
+  /* FIXME: should conditionally rename "Pillage" to "Pillage..." in cases
+   * where selecting the command results in a dialog box listing options of
+   * what to pillage */
   menu_entry_set_sensitive("DO_PILLAGE",
                            can_units_do_activity(punits, ACTIVITY_PILLAGE));
   menu_entry_set_sensitive("UNIT_DISBAND",
@@ -2586,12 +2595,12 @@ void real_menus_update(void)
   menu_entry_set_sensitive("UNIT_BOARD",
                            units_can_load(punits));
   menu_entry_set_sensitive("UNIT_DEBOARD",
-                           units_can_unload(punits));
+                           units_can_unload(&(wld.map), punits));
   menu_entry_set_sensitive("UNIT_UNSENTRY", 
                            units_have_activity_on_tile(punits,
                                                        ACTIVITY_SENTRY));
-  menu_entry_set_sensitive("AUTO_SETTLER",
-                           can_units_do(punits, can_unit_do_autosettlers));
+  menu_entry_set_sensitive("AUTO_WORKER",
+                           can_units_do(punits, can_unit_do_autoworker));
   menu_entry_set_sensitive("UNIT_EXPLORE",
                            can_units_do_activity(punits, ACTIVITY_EXPLORE));
 
@@ -2994,6 +3003,27 @@ void real_menus_init(void)
     } extra_type_by_cause_iterate_end;
   }
 
+  if ((menu = find_menu("<MENU>/CLEAN"))) {
+    GList *list, *iter;
+    GtkWidget *item;
+
+    /* Remove previous cleaning entries. */
+    list = gtk_container_get_children(GTK_CONTAINER(menu));
+    for (iter = list; NULL != iter; iter = g_list_next(iter)) {
+      gtk_widget_destroy(GTK_WIDGET(iter->data));
+    }
+    g_list_free(list);
+
+    /* Add new cleaning entries. */
+    extra_type_by_rmcause_iterate(ERM_CLEAN, pextra) {
+      item = gtk_menu_item_new_with_label(extra_name_translation(pextra));
+      g_object_set_data(G_OBJECT(item), "nuisance", pextra);
+      g_signal_connect(item, "activate", G_CALLBACK(clean_callback), pextra);
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+      gtk_widget_show(item);
+    } extra_type_by_rmcause_iterate_end;
+  }
+
   /* Initialize the Go to and... actions. */
   if ((menu = find_menu("<MENU>/GOTO_AND"))) {
     GtkWidget *item;
@@ -3004,7 +3034,7 @@ void real_menus_init(void)
 
     /* Add the new action entries grouped by target kind. */
     for (tgt_kind_group = 0; tgt_kind_group < ATK_COUNT; tgt_kind_group++) {
-      action_iterate(act_id) {
+      action_noninternal_iterate(act_id) {
         struct action *paction = action_by_number(act_id);
 
         if (action_id_get_actor_kind(act_id) != AAK_UNIT) {
@@ -3092,7 +3122,7 @@ void real_menus_init(void)
 
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
         gtk_widget_show(item);
-      } action_iterate_end;
+      } action_noninternal_iterate_end;
     }
   }
 

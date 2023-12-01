@@ -117,14 +117,12 @@ void tab_terrains::refresh()
 {
   terrain_list->clear();
 
-  terrain_type_iterate(pterr) {
-    if (!pterr->ruledit_disabled) {
-      QListWidgetItem *item =
-        new QListWidgetItem(QString::fromUtf8(terrain_rule_name(pterr)));
+  terrain_re_active_iterate(pterr) {
+    QListWidgetItem *item
+      = new QListWidgetItem(QString::fromUtf8(terrain_rule_name(pterr)));
 
-      terrain_list->insertItem(terrain_index(pterr), item);
-    }
-  } terrain_type_iterate_end;
+    terrain_list->insertItem(terrain_index(pterr), item);
+  } terrain_re_active_iterate_end;
 }
 
 /**********************************************************************//**
@@ -203,7 +201,7 @@ void tab_terrains::name_given()
 }
 
 /**********************************************************************//**
-  User requested terrain deletion 
+  User requested terrain deletion
 **************************************************************************/
 void tab_terrains::delete_now()
 {

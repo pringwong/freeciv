@@ -7,15 +7,15 @@
 
 MAJOR_VERSION="3"
 MINOR_VERSION="2"
-PATCH_VERSION="90"
-EMERGENCY_VERSION="2"
+PATCH_VERSION="91"
+EMERGENCY_VERSION=""
 VERSION_LABEL="-dev"
 
 # Type is either "development" or "stable"
 # Date and NEWS URL are relevant only for "stable" releases
 if test "$VERSION_LABEL" = "" ; then
   RELEASE_TYPE="stable"
-  #RELEASE_DATE="2023-03-22"
+  #RELEASE_DATE="2023-05-08"
   NEWS_URL="https://www.freeciv.org/wiki/NEWS-${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
 else
   RELEASE_TYPE="development"
@@ -50,7 +50,9 @@ fi
 #
 # 5) Final.
 # Update DEFAULT_FOLLOW_TAG to "stable", and also
-# windows/installer_msys2/Makefile.autotools --with-followtag to "windows"
+# platforms/windows/installer_msys2/Makefile.meson -Dfollowtag to "windows"
+# platforms/windows/installer_msys2/Makefile.autotools --with-followtag to "windows"
+# platforms/macos/homebrew-appbundle.sh -Dfollowtag to "macos"
 
 IS_DEVEL_VERSION=1
 IS_FREEZE_VERSION=0
@@ -72,7 +74,10 @@ DEFAULT_FOLLOW_TAG=S3_3
 #   - No new mandatory capabilities can be added to the release branch; doing
 #     so would break network capability of supposedly "compatible" releases.
 #
-NETWORK_CAPSTRING="+Freeciv.Devel-${MAIN_VERSION}-2023.Apr.06"
+# On FREECIV_DEBUG builds, optional capability "debug" gets automatically
+# appended to this.
+#
+NETWORK_CAPSTRING="+Freeciv.Devel-${MAIN_VERSION}-2023.Sep.02"
 FREECIV_DISTRIBUTOR=""
 
 if test "x$FREECIV_LABEL_FORCE" != "x" ; then

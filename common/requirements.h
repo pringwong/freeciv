@@ -44,7 +44,8 @@ struct astring;
 #define SPECENUM_VALUE3NAME "Adjacent"
 #define SPECENUM_VALUE4 REQ_RANGE_CITY
 #define SPECENUM_VALUE4NAME "City"
-#define SPECENUM_VALUE5 REQ_RANGE_TRADEROUTE
+#define SPECENUM_VALUE5 REQ_RANGE_TRADE_ROUTE
+/* FIXME: -> "Trade Route" */
 #define SPECENUM_VALUE5NAME "Traderoute"
 #define SPECENUM_VALUE6 REQ_RANGE_CONTINENT
 #define SPECENUM_VALUE6NAME "Continent"
@@ -56,7 +57,8 @@ struct astring;
 #define SPECENUM_VALUE9NAME "Alliance"
 #define SPECENUM_VALUE10 REQ_RANGE_WORLD
 #define SPECENUM_VALUE10NAME "World"
-#define SPECENUM_COUNT REQ_RANGE_COUNT /* keep this last */
+#define SPECENUM_COUNT REQ_RANGE_COUNT      /* Keep this last */
+#define REQ_RANGE_MAX (REQ_RANGE_COUNT - 1) /* REQ_RANGE_WORLD */
 #include "specenum_gen.h"
 
 #define req_range_iterate(_range_) \

@@ -22,6 +22,7 @@ extern "C" {
 
 /* common */
 #include "base.h"
+#include "fc_interface.h"
 #include "fc_types.h"
 #include "map_types.h"
 #include "terrain.h"            /* enum tile_special_type */
@@ -124,8 +125,8 @@ struct unit_order {
 #define SPECENUM_NAME server_side_agent
 #define SPECENUM_VALUE0 SSA_NONE
 #define SPECENUM_VALUE0NAME N_("?serveragent:None")
-#define SPECENUM_VALUE1 SSA_AUTOSETTLER
-#define SPECENUM_VALUE1NAME N_("Autosettlers")
+#define SPECENUM_VALUE1 SSA_AUTOWORKER
+#define SPECENUM_VALUE1NAME N_("AutoWorker")
 #define SPECENUM_VALUE2 SSA_AUTOEXPLORE
 #define SPECENUM_VALUE2NAME N_("Autoexplore")
 #define SPECENUM_COUNT SSA_COUNT
@@ -296,7 +297,7 @@ extern const Activity_type_id tile_changing_activities[];
 #define tile_changing_activities_iterate_end                                \
   activity_type_list_iterate_end                                            \
 }
-  
+
 bool are_unit_orders_equal(const struct unit_order *order1,
                            const struct unit_order *order2);
 
@@ -306,7 +307,8 @@ int unit_shield_value(const struct unit *punit,
 bool unit_can_help_build_wonder_here(const struct unit *punit);
 bool unit_can_est_trade_route_here(const struct unit *punit);
 enum unit_airlift_result
-    test_unit_can_airlift_to(const struct player *restriction,
+    test_unit_can_airlift_to(const struct civ_map *nmap,
+                             const struct player *restriction,
                              const struct unit *punit,
                              const struct city *pdest_city);
 bool unit_can_airlift_to(const struct unit *punit, const struct city *pcity);
@@ -346,7 +348,7 @@ int get_turns_for_activity_at(const struct unit *punit,
                               const struct tile *ptile,
                               struct extra_type *tgt);
 bool activity_requires_target(enum unit_activity activity);
-bool can_unit_do_autosettlers(const struct unit *punit); 
+bool can_unit_do_autoworker(const struct unit *punit);
 bool is_unit_activity_on_tile(enum unit_activity activity,
                               const struct tile *ptile);
 bv_extras get_unit_tile_pillage_set(const struct tile *ptile);
@@ -362,9 +364,10 @@ bool unit_can_do_action_result(const struct unit *punit,
                                enum action_result result);
 bool unit_can_do_action_sub_result(const struct unit *punit,
                                    enum action_sub_result sub_result);
-bool is_square_threatened(const struct player *pplayer,
+bool is_square_threatened(const struct civ_map *nmap,
+                          const struct player *pplayer,
                           const struct tile *ptile, bool omniscient);
-bool is_field_unit(const struct unit *punit);              /* ships+aero */
+bool is_field_unit(const struct unit *punit);
 bool is_hiding_unit(const struct unit *punit);
 bool unit_can_add_or_build_city(const struct unit *punit);
 
@@ -447,8 +450,25 @@ static inline bool is_non_attack_unit_tile(const struct tile *ptile,
 struct unit *unit_occupies_tile(const struct tile *ptile,
                                 const struct player *pplayer);
 
-bool is_my_zoc(const struct player *unit_owner, const struct tile *ptile,
-               const struct civ_map *zmap);
+bool is_plr_zoc_srv(const struct player *unit_owner, const struct tile *ptile,
+                    const struct civ_map *zmap);
+bool is_plr_zoc_client(const struct player *unit_owner, const struct tile *ptile,
+                       const struct civ_map *zmap);
+
+/**********************************************************************//**
+  Is this square controlled by the unit_owner? This function can be
+  used both by the server and the client side.
+
+  Here "is_my_zoc" means essentially a square which is *not* adjacent to an
+  enemy unit (that has a ZOC) on a terrain that has zoc rules.
+**************************************************************************/
+static inline bool is_my_zoc(const struct player *unit_owner, const struct tile *ptile,
+                             const struct civ_map *zmap)
+{
+  return is_server()
+    ? is_plr_zoc_srv(unit_owner, ptile, zmap) : is_plr_zoc_client(unit_owner, ptile, zmap);
+}
+
 bool unit_being_aggressive(const struct unit *punit);
 bool unit_type_really_ignores_zoc(const struct unit_type *punittype);
 
@@ -499,6 +519,14 @@ bool unit_transport_load(struct unit *pcargo, struct unit *ptrans,
                          bool force);
 bool unit_transport_unload(struct unit *pcargo);
 struct unit *unit_transport_get(const struct unit *pcargo);
+
+#define unit_transported_server(_pcargo_) ((_pcargo_)->transporter != NULL)
+
+/* Evaluates parameter twice! */
+#define unit_transported_client(_pcargo_)  \
+  ((_pcargo_)->client.transported_by != -1 \
+   || (_pcargo_)->transporter != NULL)
+
 bool unit_transported(const struct unit *pcargo);
 struct unit_list *unit_transport_cargo(const struct unit *ptrans);
 bool unit_transport_check(const struct unit *pcargo,

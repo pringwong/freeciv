@@ -54,7 +54,6 @@
 
 /* ai/default */
 #include "aihand.h"
-#include "aitools.h"
 #include "daidata.h"
 #include "daidiplomacy.h"
 #include "daidomestic.h"
@@ -62,6 +61,7 @@
 #include "daieffects.h"
 #include "daiplayer.h"
 #include "daisettler.h"
+#include "daitools.h"
 
 #include "daicity.h"
 
@@ -85,28 +85,28 @@
 
 /* Iterate over cities within a certain range around a given city
  * (city_here) that exist within a given city list. */
-#define city_range_iterate(city_here, list, range, city)		\
-{									\
-  city_list_iterate(list, city) {					\
-    if (range == REQ_RANGE_PLAYER					\
-        || range == REQ_RANGE_TEAM					\
+#define city_range_iterate(city_here, list, range, city)                \
+{                                                                       \
+  city_list_iterate(list, city) {                                       \
+    if (range == REQ_RANGE_PLAYER                                       \
+        || range == REQ_RANGE_TEAM                                      \
         || range == REQ_RANGE_ALLIANCE                                  \
-        || (range == REQ_RANGE_TRADEROUTE                               \
+        || (range == REQ_RANGE_TRADE_ROUTE                              \
          && (city == city_here                                          \
              || have_cities_trade_route(city, city_here)))              \
-     || ((range == REQ_RANGE_CITY || range == REQ_RANGE_LOCAL)		\
-      && city == city_here)						\
-     || (range == REQ_RANGE_CONTINENT					\
-      && tile_continent(city->tile) ==					\
-	 tile_continent(city_here->tile))) {
+     || ((range == REQ_RANGE_CITY || range == REQ_RANGE_LOCAL)          \
+      && city == city_here)                                             \
+     || (range == REQ_RANGE_CONTINENT                                   \
+      && tile_continent(city->tile) ==                                  \
+         tile_continent(city_here->tile))) {
 
-#define city_range_iterate_end						\
-    }									\
-  } city_list_iterate_end;						\
+#define city_range_iterate_end                                          \
+    }                                                                   \
+  } city_list_iterate_end;                                              \
 }
 
-#define CITY_EMERGENCY(pcity)						\
- (pcity->surplus[O_SHIELD] < 0 || city_unhappy(pcity)			\
+#define CITY_EMERGENCY(pcity)                                           \
+ (pcity->surplus[O_SHIELD] < 0 || city_unhappy(pcity)                   \
   || pcity->food_stock + pcity->surplus[O_FOOD] < 0)
 
 static void dai_city_sell_noncritical(struct city *pcity, bool redundant_only);
@@ -278,7 +278,7 @@ static void dai_city_choose_build(struct ai_type *ait, struct player *pplayer,
   if (city_data->choice.want == 0) {
     /* Fallbacks do happen with techlevel 0, which is now default. -- Per */
     CITY_LOG(LOG_WANT, pcity, "Falling back - didn't want to build soldiers,"
-	     " workers, caravans, settlers, or buildings!");
+             " workers, caravans, settlers, or buildings!");
     city_data->choice.want = 1;
     if (best_role_unit(pcity, action_id_get_role(ACTION_TRADE_ROUTE))) {
       city_data->choice.value.utype
@@ -315,15 +315,15 @@ static void dai_city_choose_build(struct ai_type *ait, struct player *pplayer,
     if (city_data->choice.log_if_chosen) {
       log_normal("%s wants %s for %s with desire " ADV_WANT_PRINTF ".",
                  city_name_get(pcity),
-                 dai_choice_rule_name(&city_data->choice),
+                 adv_choice_rule_name(&city_data->choice),
                  city_data->choice.use,
                  city_data->choice.want);
     }
 #endif /* ADV_CHOICE_TRACK */
 
     CITY_LOG(LOG_DEBUG, pcity, "wants %s with desire " ADV_WANT_PRINTF ".",
-	     dai_choice_rule_name(&city_data->choice),
-	     city_data->choice.want);
+             adv_choice_rule_name(&city_data->choice),
+             city_data->choice.want);
 
     switch (city_data->choice.type) {
     case CT_CIVILIAN:
@@ -651,7 +651,7 @@ static void dai_spend_gold(struct ai_type *ait, struct player *pplayer)
             || (bestchoice.want > 200 && city_data->urgency > 1))) {
       /* Buy stuff */
       CITY_LOG(LOG_BUY, pcity, "Crash buy of %s for %d (want " ADV_WANT_PRINTF ")",
-               dai_choice_rule_name(&bestchoice),
+               adv_choice_rule_name(&bestchoice),
                buycost,
                bestchoice.want);
       really_handle_city_buy(pplayer, pcity);
@@ -660,7 +660,7 @@ static void dai_spend_gold(struct ai_type *ait, struct player *pplayer)
                && assess_defense(ait, pcity) == 0) {
       /* We have no gold but MUST have a defender */
       CITY_LOG(LOG_BUY, pcity, "must have %s but can't afford it (%d < %d)!",
-               dai_choice_rule_name(&bestchoice),
+               adv_choice_rule_name(&bestchoice),
                pplayer->economic.gold,
                buycost);
       try_to_sell_stuff(pplayer, pcity);
@@ -740,7 +740,7 @@ static int unit_foodbox_cost(struct unit *punit)
 
 /**********************************************************************//**
   Estimates the want for a terrain improver (aka worker) by creating a
-  virtual unit and feeding it to settler_evaluate_improvements.
+  virtual unit and feeding it to settler_evaluate_improvements().
 
   TODO: AI does not ship UTYF_SETTLERS around, only UTYF_CITIES - Per
 **************************************************************************/
@@ -760,6 +760,7 @@ static void contemplate_terrain_improvements(struct ai_type *ait,
   Continent_id place = tile_continent(pcenter);
   struct ai_city *city_data = def_ai_city_data(pcity, ait);
   struct dai_private_data *private = (struct dai_private_data *)ait->private;
+  const struct civ_map *nmap = &(wld.map);
 
   if (!private->contemplace_workers) {
     /* AI type uses custom method to set worker want and type. */
@@ -780,7 +781,8 @@ static void contemplate_terrain_improvements(struct ai_type *ait,
   /* Advisors data space not allocated as it's not needed in the
      lifetime of the virtualunit. */
   unit_tile_set(virtualunit, pcenter);
-  want = settler_evaluate_improvements(virtualunit, &best_act, &best_target,
+  want = settler_evaluate_improvements(nmap, virtualunit,
+                                       &best_act, &best_target,
                                        &best_tile,
                                        NULL, NULL);
   if (unit_type_get(virtualunit)->pop_cost >= city_size_get(pcity)) {
@@ -1291,8 +1293,6 @@ static int action_target_neg_util(action_id act_id,
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_ROAD:
   case ACTRES_CONVERT:
@@ -1312,8 +1312,12 @@ static int action_target_neg_util(action_id act_id,
   case ACTRES_TELEPORT:
   case ACTRES_HOMELESS:
   case ACTRES_ENABLER_CHECK:
+
+  case ACTRES_UNUSED_1:
+  case ACTRES_UNUSED_2:
     fc_assert_msg(action_id_get_target_kind(act_id) == ATK_CITY,
                   "Action not aimed at cities");
+    break;
   }
 
   /* Wrong action. Ignore it. */
@@ -1593,11 +1597,17 @@ static void adjust_improvement_wants_by_effects(struct ai_type *ait,
     .city = pcity,
     .building = pimprove,
   };
+
+  /* Do NOT pass building here, as the action might be about
+   * targeting some completely different building, AND
+   * the check to see if the action is possible before
+   * the building is there is also ignoring the buildings.
+   * We don't want those two results to differ for
+   * an unrelated reason to what we are evaluating. */
   const struct req_context actenabler_ctxt = {
     .player = pplayer,
     .city = pcity,
     .tile = city_tile(pcity),
-    .building = pimprove,
   };
 
   /* Remove team members from the equation */
@@ -1651,7 +1661,7 @@ static void adjust_improvement_wants_by_effects(struct ai_type *ait,
   }
 
   /* All the trade partners and the city being considered. */
-  cities[REQ_RANGE_TRADEROUTE] = city_num_trade_routes(pcity)+1;
+  cities[REQ_RANGE_TRADE_ROUTE] = city_num_trade_routes(pcity) + 1;
 
   cities[REQ_RANGE_CITY] = cities[REQ_RANGE_LOCAL] = 1;
 
@@ -1676,7 +1686,7 @@ static void adjust_improvement_wants_by_effects(struct ai_type *ait,
   } players_iterate_end;
 
   effect_list_iterate(get_req_source_effects(&source), peffect) {
-    struct requirement *mypreq = NULL;
+    enum req_range range = REQ_RANGE_MAX;
     bool active = TRUE;
     int n_needed_techs = 0;
     struct tech_vector needed_techs;
@@ -1689,7 +1699,10 @@ static void adjust_improvement_wants_by_effects(struct ai_type *ait,
       /* Check if all the requirements for the currently evaluated effect
        * are met, except for having the building that we are evaluating. */
       if (universal_fulfills_requirement(preq, &source) == ITF_YES) {
-        mypreq = preq;
+        if (preq->range < range) {
+          /* More limited range */
+          range = preq->range;
+        }
         present = preq->present;
         continue;
       }
@@ -1711,8 +1724,7 @@ static void adjust_improvement_wants_by_effects(struct ai_type *ait,
     n_needed_techs = tech_vector_size(&needed_techs);
     if ((active || n_needed_techs) && !impossible_to_get) {
       adv_want v1 = dai_effect_value(pplayer, ai, pcity, capital,
-                                     turns, peffect, cities[mypreq->range],
-                                     nplayers);
+                                     turns, peffect, range, nplayers);
       /* v1 could be negative (the effect could be undesirable),
        * although it is usually positive.
        * For example, in the default ruleset, Communism decreases the
@@ -1785,9 +1797,7 @@ static void adjust_improvement_wants_by_effects(struct ai_type *ait,
             active = FALSE;
             break;
           }
-        }
-
-        if (!is_req_active(&actenabler_ctxt, NULL, preq, RPT_POSSIBLE)) {
+        } else if (!is_req_active(&actenabler_ctxt, NULL, preq, RPT_POSSIBLE)) {
           active = FALSE;
           break;
         }

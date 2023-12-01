@@ -33,7 +33,6 @@
 #include "nation.h"
 #include "research.h"
 #include "server_settings.h"
-#include "tile.h"
 #include "unit.h"
 
 /* Custom data types for obligatory hard action requirements. */
@@ -132,9 +131,18 @@ action_prob_not_relevant(const struct act_prob probability);
 static inline bool
 action_prob_not_impl(const struct act_prob probability);
 
+static struct act_prob ap_diplomat_battle(const struct unit *pattacker,
+                                          const struct unit *pvictim,
+                                          const struct tile *tgt_tile,
+                                          const struct action *paction)
+  fc__attribute((nonnull(3)));
+
 /* Make sure that an action distance can target the whole map. */
 FC_STATIC_ASSERT(MAP_DISTANCE_MAX <= ACTION_DISTANCE_LAST_NON_SIGNAL,
                  action_range_can_not_cover_the_whole_map);
+
+static struct action_list *actlist_by_result[ACTRES_LAST];
+static struct action_list *actlist_by_activity[ACTIVITY_LAST];
 
 /**********************************************************************//**
   Returns a new array of alternative action enabler contradictions. Only
@@ -516,8 +524,6 @@ static void hard_code_oblig_hard_reqs(void)
                           ACTRES_MINE,
                           ACTRES_IRRIGATE,
                           ACTRES_CLEAN,
-                          ACTRES_CLEAN_POLLUTION,
-                          ACTRES_CLEAN_FALLOUT,
                           ACTRES_NONE);
 
   /* Why this is a hard requirement: Preserve semantics of the rule that a
@@ -544,6 +550,28 @@ static void hard_code_oblig_hard_reqs(void)
                              " \"CanMine\")"),
                           ACTRES_MINE,
                           ACTRES_NONE);
+  oblig_hard_req_register(req_from_values(VUT_TERRAINALTER, REQ_RANGE_TILE,
+                                          FALSE, FALSE, FALSE,
+                                          TA_CAN_ROAD),
+                          TRUE,
+                          N_("All action enablers for %s must require"
+                             " that the target"
+                             " tile's terrain's road_time"
+                             " is above 0. (See \"TerrainAlter\"'s"
+                             " \"CanRoad\")"),
+                          ACTRES_ROAD,
+                          ACTRES_NONE);
+  oblig_hard_req_register(req_from_values(VUT_TERRAINALTER, REQ_RANGE_TILE,
+                                          FALSE, FALSE, FALSE,
+                                          TA_CAN_BASE),
+                          TRUE,
+                          N_("All action enablers for %s must require"
+                             " that the target"
+                             " tile's terrain's base_time"
+                             " is above 0. (See \"TerrainAlter\"'s"
+                             " \"CanBase\")"),
+                          ACTRES_BASE,
+                          ACTRES_NONE);
 
   /* Why this is a hard requirement: Preserve semantics of the NoCities
    * terrain flag. */
@@ -552,8 +580,8 @@ static void hard_code_oblig_hard_reqs(void)
                                           TER_NO_CITIES),
                           TRUE,
                           N_("All action enablers for %s must require that"
-                          " the target doesn't has"
-                          " the NoCities terrain flag."),
+                             " the target doesn't have"
+                             " the NoCities terrain flag."),
                           ACTRES_FOUND_CITY,
                           ACTRES_NONE);
 
@@ -1314,14 +1342,6 @@ static void hard_code_actions(void)
       unit_action_new(ACTION_CLEAN, ACTRES_CLEAN,
                       TRUE, FALSE,
                       MAK_STAYS, 0, 0, FALSE);
-  actions[ACTION_CLEAN_POLLUTION] =
-      unit_action_new(ACTION_CLEAN_POLLUTION, ACTRES_CLEAN_POLLUTION,
-                      TRUE, FALSE,
-                      MAK_STAYS, 0, 0, FALSE);
-  actions[ACTION_CLEAN_FALLOUT] =
-      unit_action_new(ACTION_CLEAN_FALLOUT, ACTRES_CLEAN_FALLOUT,
-                      TRUE, FALSE,
-                      MAK_STAYS, 0, 0, FALSE);
   actions[ACTION_FORTIFY] =
       unit_action_new(ACTION_FORTIFY, ACTRES_FORTIFY,
                       TRUE, FALSE,
@@ -1466,6 +1486,10 @@ static void hard_code_actions(void)
       unit_action_new(ACTION_TELEPORT, ACTRES_TELEPORT,
                       TRUE, TRUE,
                       MAK_TELEPORT, 1, 1, FALSE);
+  actions[ACTION_GAIN_VETERANCY] =
+      unit_action_new(ACTION_GAIN_VETERANCY, ACTRES_ENABLER_CHECK,
+                      TRUE, FALSE,
+                      MAK_STAYS, 0, 0, FALSE);
   actions[ACTION_USER_ACTION1] =
       unit_action_new(ACTION_USER_ACTION1, ACTRES_NONE,
                       FALSE, TRUE,
@@ -1490,6 +1514,19 @@ static void hard_code_actions(void)
                       MAK_UNREPRESENTABLE,
                       /* Overwritten by the ruleset */
                       0, 1, FALSE);
+
+  /* The structure even for these need to be created, for
+   * the action_id_rule_name() to work on iterations. */
+  actions[ACTION_UNUSED_1]
+    = unit_action_new(ACTION_UNUSED_1, ACTRES_NONE,
+                      FALSE, FALSE,
+                      MAK_UNREPRESENTABLE,
+                      0, 0, FALSE);
+  actions[ACTION_UNUSED_2]
+    = unit_action_new(ACTION_UNUSED_2, ACTRES_NONE,
+                      FALSE, FALSE,
+                      MAK_UNREPRESENTABLE,
+                      0, 0, FALSE);
 }
 
 /**********************************************************************//**
@@ -1499,13 +1536,20 @@ void actions_init(void)
 {
   int i, j;
 
+  for (i = 0; i < ACTRES_LAST; i++) {
+    actlist_by_result[i] = action_list_new();
+  }
+  for (i = 0; i < ACTIVITY_LAST; i++) {
+    actlist_by_activity[i] = action_list_new();
+  }
+
   /* Hard code the actions */
   hard_code_actions();
 
   /* Initialize the action enabler list */
-  action_iterate(act) {
+  action_iterate_all(act) {
     action_enablers_by_action[act] = action_enabler_list_new();
-  } action_iterate_end;
+  } action_iterate_all_end;
 
   /* Initialize action obligatory hard requirements. */
 
@@ -1565,7 +1609,7 @@ void actions_free(void)
   /* Don't consider the actions to be initialized any longer. */
   actions_initialized = FALSE;
 
-  action_iterate(act) {
+  action_iterate_all(act) {
     action_enabler_list_iterate(action_enablers_by_action[act], enabler) {
       action_enabler_free(enabler);
     } action_enabler_list_iterate_end;
@@ -1573,7 +1617,7 @@ void actions_free(void)
     action_enabler_list_destroy(action_enablers_by_action[act]);
 
     FC_FREE(actions[act]);
-  } action_iterate_end;
+  } action_iterate_all_end;
 
   /* Free the obligatory hard action requirements. */
   for (i = 0; i < ACTRES_NONE; i++) {
@@ -1595,6 +1639,15 @@ void actions_free(void)
   }
 
   astr_free(&ui_name_str);
+
+  for (i = 0; i < ACTRES_LAST; i++) {
+    action_list_destroy(actlist_by_result[i]);
+    actlist_by_result[i] = NULL;
+  }
+  for (i = 0; i < ACTIVITY_LAST; i++) {
+    action_list_destroy(actlist_by_activity[i]);
+    actlist_by_activity[i] = NULL;
+  }
 }
 
 /**********************************************************************//**
@@ -1609,15 +1662,15 @@ bool actions_are_ready(void)
     return FALSE;
   }
 
-  action_iterate(act) {
+  action_noninternal_iterate(act) {
     if (actions[act]->ui_name[0] == '\0') {
-      /* An action without a UI name exists means that the ruleset haven't
-       * loaded yet. The ruleset loading will assign a default name to
-       * any actions not named by the ruleset. The client will get this
-       * name from the server. */
+      /* A noninternal action without a UI name exists means that
+       * the ruleset haven't loaded yet. The ruleset loading will assign
+       * a default name to any actions not named by the ruleset.
+       * The client will get this name from the server. */
       return FALSE;
     }
-  } action_iterate_end;
+  } action_noninternal_iterate_end;
 
   /* The actions should be ready for use. */
   return TRUE;
@@ -1639,6 +1692,17 @@ static struct action *action_new(action_id id,
   action->id = id;
 
   action->result = result;
+
+  if (result != ACTRES_LAST) {
+    enum unit_activity act = actres_activity_result(result);
+
+    action_list_append(actlist_by_result[result], action);
+
+    if (act != ACTIVITY_LAST) {
+      action_list_append(actlist_by_activity[act], action);
+    }
+  }
+
   /* Not set here */
   BV_CLR_ALL(action->sub_results);
 
@@ -1865,10 +1929,10 @@ const char *action_rule_name(const struct action *action)
   to the call. Copy the result if you want it to remain valid over
   another call to this function.
 **************************************************************************/
-const char *action_name_translation(const struct action *action)
+const char *action_name_translation(const struct action *paction)
 {
   /* Use action_id_name_translation() to format the UI name. */
-  return action_id_name_translation(action->id);
+  return action_id_name_translation(paction->id);
 }
 
 /**********************************************************************//**
@@ -2108,47 +2172,6 @@ int action_get_role(const struct action *paction)
 }
 
 /**********************************************************************//**
-  Returns the unit activity this action may cause or ACTIVITY_LAST if the
-  action doesn't result in a unit activity.
-**************************************************************************/
-enum unit_activity action_get_activity(const struct action *paction)
-{
-  fc_assert_msg(AAK_UNIT == action_get_actor_kind(paction),
-                "Action %s isn't performed by a unit",
-                action_rule_name(paction));
-
-  if (action_has_result(paction, ACTRES_FORTIFY)) {
-    return ACTIVITY_FORTIFYING;
-  } else if (action_has_result(paction, ACTRES_BASE)) {
-    return ACTIVITY_BASE;
-  } else if (action_has_result(paction, ACTRES_ROAD)) {
-    return ACTIVITY_GEN_ROAD;
-  } else if (action_has_result(paction, ACTRES_PILLAGE)) {
-    return ACTIVITY_PILLAGE;
-  } else if (action_has_result(paction, ACTRES_CLEAN)) {
-    return ACTIVITY_CLEAN;
-  } else if (action_has_result(paction, ACTRES_CLEAN_POLLUTION)) {
-    return ACTIVITY_POLLUTION;
-  } else if (action_has_result(paction, ACTRES_CLEAN_FALLOUT)) {
-    return ACTIVITY_FALLOUT;
-  } else if (action_has_result(paction, ACTRES_TRANSFORM_TERRAIN)) {
-    return ACTIVITY_TRANSFORM;
-  } else if (action_has_result(paction, ACTRES_CONVERT)) {
-    return ACTIVITY_CONVERT;
-  } else if (action_has_result(paction, ACTRES_PLANT)) {
-    return ACTIVITY_PLANT;
-  } else if (action_has_result(paction, ACTRES_MINE)) {
-    return ACTIVITY_MINE;
-  } else if (action_has_result(paction, ACTRES_CULTIVATE)) {
-    return ACTIVITY_CULTIVATE;
-  } else if (action_has_result(paction, ACTRES_IRRIGATE)) {
-    return ACTIVITY_IRRIGATE;
-  } else {
-    return ACTIVITY_LAST;
-  }
-}
-
-/**********************************************************************//**
   Returns the unit activity time (work) this action takes (requires) or
   ACT_TIME_INSTANTANEOUS if the action happens at once.
 
@@ -2159,7 +2182,7 @@ int action_get_act_time(const struct action *paction,
                         const struct tile *tgt_tile,
                         const struct extra_type *tgt_extra)
 {
-  enum unit_activity pactivity = action_get_activity(paction);
+  enum unit_activity pactivity = actres_activity_result(paction->result);
 
   if (pactivity == ACTIVITY_LAST) {
     /* Happens instantaneously, not at turn change. */
@@ -2169,8 +2192,6 @@ int action_get_act_time(const struct action *paction,
   switch (pactivity) {
   case ACTIVITY_PILLAGE:
   case ACTIVITY_CLEAN:
-  case ACTIVITY_POLLUTION:
-  case ACTIVITY_FALLOUT:
   case ACTIVITY_BASE:
   case ACTIVITY_GEN_ROAD:
   case ACTIVITY_IRRIGATE:
@@ -2267,8 +2288,6 @@ bool action_creates_extra(const struct action *paction,
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_CONVERT:
   case ACTRES_TRANSPORT_DEBOARD:
@@ -2286,6 +2305,8 @@ bool action_creates_extra(const struct action *paction,
   case ACTRES_ENABLER_CHECK:
   case ACTRES_NONE:
     break;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   return FALSE;
@@ -2306,12 +2327,7 @@ bool action_removes_extra(const struct action *paction,
   case ACTRES_PILLAGE:
     return is_extra_removed_by(pextra, ERM_PILLAGE);
   case ACTRES_CLEAN:
-    return is_extra_removed_by(pextra, ERM_CLEANPOLLUTION)
-      || is_extra_removed_by(pextra, ERM_CLEANFALLOUT);
-  case ACTRES_CLEAN_POLLUTION:
-    return is_extra_removed_by(pextra, ERM_CLEANPOLLUTION);
-  case ACTRES_CLEAN_FALLOUT:
-    return is_extra_removed_by(pextra, ERM_CLEANFALLOUT);
+    return is_extra_removed_by(pextra, ERM_CLEAN);
   case ACTRES_HUT_ENTER:
   case ACTRES_HUT_FRIGHTEN:
     return is_extra_removed_by(pextra, ERM_ENTER);
@@ -2378,6 +2394,8 @@ bool action_removes_extra(const struct action *paction,
   case ACTRES_ENABLER_CHECK:
   case ACTRES_NONE:
     break;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   return FALSE;
@@ -3021,25 +3039,6 @@ const char *action_enabler_vector_by_number_name(req_vec_num_in_item vec)
 }
 
 /**********************************************************************//**
-  Returns TRUE iff the specified player knows (has seen) the specified
-  tile.
-**************************************************************************/
-static bool plr_knows_tile(const struct player *plr,
-                           const struct tile *ttile)
-{
-  return plr && ttile && (tile_get_known(ttile, plr) != TILE_UNKNOWN);
-}
-
-/**********************************************************************//**
-  Returns TRUE iff the specified player can see the specified tile.
-**************************************************************************/
-static bool plr_sees_tile(const struct player *plr,
-                          const struct tile *ttile)
-{
-  return plr && ttile && (tile_get_known(ttile, plr) == TILE_KNOWN_SEEN);
-}
-
-/**********************************************************************//**
   Returns the local building type of a city target.
 
   target_city can't be NULL
@@ -3483,8 +3482,6 @@ action_actor_utype_hard_reqs_ok_full(const struct action *paction,
   case ACTRES_HEAL_UNIT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_TRANSFORM_TERRAIN:
   case ACTRES_CULTIVATE:
@@ -3500,6 +3497,8 @@ action_actor_utype_hard_reqs_ok_full(const struct action *paction,
   case ACTRES_NONE:
     /* No hard unit type requirements. */
     break;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   return TRUE;
@@ -3679,8 +3678,6 @@ action_hard_reqs_actor(const struct action *paction,
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_ROAD:
   case ACTRES_BASE:
@@ -3696,6 +3693,8 @@ action_hard_reqs_actor(const struct action *paction,
   case ACTRES_NONE:
     /* No hard unit requirements. */
     break;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   return TRI_YES;
@@ -3732,12 +3731,10 @@ is_action_possible(const action_id wanted_action,
                    const bool omniscient,
                    const struct city *homecity)
 {
-  bool can_see_tgt_unit;
-  bool can_see_tgt_tile;
   enum fc_tristate out;
-  struct terrain *pterrain;
   struct action *paction = action_by_number(wanted_action);
   enum action_target_kind tkind = action_get_target_kind(paction);
+  struct civ_map *nmap = &(wld.map);
 
   if (actor == NULL) {
     actor = req_context_empty();
@@ -3754,19 +3751,6 @@ is_action_possible(const action_id wanted_action,
                 || (tkind == ATK_UNITS && target->unit != NULL)
                 || (tkind == ATK_SELF),
                 "Missing target!");
-
-  /* Only check requirement against the target unit if the actor can see it
-   * or if the evaluator is omniscient. The game checking the rules is
-   * omniscient. The player asking about their odds isn't. */
-  can_see_tgt_unit = (omniscient || (target->unit
-                                     && can_player_see_unit(actor->player,
-                                                            target->unit)));
-
-  /* Only check requirement against the target tile if the actor can see it
-   * or if the evaluator is omniscient. The game checking the rules is
-   * omniscient. The player asking about their odds isn't. */
-  can_see_tgt_tile = (omniscient
-                      || plr_sees_tile(actor->player, target->tile));
 
   /* Info leak: The player knows where their unit is. */
   if (tkind != ATK_SELF
@@ -3828,241 +3812,40 @@ is_action_possible(const action_id wanted_action,
     return TRI_NO;
   }
 
-  /* Hard requirements for individual actions. */
-  switch (paction->result) {
-  case ACTRES_CAPTURE_UNITS:
-  case ACTRES_SPY_BRIBE_UNIT:
-    /* Why this is a hard requirement: Can't transfer a unique unit if the
-     * actor player already has one. */
-    /* Info leak: This is only checked for when the actor player can see
-     * the target unit. Since the target unit is seen its type is known.
-     * The fact that a city hiding the unseen unit is occupied is known. */
-
-    if (!can_see_tgt_unit) {
-      /* An omniscient player can see the target unit. */
-      fc_assert(!omniscient);
-
-      return TRI_MAYBE;
-    }
-
-    if (utype_player_already_has_this_unique(actor->player,
-                                             target->unittype)) {
+  /* Quick checks for action itself */
+  if (paction->result == ACTRES_ATTACK
+      || paction->result == ACTRES_WIPE_UNITS) {
+    /* Reason: Keep the old rules. */
+    if (!can_unit_attack_tile(actor->unit, paction, target->tile)) {
       return TRI_NO;
     }
+  }
 
-    /* FIXME: Capture Unit may want to look for more than one unique unit
-     * of the same kind at the target tile. Currently caught by sanity
-     * check in do_capture_units(). */
+  /* Hard requirements for results. */
+  out = actres_possible(paction->result, actor,
+                        target, target_extra, out, omniscient,
+                        homecity);
 
-    break;
+  if (out == TRI_NO) {
+    /* Illegal because of a hard actor requirement. */
+    return TRI_NO;
+  }
 
-  case ACTRES_SPY_TARGETED_STEAL_TECH:
-    /* Reason: The Freeciv code don't support selecting a target tech
-     * unless it is known that the victim player has it. */
-    /* Info leak: The actor player knowns whose techs they can see. */
-    if (!can_see_techs_of_target(actor->player, target->player)) {
-      return TRI_NO;
-    }
-
-    break;
-
-  case ACTRES_SPY_STEAL_GOLD:
-    /* If actor->unit can do the action the actor->player can see how much
-     * gold target->player have. Not requiring it is therefore pointless.
-     */
-    if (target->player->economic.gold <= 0) {
-      return TRI_NO;
-    }
-
-    break;
-
-  case ACTRES_TRADE_ROUTE:
-  case ACTRES_MARKETPLACE:
-    {
-      /* Checked in action_hard_reqs_actor() */
-      fc_assert_ret_val(homecity != NULL, TRI_NO);
-
-      /* Can't establish a trade route or enter the market place if the
-       * cities can't trade at all. */
-      /* TODO: Should this restriction (and the above restriction that the
-       * actor unit must have a home city) be kept for Enter Marketplace? */
-      if (!can_cities_trade(homecity, target->city)) {
-        return TRI_NO;
-      }
-
-      /* There are more restrictions on establishing a trade route than on
-       * entering the market place. */
-      if (action_has_result(paction, ACTRES_TRADE_ROUTE)
-          && !can_establish_trade_route(homecity, target->city)) {
-        return TRI_NO;
-      }
-    }
-
-    break;
-
-  case ACTRES_HELP_WONDER:
-  case ACTRES_DISBAND_UNIT_RECOVER:
-    /* It is only possible to help the production if the production needs
-     * the help. (If not it would be possible to add shields for something
-     * that can't legally receive help if it is build later) */
-    /* Info leak: The player knows that the production in their own city has
-     * been hurried (bought or helped). The information isn't revealed when
-     * asking for action probabilities since omniscient is FALSE. */
-    if (!omniscient
-        && !can_player_see_city_internals(actor->player, target->city)) {
-      return TRI_MAYBE;
-    }
-
-    if (!(target->city->shield_stock
-          < city_production_build_shield_cost(target->city))) {
-      return TRI_NO;
-    }
-
-    break;
-
-  case ACTRES_FOUND_CITY:
-    if (game.scenario.prevent_new_cities) {
-      /* Reason: allow scenarios to disable city founding. */
-      /* Info leak: the setting is public knowledge. */
-      return TRI_NO;
-    }
-
-    if (can_see_tgt_tile && tile_city(target->tile)) {
-      /* Reason: a tile can have 0 or 1 cities. */
-      return TRI_NO;
-    }
-
-    if (citymindist_prevents_city_on_tile(target->tile)) {
-      if (omniscient) {
-        /* No need to check again. */
-        return TRI_NO;
-      } else {
-        square_iterate(&(wld.map), target->tile,
-                       game.info.citymindist - 1, otile) {
-          if (tile_city(otile) != NULL
-              && plr_sees_tile(actor->player, otile)) {
-            /* Known to be blocked by citymindist */
-            return TRI_NO;
-          }
-        } square_iterate_end;
-      }
-    }
-
-    /* The player may not have enough information to be certain. */
-
-    if (!can_see_tgt_tile) {
-      /* Need to know if target tile already has a city, has TER_NO_CITIES
-       * terrain, is non native to the actor or is owned by a foreigner. */
-      return TRI_MAYBE;
-    }
-
-    if (!omniscient) {
-      /* The player may not have enough information to find out if
-       * citymindist blocks or not. This doesn't depend on if it blocks. */
-      square_iterate(&(wld.map), target->tile,
-                     game.info.citymindist - 1, otile) {
-        if (!plr_sees_tile(actor->player, otile)) {
-          /* Could have a city that blocks via citymindist. Even if this
-           * tile has TER_NO_CITIES terrain the player don't know that it
-           * didn't change and had a city built on it. */
-          return TRI_MAYBE;
-        }
-      } square_iterate_end;
-    }
-
-    break;
-
-  case ACTRES_JOIN_CITY:
-    {
-      int new_pop;
-
-      if (!omniscient
-          && !player_can_see_city_externals(actor->player, target->city)) {
-        return TRI_MAYBE;
-      }
-
-      new_pop = city_size_get(target->city) + unit_pop_value(actor->unit);
-
-      if (new_pop > game.info.add_to_size_limit) {
-        /* Reason: Make the add_to_size_limit setting work. */
-        return TRI_NO;
-      }
-
-      if (!city_can_grow_to(target->city, new_pop)) {
-        /* Reason: respect city size limits. */
-        /* Info leak: when it is legal to join a foreign city is legal and
-         * the EFT_SIZE_UNLIMIT effect or the EFT_SIZE_ADJ effect depends on
-         * something the actor player don't have access to.
-         * Example: depends on a building (like Aqueduct) that isn't
-         * VisibleByOthers. */
-        return TRI_NO;
-      }
-    }
-
-    break;
-
-  case ACTRES_NUKE_UNITS:
+  if (paction->result == ACTRES_NUKE_UNITS) {
     if (unit_attack_units_at_tile_result(actor->unit, paction,
                                          target->tile)
         != ATT_OK) {
       /* Unreachable. */
       return TRI_NO;
     }
-
-    break;
-
-  case ACTRES_HOME_CITY:
-    /* Reason: can't change to what is. */
-    /* Info leak: The player knows their unit's current home city. */
-    if (homecity != NULL && homecity->id == target->city->id) {
-      /* This is already the unit's home city. */
-      return TRI_NO;
-    }
-
-    {
-      int slots = unit_type_get(actor->unit)->city_slots;
-
-      if (slots > 0 && city_unit_slots_available(target->city) < slots) {
-        return TRI_NO;
-      }
-    }
-
-    break;
-
-  case ACTRES_UPGRADE_UNIT:
-    /* Reason: Keep the old rules. */
-    /* Info leak: The player knows their unit's type. They know if they can
-     * build the unit type upgraded to. If the upgrade happens in a foreign
-     * city that fact may leak. This can be seen as a price for changing
-     * the rules to allow upgrading in a foreign city.
-     * The player knows how much gold they have. If the Upgrade_Price_Pct
-     * effect depends on information they don't have that information may
-     * leak. The player knows the location of their unit. They know if the
-     * tile has a city and if the unit can exist there outside a transport.
-     * The player knows their unit's cargo. By knowing the number and type
-     * of cargo, they can predict if there will be enough room in the unit
-     * upgraded to, as long as they know what unit type their unit will end
-     * up as. */
-    if (unit_upgrade_test(actor->unit, FALSE) != UU_OK) {
-      return TRI_NO;
-    }
-
-    break;
-
-  case ACTRES_PARADROP:
-  case ACTRES_PARADROP_CONQUER:
-    /* Reason: Keep the old rules. */
-    /* Info leak: The player knows if they know the target tile. */
-    if (!plr_knows_tile(actor->player, target->tile)) {
-      return TRI_NO;
-    }
-
-    if (plr_sees_tile(actor->player, target->tile)) {
+  } else if (paction->result == ACTRES_PARADROP
+             || paction->result == ACTRES_PARADROP_CONQUER) {
+    if (can_player_see_tile(actor->player, target->tile)) {
       /* Check for seen stuff that may kill the actor unit. */
 
       /* Reason: Keep the old rules. Be merciful. */
       /* Info leak: The player sees the target tile. */
-      if (!can_unit_exist_at_tile(&(wld.map), actor->unit, target->tile)
+      if (!can_unit_exist_at_tile(nmap, actor->unit, target->tile)
           && (!BV_ISSET(paction->sub_results, ACT_SUB_RES_MAY_EMBARK)
               || !unit_could_load_at(actor->unit, target->tile))) {
         return TRI_NO;
@@ -4084,647 +3867,6 @@ is_action_possible(const action_id wanted_action,
         }
       } unit_list_iterate_end;
     }
-
-    /* Reason: Keep paratroopers_range working. */
-    /* Info leak: The player knows the location of the actor and of the
-     * target tile. */
-    if (unit_type_get(actor->unit)->paratroopers_range
-        < real_map_distance(actor->tile, target->tile)) {
-      return TRI_NO;
-    }
-
-    break;
-
-  case ACTRES_AIRLIFT:
-    /* Reason: Keep the old rules. */
-    /* Info leak: same as test_unit_can_airlift_to() */
-    switch (test_unit_can_airlift_to(omniscient ? NULL : actor->player,
-                                     actor->unit, target->city)) {
-    case AR_OK:
-      return TRI_YES;
-    case AR_OK_SRC_UNKNOWN:
-    case AR_OK_DST_UNKNOWN:
-      return TRI_MAYBE;
-    case AR_NO_MOVES:
-    case AR_WRONG_UNITTYPE:
-    case AR_OCCUPIED:
-    case AR_NOT_IN_CITY:
-    case AR_BAD_SRC_CITY:
-    case AR_BAD_DST_CITY:
-    case AR_SRC_NO_FLIGHTS:
-    case AR_DST_NO_FLIGHTS:
-      return TRI_NO;
-    }
-
-    break;
-
-  case ACTRES_ATTACK:
-    /* Reason: Keep the old rules. */
-    if (!can_unit_attack_tile(actor->unit, paction, target->tile)) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_WIPE_UNITS:
-    if (!can_unit_attack_tile(actor->unit, paction, target->tile)) {
-      return TRI_NO;
-    }
-
-    unit_list_iterate(target->tile->units, punit) {
-      if (get_total_defense_power(actor->unit, punit) > 0) {
-        return TRI_NO;
-      }
-    } unit_list_iterate_end;
-    break;
-
-  case ACTRES_CONQUER_CITY:
-    /* Reason: "Conquer City" involves moving into the city. */
-    if (!unit_can_move_to_tile(&(wld.map), actor->unit, target->tile,
-                               FALSE, FALSE, TRUE)) {
-      return TRI_NO;
-    }
-
-    break;
-
-  case ACTRES_CONQUER_EXTRAS:
-    /* Reason: "Conquer Extras" involves moving to the tile. */
-    if (!unit_can_move_to_tile(&(wld.map), actor->unit, target->tile,
-                               FALSE, FALSE, FALSE)) {
-      return TRI_NO;
-    }
-    /* Reason: Must have something to claim. The more specific restriction
-     * that the base must be native to the actor unit is hard coded in
-     * unit_move(), in action_actor_utype_hard_reqs_ok_full(), in
-     * helptext_extra(), in helptext_unit(), in do_attack() and in
-     * diplomat_bribe(). */
-    if (!tile_has_claimable_base(target->tile, actor->unittype)) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_HEAL_UNIT:
-    /* Reason: It is not the healthy who need a doctor, but the sick. */
-    /* Info leak: the actor can see the target's HP. */
-    if (!can_see_tgt_unit) {
-      return TRI_MAYBE;
-    }
-    if (!(target->unit->hp < target->unittype->hp)) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_TRANSFORM_TERRAIN:
-    pterrain = tile_terrain(target->tile);
-    if (pterrain->transform_result == T_NONE
-        || pterrain == pterrain->transform_result
-        || !terrain_surroundings_allow_change(target->tile,
-                                              pterrain->transform_result)
-        || (terrain_has_flag(pterrain->transform_result, TER_NO_CITIES)
-            && (tile_city(target->tile)))) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_CULTIVATE:
-    pterrain = tile_terrain(target->tile);
-    if (pterrain->cultivate_result == NULL) {
-      return TRI_NO;
-    }
-    if (!terrain_surroundings_allow_change(target->tile,
-                                           pterrain->cultivate_result)
-        || (terrain_has_flag(pterrain->cultivate_result, TER_NO_CITIES)
-            && tile_city(target->tile))) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_PLANT:
-    pterrain = tile_terrain(target->tile);
-    if (pterrain->plant_result == NULL) {
-      return TRI_NO;
-    }
-    if (!terrain_surroundings_allow_change(target->tile,
-                                           pterrain->plant_result)
-        || (terrain_has_flag(pterrain->plant_result, TER_NO_CITIES)
-            && tile_city(target->tile))) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_ROAD:
-    if (target_extra == NULL) {
-      return TRI_NO;
-    }
-    if (!is_extra_caused_by(target_extra, EC_ROAD)) {
-      /* Reason: This is not a road. */
-      return TRI_NO;
-    }
-    if (!can_build_road(extra_road_get(target_extra), actor->unit,
-                        target->tile)) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_BASE:
-    if (target_extra == NULL) {
-      return TRI_NO;
-    }
-    if (!is_extra_caused_by(target_extra, EC_BASE)) {
-      /* Reason: This is not a base. */
-      return TRI_NO;
-    }
-    if (!can_build_base(actor->unit,
-                        extra_base_get(target_extra), target->tile)) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_MINE:
-    if (target_extra == NULL) {
-      return TRI_NO;
-    }
-    if (!is_extra_caused_by(target_extra, EC_MINE)) {
-      /* Reason: This is not a mine. */
-      return TRI_NO;
-    }
-
-    if (!can_build_extra(target_extra, actor->unit, target->tile)) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_IRRIGATE:
-    if (target_extra == NULL) {
-      return TRI_NO;
-    }
-    if (!is_extra_caused_by(target_extra, EC_IRRIGATION)) {
-      /* Reason: This is not an irrigation. */
-      return TRI_NO;
-    }
-
-    if (!can_build_extra(target_extra, actor->unit, target->tile)) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_PILLAGE:
-    pterrain = tile_terrain(target->tile);
-    if (pterrain->pillage_time == 0) {
-      return TRI_NO;
-    }
-
-    {
-      bv_extras pspresent = get_tile_infrastructure_set(target->tile, NULL);
-      bv_extras psworking = get_unit_tile_pillage_set(target->tile);
-      bv_extras pspossible;
-
-      BV_CLR_ALL(pspossible);
-      extra_type_iterate(pextra) {
-        int idx = extra_index(pextra);
-
-        /* Only one unit can pillage a given improvement at a time */
-        if (BV_ISSET(pspresent, idx)
-            && (!BV_ISSET(psworking, idx)
-                || actor->unit->activity_target == pextra)
-            && can_remove_extra(pextra, actor->unit, target->tile)) {
-          bool required = FALSE;
-
-          extra_type_iterate(pdepending) {
-            if (BV_ISSET(pspresent, extra_index(pdepending))) {
-              extra_deps_iterate(&(pdepending->reqs), pdep) {
-                if (pdep == pextra) {
-                  required = TRUE;
-                  break;
-                }
-              } extra_deps_iterate_end;
-            }
-            if (required) {
-              break;
-            }
-          } extra_type_iterate_end;
-
-          if (!required) {
-            BV_SET(pspossible, idx);
-          }
-        }
-      } extra_type_iterate_end;
-
-      if (!BV_ISSET_ANY(pspossible)) {
-        /* Nothing available to pillage */
-        return TRI_NO;
-      }
-
-      if (target_extra != NULL) {
-        if (!game.info.pillage_select) {
-          /* Hobson's choice (this case mostly exists for old clients) */
-          /* Needs to match what unit_activity_assign_target chooses */
-          struct extra_type *tgt;
-
-          tgt = get_preferred_pillage(pspossible);
-
-          if (tgt != target_extra) {
-            /* Only one target allowed, which wasn't the requested one */
-            return TRI_NO;
-          }
-        }
-
-        if (!BV_ISSET(pspossible, extra_index(target_extra))) {
-          return TRI_NO;
-        }
-      }
-    }
-    break;
-
-  case ACTRES_CLEAN:
-    {
-      const struct extra_type *pextra = NULL;
-      const struct extra_type *fextra = NULL;
-
-      pterrain = tile_terrain(target->tile);
-
-      if (target_extra != NULL) {
-        if (is_extra_removed_by(target_extra, ERM_CLEANPOLLUTION)
-            && tile_has_extra(target->tile, target_extra)) {
-          pextra = target_extra;
-        }
-        if (is_extra_removed_by(target_extra, ERM_CLEANFALLOUT)
-            && tile_has_extra(target->tile, target_extra)) {
-          fextra = target_extra;
-        }
-      } else {
-        /* TODO: Make sure that all callers set target so that
-         * we don't need this fallback. */
-
-        pextra = prev_extra_in_tile(target->tile,
-                                    ERM_CLEANPOLLUTION,
-                                    actor->player,
-                                    actor->unit);
-        fextra = prev_extra_in_tile(target->tile,
-                                    ERM_CLEANFALLOUT,
-                                    actor->player,
-                                    actor->unit);
-      }
-
-      if (pextra != NULL && pterrain->extra_removal_times[extra_index(pextra)] > 0
-          && can_remove_extra(pextra, actor->unit, target->tile)) {
-        return TRI_YES;
-      }
-
-      if (fextra != NULL && pterrain->extra_removal_times[extra_index(fextra)] > 0
-          && can_remove_extra(fextra, actor->unit, target->tile)) {
-        return TRI_YES;
-      }
-
-      return TRI_NO;
-    }
-
-  case ACTRES_CLEAN_POLLUTION:
-    {
-      const struct extra_type *pextra;
-
-      pterrain = tile_terrain(target->tile);
-
-      if (target_extra != NULL) {
-        pextra = target_extra;
-
-        if (!is_extra_removed_by(pextra, ERM_CLEANPOLLUTION)) {
-          return TRI_NO;
-        }
-
-        if (!tile_has_extra(target->tile, pextra)) {
-          return TRI_NO;
-        }
-      } else {
-        /* TODO: Make sure that all callers set target so that
-         * we don't need this fallback. */
-        pextra = prev_extra_in_tile(target->tile,
-                                    ERM_CLEANPOLLUTION,
-                                    actor->player,
-                                    actor->unit);
-        if (pextra == NULL) {
-          /* No available pollution extras */
-          return TRI_NO;
-        }
-      }
-
-      if (pterrain->extra_removal_times[extra_index(pextra)] == 0) {
-        return TRI_NO;
-      }
-
-      if (can_remove_extra(pextra, actor->unit, target->tile)) {
-        return TRI_YES;
-      }
-
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_CLEAN_FALLOUT:
-    {
-      const struct extra_type *pextra;
-
-      pterrain = tile_terrain(target->tile);
-
-      if (target_extra != NULL) {
-        pextra = target_extra;
-
-        if (!is_extra_removed_by(pextra, ERM_CLEANFALLOUT)) {
-          return TRI_NO;
-        }
-
-        if (!tile_has_extra(target->tile, pextra)) {
-          return TRI_NO;
-        }
-      } else {
-        /* TODO: Make sure that all callers set target so that
-         * we don't need this fallback. */
-        pextra = prev_extra_in_tile(target->tile,
-                                    ERM_CLEANFALLOUT,
-                                    actor->player,
-                                    actor->unit);
-        if (pextra == NULL) {
-          /* No available fallout extras */
-          return TRI_NO;
-        }
-      }
-
-      if (pterrain->extra_removal_times[extra_index(pextra)] == 0) {
-        return TRI_NO;
-      }
-
-      if (can_remove_extra(pextra, actor->unit, target->tile)) {
-        return TRI_YES;
-      }
-
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_TRANSPORT_DEBOARD:
-    if (!can_unit_unload(actor->unit, target->unit)) {
-      /* Keep the old rules about Unreachable and disembarks. */
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_TRANSPORT_BOARD:
-    if (unit_transported(actor->unit)) {
-      if (target->unit == unit_transport_get(actor->unit)) {
-        /* Already inside this transport. */
-        return TRI_NO;
-      }
-    }
-    if (!could_unit_load(actor->unit, target->unit)) {
-      /* Keep the old rules. */
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_TRANSPORT_LOAD:
-    if (unit_transported(target->unit)) {
-      if (actor->unit == unit_transport_get(target->unit)) {
-        /* Already transporting this unit. */
-        return TRI_NO;
-      }
-    }
-    if (!could_unit_load(target->unit, actor->unit)) {
-      /* Keep the old rules. */
-      return TRI_NO;
-    }
-    if (unit_transported(target->unit)) {
-      if (!can_unit_unload(target->unit,
-                           unit_transport_get(target->unit))) {
-        /* Can't leave current transport. */
-        return TRI_NO;
-      }
-    }
-    break;
-
-  case ACTRES_TRANSPORT_UNLOAD:
-    if (!can_unit_unload(target->unit, actor->unit)) {
-      /* Keep the old rules about Unreachable and disembarks. */
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_TRANSPORT_DISEMBARK:
-    if (!unit_can_move_to_tile(&(wld.map), actor->unit, target->tile,
-                               FALSE, FALSE, FALSE)) {
-      /* Reason: involves moving to the tile. */
-      return TRI_NO;
-    }
-
-    /* We cannot move a transport into a tile that holds
-     * units or cities not allied with all of our cargo. */
-    if (get_transporter_capacity(actor->unit) > 0) {
-      unit_list_iterate(unit_tile(actor->unit)->units, pcargo) {
-        if (unit_contained_in(pcargo, actor->unit)
-            && (is_non_allied_unit_tile(target->tile, unit_owner(pcargo))
-                || is_non_allied_city_tile(target->tile,
-                                           unit_owner(pcargo)))) {
-           return TRI_NO;
-        }
-      } unit_list_iterate_end;
-    }
-    break;
-
-  case ACTRES_TRANSPORT_EMBARK:
-    if (unit_transported(actor->unit)) {
-      if (target->unit == unit_transport_get(actor->unit)) {
-        /* Already inside this transport. */
-        return TRI_NO;
-      }
-    }
-    if (!could_unit_load(actor->unit, target->unit)) {
-      /* Keep the old rules. */
-      return TRI_NO;
-    }
-    if (!unit_can_move_to_tile(&(wld.map), actor->unit, target->tile,
-                               FALSE, TRUE, FALSE)) {
-      /* Reason: involves moving to the tile. */
-      return TRI_NO;
-    }
-    /* We cannot move a transport into a tile that holds
-     * units or cities not allied with all of our cargo. */
-    if (get_transporter_capacity(actor->unit) > 0) {
-      unit_list_iterate(unit_tile(actor->unit)->units, pcargo) {
-        if (unit_contained_in(pcargo, actor->unit)
-            && (is_non_allied_unit_tile(target->tile, unit_owner(pcargo))
-                || is_non_allied_city_tile(target->tile,
-                                           unit_owner(pcargo)))) {
-           return TRI_NO;
-        }
-      } unit_list_iterate_end;
-    }
-    break;
-
-  case ACTRES_SPY_ATTACK:
-    {
-      bool found;
-
-      if (!omniscient
-          && !can_player_see_hypotetic_units_at(actor->player,
-                                                target->tile)) {
-        /* May have a hidden diplomatic defender. */
-        return TRI_MAYBE;
-      }
-
-      found = FALSE;
-      unit_list_iterate(target->tile->units, punit) {
-        struct player *uplayer = unit_owner(punit);
-
-        if (uplayer == actor->player) {
-          /* Won't defend against its owner. */
-          continue;
-        }
-
-        if (unit_has_type_flag(punit, UTYF_SUPERSPY)) {
-          /* This unbeatable diplomatic defender will defend before any
-           * that can be beaten. */
-          found = FALSE;
-          break;
-        }
-
-        if (unit_has_type_flag(punit, UTYF_DIPLOMAT)) {
-          /* Found a beatable diplomatic defender. */
-          found = TRUE;
-          break;
-        }
-      } unit_list_iterate_end;
-
-      if (!found) {
-        return TRI_NO;
-      }
-    }
-    break;
-
-  case ACTRES_HUT_ENTER:
-  case ACTRES_HUT_FRIGHTEN:
-    /* Reason: involves moving to the tile. */
-    if (!unit_can_move_to_tile(&(wld.map), actor->unit, target->tile,
-                               FALSE, FALSE, FALSE)) {
-      return TRI_NO;
-    }
-    if (!unit_can_displace_hut(actor->unit, target->tile)) {
-      /* Reason: keep extra rmreqs working. */
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_UNIT_MOVE:
-  case ACTRES_TELEPORT:
-
-    if (paction->result == ACTRES_UNIT_MOVE) {
-      /* Reason: is moving to the tile. */
-      if (!unit_can_move_to_tile(&(wld.map), actor->unit, target->tile,
-                                 FALSE, FALSE, FALSE)) {
-        return TRI_NO;
-      }
-    } else {
-      fc_assert(paction->result == ACTRES_TELEPORT);
-
-      /* Reason: is teleporting to the tile. */
-      if (!unit_can_teleport_to_tile(&(wld.map), actor->unit, target->tile,
-                                     FALSE, FALSE)) {
-        return TRI_NO;
-      }
-    }
-
-    /* Reason: Don't override "Transport Embark" */
-    if (!can_unit_exist_at_tile(&(wld.map), actor->unit, target->tile)) {
-      return TRI_NO;
-    }
-
-    /* We cannot move a transport into a tile that holds
-     * units or cities not allied with all of our cargo. */
-    if (get_transporter_capacity(actor->unit) > 0) {
-      unit_list_iterate(unit_tile(actor->unit)->units, pcargo) {
-        if (unit_contained_in(pcargo, actor->unit)
-            && (is_non_allied_unit_tile(target->tile, unit_owner(pcargo))
-                || is_non_allied_city_tile(target->tile,
-                                           unit_owner(pcargo)))) {
-           return TRI_NO;
-        }
-      } unit_list_iterate_end;
-    }
-    break;
-
-  case ACTRES_SPY_ESCAPE:
-    /* Reason: Be merciful. */
-    /* Info leak: The player know if they have any cities. */
-    if (city_list_size(actor->player->cities) < 1) {
-      return TRI_NO;
-    }
-    break;
-
-  case ACTRES_SPY_SPREAD_PLAGUE:
-    /* Enabling this action with illness_on = FALSE prevents spread. */
-    break;
-  case ACTRES_BOMBARD:
-    {
-      /* Allow bombing only if there's reachable units in the target
-       * tile. Bombing without anybody taking damage is certainly not
-       * what user really wants.
-       * Allow bombing when player does not know if there's units in
-       * target tile. */
-      if (tile_city(target->tile) == NULL
-          && fc_funcs->player_tile_vision_get(target->tile, actor->player,
-                                              V_MAIN)
-          && fc_funcs->player_tile_vision_get(target->tile, actor->player,
-                                              V_INVIS)
-          && fc_funcs->player_tile_vision_get(target->tile, actor->player,
-                                              V_SUBSURFACE)) {
-        bool hiding_extra = FALSE;
-
-        extra_type_iterate(pextra) {
-          if (pextra->eus == EUS_HIDDEN
-              && tile_has_extra(target->tile, pextra)) {
-            hiding_extra = TRUE;
-            break;
-          }
-        } extra_type_iterate_end;
-
-        if (!hiding_extra) {
-          bool has_target = FALSE;
-
-          unit_list_iterate(target->tile->units, punit) {
-            if (is_unit_reachable_at(punit, actor->unit, target->tile)) {
-              has_target = TRUE;
-              break;
-            }
-          } unit_list_iterate_end;
-
-          if (!has_target) {
-            return TRI_NO;
-          }
-        }
-      }
-    }
-    break;
-  case ACTRES_ESTABLISH_EMBASSY:
-  case ACTRES_SPY_INVESTIGATE_CITY:
-  case ACTRES_SPY_POISON:
-  case ACTRES_SPY_SABOTAGE_CITY:
-  case ACTRES_SPY_TARGETED_SABOTAGE_CITY:
-  case ACTRES_SPY_SABOTAGE_CITY_PRODUCTION:
-  case ACTRES_SPY_STEAL_TECH:
-  case ACTRES_SPY_INCITE_CITY:
-  case ACTRES_SPY_SABOTAGE_UNIT:
-  case ACTRES_STEAL_MAPS:
-  case ACTRES_SPY_NUKE:
-  case ACTRES_NUKE:
-  case ACTRES_DESTROY_CITY:
-  case ACTRES_EXPEL_UNIT:
-  case ACTRES_DISBAND_UNIT:
-  case ACTRES_CONVERT:
-  case ACTRES_STRIKE_BUILDING:
-  case ACTRES_STRIKE_PRODUCTION:
-  case ACTRES_FORTIFY:
-  case ACTRES_HOMELESS:
-  case ACTRES_ENABLER_CHECK:
-  case ACTRES_NONE:
-    /* No known hard coded requirements. */
-    break;
   }
 
   return out;
@@ -5450,8 +4592,6 @@ static struct act_prob ap_diplomat_battle(const struct unit *pattacker,
 {
   struct unit *pdefender;
 
-  fc_assert_ret_val(tgt_tile, ACTPROB_NOT_KNOWN);
-
   if (!can_player_see_hypotetic_units_at(unit_owner(pattacker),
                                          tgt_tile)) {
     /* Don't leak information about unseen defenders. */
@@ -5590,8 +4730,8 @@ action_prob(const action_id wanted_action,
 {
   int known;
   struct act_prob chance;
-
   const struct action *paction = action_by_number(wanted_action);
+  struct civ_map *nmap = &(wld.map);
 
   if (actor == NULL) {
     actor = req_context_empty();
@@ -5771,12 +4911,12 @@ action_prob(const action_id wanted_action,
     break;
   case ACTRES_ATTACK:
     {
-      struct unit *defender_unit = get_defender(actor->unit, target->tile,
-                                                paction);
+      struct unit *defender_unit = get_defender(nmap, actor->unit,
+                                                target->tile, paction);
 
       if (can_player_see_unit(actor->player, defender_unit)) {
-        double unconverted = unit_win_chance(actor->unit, defender_unit,
-                                             paction);
+        double unconverted = unit_win_chance(nmap, actor->unit,
+                                             defender_unit, paction);
 
         chance.min = MAX(ACTPROB_VAL_MIN,
                          floor((double)ACTPROB_VAL_MAX * unconverted));
@@ -5822,8 +4962,6 @@ action_prob(const action_id wanted_action,
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_ROAD:
   case ACTRES_CONVERT:
@@ -5869,6 +5007,11 @@ action_prob(const action_id wanted_action,
      * Would be ACTPROB_CERTAIN if not for that. */
     /* TODO: maybe allow the ruleset author to give a probability from
      * Lua? */
+    chance = ACTPROB_NOT_IMPLEMENTED;
+    break;
+
+  case ACTRES_UNUSED_1:
+  case ACTRES_UNUSED_2:
     chance = ACTPROB_NOT_IMPLEMENTED;
     break;
   }
@@ -7084,84 +6227,17 @@ struct act_prob action_prob_fall_back(const struct act_prob *ap1,
 **************************************************************************/
 int action_dice_roll_initial_odds(const struct action *paction)
 {
-  switch (paction->result) {
-  case ACTRES_STRIKE_BUILDING:
-  case ACTRES_STRIKE_PRODUCTION:
-  case ACTRES_SPY_SPREAD_PLAGUE:
-  case ACTRES_SPY_STEAL_TECH:
-  case ACTRES_SPY_TARGETED_STEAL_TECH:
-  case ACTRES_SPY_INCITE_CITY:
-  case ACTRES_SPY_SABOTAGE_CITY:
-  case ACTRES_SPY_TARGETED_SABOTAGE_CITY:
-  case ACTRES_SPY_SABOTAGE_CITY_PRODUCTION:
-  case ACTRES_SPY_STEAL_GOLD:
-  case ACTRES_STEAL_MAPS:
-  case ACTRES_SPY_NUKE:
-  case ACTRES_SPY_POISON:
+  switch (actres_dice_type(paction->result)) {
+  case DRT_DIPLCHANCE:
     if (BV_ISSET(game.info.diplchance_initial_odds, paction->id)) {
       /* Take the initial odds from the diplchance setting. */
       return server_setting_value_int_get(
             server_setting_by_name("diplchance"));
-    } else {
-      /* No initial odds. */
-      return 100;
     }
-  case ACTRES_ESTABLISH_EMBASSY:
-  case ACTRES_SPY_INVESTIGATE_CITY:
-  case ACTRES_TRADE_ROUTE:
-  case ACTRES_MARKETPLACE:
-  case ACTRES_HELP_WONDER:
-  case ACTRES_SPY_BRIBE_UNIT:
-  case ACTRES_SPY_SABOTAGE_UNIT:
-  case ACTRES_CAPTURE_UNITS:
-  case ACTRES_FOUND_CITY:
-  case ACTRES_JOIN_CITY:
-  case ACTRES_BOMBARD:
-  case ACTRES_NUKE:
-  case ACTRES_NUKE_UNITS:
-  case ACTRES_DESTROY_CITY:
-  case ACTRES_EXPEL_UNIT:
-  case ACTRES_DISBAND_UNIT_RECOVER:
-  case ACTRES_DISBAND_UNIT:
-  case ACTRES_HOME_CITY:
-  case ACTRES_HOMELESS:
-  case ACTRES_UPGRADE_UNIT:
-  case ACTRES_PARADROP:
-  case ACTRES_PARADROP_CONQUER:
-  case ACTRES_AIRLIFT:
-  case ACTRES_ATTACK:
-  case ACTRES_WIPE_UNITS:
-  case ACTRES_CONQUER_CITY:
-  case ACTRES_CONQUER_EXTRAS:
-  case ACTRES_HEAL_UNIT:
-  case ACTRES_TRANSFORM_TERRAIN:
-  case ACTRES_CULTIVATE:
-  case ACTRES_PLANT:
-  case ACTRES_PILLAGE:
-  case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
-  case ACTRES_FORTIFY:
-  case ACTRES_ROAD:
-  case ACTRES_CONVERT:
-  case ACTRES_BASE:
-  case ACTRES_MINE:
-  case ACTRES_IRRIGATE:
-  case ACTRES_TRANSPORT_DEBOARD:
-  case ACTRES_TRANSPORT_UNLOAD:
-  case ACTRES_TRANSPORT_LOAD:
-  case ACTRES_TRANSPORT_DISEMBARK:
-  case ACTRES_TRANSPORT_BOARD:
-  case ACTRES_TRANSPORT_EMBARK:
-  case ACTRES_SPY_ATTACK:
-  case ACTRES_HUT_ENTER:
-  case ACTRES_HUT_FRIGHTEN:
-  case ACTRES_UNIT_MOVE:
-  case ACTRES_TELEPORT:
-  case ACTRES_ENABLER_CHECK:
-  case ACTRES_SPY_ESCAPE:
-  case ACTRES_NONE:
-    /* No additional dice roll. */
+    fc__fallthrough;
+  case DRT_CERTAIN:
+    return 100;
+  case DRT_NONE:
     break;
   }
 
@@ -7446,8 +6522,9 @@ static bool action_has_possible_actor_hard_reqs(struct action *paction)
 /**********************************************************************//**
   Returns TRUE if the specified action may be enabled in the current
   ruleset.
+
   @param paction the action to check if is in use.
-  @returns TRUE if the action could be enabled in the current ruleset.
+  @return TRUE if the action could be enabled in the current ruleset.
 **************************************************************************/
 bool action_is_in_use(struct action *paction)
 {
@@ -7467,6 +6544,29 @@ bool action_is_in_use(struct action *paction)
 
   /* No non deleted action enabler. */
   return FALSE;
+}
+
+/**********************************************************************//**
+  Is the action for freeciv's internal use only?
+
+  @param  paction   The action to check
+  @return           Whether action is for internal use only
+**************************************************************************/
+bool action_is_internal(struct action *paction)
+{
+  return paction != nullptr
+    && action_has_result(paction, ACTRES_ENABLER_CHECK);
+}
+
+/**********************************************************************//**
+  Is action by id for freeciv's internal use only?
+
+  @param  act       Id of the action to check
+  @return           Whether action is for internal use only
+**************************************************************************/
+bool action_id_is_internal(action_id act)
+{
+  return action_is_internal(action_by_number(act));
 }
 
 /**********************************************************************//**
@@ -7710,10 +6810,6 @@ const char *action_ui_name_ruleset_var_name(int act)
     return "ui_name_pillage";
   case ACTION_CLEAN:
     return "ui_name_clean";
-  case ACTION_CLEAN_POLLUTION:
-    return "ui_name_clean_pollution";
-  case ACTION_CLEAN_FALLOUT:
-    return "ui_name_clean_fallout";
   case ACTION_FORTIFY:
     return "ui_name_fortify";
   case ACTION_ROAD:
@@ -7794,11 +6890,17 @@ const char *action_ui_name_ruleset_var_name(int act)
     return "ui_name_user_action_3";
   case ACTION_USER_ACTION4:
     return "ui_name_user_action_4";
+  case ACTION_GAIN_VETERANCY:
+    fc_assert(!action_id_is_internal(act)); /* Fail always */
+    break;
   case ACTION_COUNT:
     break;
+
+  ASSERT_UNUSED_ACTION_CASES;
   }
 
   fc_assert(act >= 0 && act < ACTION_COUNT);
+
   return NULL;
 }
 
@@ -8024,12 +7126,6 @@ const char *action_ui_name_default(int act)
   case ACTION_CLEAN:
     /* TRANS: Clean (100% chance of success). */
     return N_("%sClean%s");
-  case ACTION_CLEAN_POLLUTION:
-    /* TRANS: Clean _Pollution (100% chance of success). */
-    return N_("Clean %sPollution%s");
-  case ACTION_CLEAN_FALLOUT:
-    /* TRANS: Clean _Fallout (100% chance of success). */
-    return N_("Clean %sFallout%s");
   case ACTION_FORTIFY:
     /* TRANS: _Fortify (100% chance of success). */
     return N_("%sFortify%s");
@@ -8116,6 +7212,9 @@ const char *action_ui_name_default(int act)
   case ACTION_USER_ACTION4:
     /* TRANS: _User Action 4 (100% chance of success). */
     return N_("%sUser Action 4%s");
+  case ACTION_GAIN_VETERANCY:
+    return N_("%sGain Veterancy%s");
+    break;
   }
 
   return NULL;
@@ -8125,7 +7224,7 @@ const char *action_ui_name_default(int act)
   Return min range ruleset variable name for the action or NULL if min
   range can't be set in the ruleset.
 
-  TODO: make actions generic and put min_range in a field of the action.
+  TODO: Make actions generic and put min_range in a field of the action.
 **************************************************************************/
 const char *action_min_range_ruleset_var_name(int act)
 {
@@ -8194,8 +7293,6 @@ const char *action_min_range_ruleset_var_name(int act)
   case ACTION_PLANT:
   case ACTION_PILLAGE:
   case ACTION_CLEAN:
-  case ACTION_CLEAN_POLLUTION:
-  case ACTION_CLEAN_FALLOUT:
   case ACTION_FORTIFY:
   case ACTION_ROAD:
   case ACTION_CONVERT:
@@ -8239,6 +7336,7 @@ const char *action_min_range_ruleset_var_name(int act)
   case ACTION_UNIT_MOVE2:
   case ACTION_UNIT_MOVE3:
   case ACTION_SPY_ESCAPE:
+  case ACTION_GAIN_VETERANCY:
     /* Min range is not ruleset changeable */
     return NULL;
   case ACTION_NUKE:
@@ -8259,9 +7357,12 @@ const char *action_min_range_ruleset_var_name(int act)
     return "user_action_4_min_range";
   case ACTION_COUNT:
     break;
+
+  ASSERT_UNUSED_ACTION_CASES;
   }
 
   fc_assert(act >= 0 && act < ACTION_COUNT);
+
   return NULL;
 }
 
@@ -8313,8 +7414,6 @@ int action_min_range_default(enum action_result result)
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_ROAD:
   case ACTRES_CONVERT:
@@ -8345,9 +7444,12 @@ int action_min_range_default(enum action_result result)
     return RS_DEFAULT_MOVE_MIN_RANGE;
   case ACTRES_NONE:
     return RS_DEFAULT_ACTION_MIN_RANGE;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   fc_assert(action_result_is_valid(result) || result == ACTRES_NONE);
+
   return 0;
 }
 
@@ -8421,8 +7523,6 @@ const char *action_max_range_ruleset_var_name(int act)
   case ACTION_PLANT:
   case ACTION_PILLAGE:
   case ACTION_CLEAN:
-  case ACTION_CLEAN_POLLUTION:
-  case ACTION_CLEAN_FALLOUT:
   case ACTION_FORTIFY:
   case ACTION_ROAD:
   case ACTION_CONVERT:
@@ -8462,6 +7562,7 @@ const char *action_max_range_ruleset_var_name(int act)
   case ACTION_UNIT_MOVE2:
   case ACTION_UNIT_MOVE3:
   case ACTION_SPY_ESCAPE:
+  case ACTION_GAIN_VETERANCY:
     /* Max range is not ruleset changeable */
     return NULL;
   case ACTION_HELP_WONDER:
@@ -8496,9 +7597,12 @@ const char *action_max_range_ruleset_var_name(int act)
     return "user_action_4_max_range";
   case ACTION_COUNT:
     break;
+
+  ASSERT_UNUSED_ACTION_CASES;
   }
 
   fc_assert(act >= 0 && act < ACTION_COUNT);
+
   return NULL;
 }
 
@@ -8546,8 +7650,6 @@ int action_max_range_default(enum action_result result)
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_ROAD:
   case ACTRES_CONVERT:
@@ -8585,6 +7687,8 @@ int action_max_range_default(enum action_result result)
     return ACTION_DISTANCE_UNLIMITED;
   case ACTRES_NONE:
     return RS_DEFAULT_ACTION_MAX_RANGE;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   fc_assert(action_result_is_valid(result) || result == ACTRES_NONE);
@@ -8665,8 +7769,6 @@ const char *action_target_kind_ruleset_var_name(int act)
   case ACTION_CULTIVATE:
   case ACTION_PLANT:
   case ACTION_CLEAN:
-  case ACTION_CLEAN_POLLUTION:
-  case ACTION_CLEAN_FALLOUT:
   case ACTION_FORTIFY:
   case ACTION_ROAD:
   case ACTION_CONVERT:
@@ -8711,6 +7813,7 @@ const char *action_target_kind_ruleset_var_name(int act)
   case ACTION_UNIT_MOVE3:
   case ACTION_TELEPORT:
   case ACTION_SPY_ESCAPE:
+  case ACTION_GAIN_VETERANCY:
     /* Target kind is not ruleset changeable */
     return NULL;
   case ACTION_NUKE:
@@ -8729,9 +7832,12 @@ const char *action_target_kind_ruleset_var_name(int act)
     return "user_action_4_target_kind";
   case ACTION_COUNT:
     break;
+
+  ASSERT_UNUSED_ACTION_CASES;
   }
 
   fc_assert(act >= 0 && act < ACTION_COUNT);
+
   return NULL;
 }
 
@@ -8798,8 +7904,6 @@ action_target_kind_default(enum action_result result)
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_ROAD:
   case ACTRES_BASE:
   case ACTRES_MINE:
@@ -8820,6 +7924,8 @@ action_target_kind_default(enum action_result result)
     return ATK_SELF;
   case ACTRES_NONE:
     return RS_DEFAULT_USER_ACTION_TARGET_KIND;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   /* Should never be reached. */
@@ -8890,8 +7996,6 @@ bool action_result_legal_target_kind(enum action_result result,
   case ACTRES_CULTIVATE:
   case ACTRES_PLANT:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_ROAD:
   case ACTRES_BASE:
   case ACTRES_MINE:
@@ -8929,6 +8033,8 @@ bool action_result_legal_target_kind(enum action_result result,
       break;
     }
     break;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   /* Should never be reached. */
@@ -9008,8 +8114,6 @@ action_sub_target_kind_default(enum action_result result)
     return ASTK_NONE;
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
     return ASTK_EXTRA;
   case ACTRES_ROAD:
   case ACTRES_BASE:
@@ -9024,6 +8128,8 @@ action_sub_target_kind_default(enum action_result result)
     return ASTK_NONE;
   case ACTRES_NONE:
     return ASTK_NONE;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   /* Should never be reached. */
@@ -9102,8 +8208,6 @@ const char *action_actor_consuming_always_ruleset_var_name(action_id act)
   case ACTION_PLANT:
   case ACTION_PILLAGE:
   case ACTION_CLEAN:
-  case ACTION_CLEAN_POLLUTION:
-  case ACTION_CLEAN_FALLOUT:
   case ACTION_FORTIFY:
   case ACTION_ROAD:
   case ACTION_CONVERT:
@@ -9147,6 +8251,7 @@ const char *action_actor_consuming_always_ruleset_var_name(action_id act)
   case ACTION_UNIT_MOVE2:
   case ACTION_UNIT_MOVE3:
   case ACTION_TELEPORT:
+  case ACTION_GAIN_VETERANCY:
   case ACTION_SPY_ESCAPE:
     /* Actor consuming always is not ruleset changeable */
     return NULL;
@@ -9170,9 +8275,12 @@ const char *action_actor_consuming_always_ruleset_var_name(action_id act)
     return "user_action_4_actor_consuming_always";
   case ACTION_COUNT:
     break;
+
+  ASSERT_UNUSED_ACTION_CASES;
   }
 
   fc_assert(act >= 0 && act < ACTION_COUNT);
+
   return NULL;
 }
 
@@ -9282,8 +8390,6 @@ const char *action_blocked_by_ruleset_var_name(const struct action *act)
   case ACTION_PLANT:
   case ACTION_PILLAGE:
   case ACTION_CLEAN:
-  case ACTION_CLEAN_POLLUTION:
-  case ACTION_CLEAN_FALLOUT:
   case ACTION_FORTIFY:
   case ACTION_ROAD:
   case ACTION_CONVERT:
@@ -9320,6 +8426,7 @@ const char *action_blocked_by_ruleset_var_name(const struct action *act)
   case ACTION_HUT_FRIGHTEN2:
   case ACTION_HUT_FRIGHTEN3:
   case ACTION_HUT_FRIGHTEN4:
+  case ACTION_GAIN_VETERANCY:
   case ACTION_USER_ACTION1:
   case ACTION_USER_ACTION2:
   case ACTION_USER_ACTION3:
@@ -9329,6 +8436,8 @@ const char *action_blocked_by_ruleset_var_name(const struct action *act)
   case ACTION_COUNT:
     fc_assert_ret_val(action_number(act) != ACTION_COUNT, NULL);
     break;
+
+  ASSERT_UNUSED_ACTION_CASES;
   }
 
   return NULL;
@@ -9424,8 +8533,6 @@ action_post_success_forced_ruleset_var_name(const struct action *act)
   case ACTION_PLANT:
   case ACTION_PILLAGE:
   case ACTION_CLEAN:
-  case ACTION_CLEAN_POLLUTION:
-  case ACTION_CLEAN_FALLOUT:
   case ACTION_FORTIFY:
   case ACTION_ROAD:
   case ACTION_CONVERT:
@@ -9466,6 +8573,7 @@ action_post_success_forced_ruleset_var_name(const struct action *act)
   case ACTION_UNIT_MOVE2:
   case ACTION_UNIT_MOVE3:
   case ACTION_TELEPORT:
+  case ACTION_GAIN_VETERANCY:
   case ACTION_SPY_ESCAPE:
   case ACTION_USER_ACTION1:
   case ACTION_USER_ACTION2:
@@ -9476,6 +8584,8 @@ action_post_success_forced_ruleset_var_name(const struct action *act)
   case ACTION_COUNT:
     fc_assert_ret_val(action_number(act) != ACTION_COUNT, NULL);
     break;
+
+  ASSERT_UNUSED_ACTION_CASES;
   }
 
   return NULL;
@@ -9524,4 +8634,24 @@ const char *action_target_kind_help(enum action_target_kind kind)
   fc_assert(kind >= 0 && kind < ATK_COUNT);
 
   return _(atk_helpnames[kind]);
+}
+
+/************************************************************************//**
+  Returns action list by result.
+****************************************************************************/
+struct action_list *action_list_by_result(enum action_result result)
+{
+  fc_assert(result < ACTRES_LAST);
+
+  return actlist_by_result[result];
+}
+
+/************************************************************************//**
+  Returns action list by activity.
+****************************************************************************/
+struct action_list *action_list_by_activity(enum unit_activity activity)
+{
+  fc_assert(activity < ACTIVITY_LAST);
+
+  return actlist_by_activity[activity];
 }

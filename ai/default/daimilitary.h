@@ -31,9 +31,6 @@ struct civ_map;
    to finish them off. */
 #define FINISH_HIM_CITY_COUNT              5
 
-#define DAI_WANT_BELOW_MIL_EMERGENCY (1000.0)
-#define DAI_WANT_MILITARY_EMERGENCY  (DAI_WANT_BELOW_MIL_EMERGENCY + 0.1)
-
 typedef struct unit_list *(player_unit_list_getter)(struct player *pplayer);
 
 struct unit_type *dai_choose_defender_versus(struct city *pcity,
@@ -49,10 +46,6 @@ int assess_defense_quadratic(struct ai_type *ait, struct city *pcity);
 int assess_defense_unit(struct ai_type *ait, struct city *pcity,
                         struct unit *punit, bool igwall);
 int assess_defense(struct ai_type *ait, struct city *pcity);
-int dai_unit_defense_desirability(struct ai_type *ait,
-                                  const struct unit_type *punittype);
-int dai_unit_attack_desirability(struct ai_type *ait,
-                                 const struct unit_type *punittype);
 bool dai_process_defender_want(struct ai_type *ait, struct player *pplayer,
                                struct city *pcity, unsigned int danger,
                                struct adv_choice *choice, adv_want extra_want);

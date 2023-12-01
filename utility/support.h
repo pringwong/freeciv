@@ -123,6 +123,15 @@ extern "C" {
 #define fc__noreturn
 #endif
 
+#ifdef FREECIV_HAVE_UNREACHABLE
+#define fc__unreachable(_cond_) \
+  if (_cond_) {                 \
+    __builtin_unreachable();    \
+  }
+#else  /* FREECIV_HAVE_UNREACHABLE */
+#define fc__unreachable(_cond_) fc_assert(!(_cond_))
+#endif /* FREECIV_HAVE_UNREACHABLE */
+
 #ifdef FREECIV_MSWINDOWS
 typedef long int fc_errno;
 #else
@@ -138,6 +147,9 @@ typedef int fc_errno;
 int fc_strcasecmp(const char *str0, const char *str1);
 int fc_strncasecmp(const char *str0, const char *str1, size_t n);
 int fc_strncasequotecmp(const char *str0, const char *str1, size_t n);
+
+/* TODO: Make UTF-8 aware */
+#define fc_strncmp(_s1_, _s2_, _len_) strncmp(_s1_, _s2_, _len_)
 
 void fc_support_init(void);
 void fc_support_free(void);

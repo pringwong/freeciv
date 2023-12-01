@@ -300,6 +300,7 @@ static void popup_add_menu(GtkMenuShell *parent, gpointer data)
     const struct research *oresearch = research_get(pother);
     GtkWidget *advance_item;
     GList *sorting_list = NULL;
+    bool team_embassy = team_has_embassy(pgiver->team, pother);
 
     advance_item = gtk_menu_item_new_with_mnemonic(_("_Advances"));
     gtk_menu_shell_append(GTK_MENU_SHELL(parent), advance_item);
@@ -308,8 +309,9 @@ static void popup_add_menu(GtkMenuShell *parent, gpointer data)
       Tech_type_id i = advance_number(padvance);
 
       if (research_invention_state(gresearch, i) == TECH_KNOWN
-          && research_invention_gettable(oresearch, i,
-                                         game.info.tech_trade_allow_holes)
+          && (!team_embassy /* We don't know what the other could actually receive */
+              || research_invention_gettable(oresearch, i,
+                                             game.info.tech_trade_allow_holes))
           && (research_invention_state(oresearch, i) == TECH_UNKNOWN
               || research_invention_state(oresearch, i)
                  == TECH_PREREQS_KNOWN)) {
@@ -343,8 +345,7 @@ static void popup_add_menu(GtkMenuShell *parent, gpointer data)
       for (list_item = sorting_list; NULL != list_item;
            list_item = g_list_next(list_item)) {
         padvance = (const struct advance *) list_item->data;
-        item =
-            gtk_menu_item_new_with_label(advance_name_translation(padvance));
+        item = gtk_menu_item_new_with_label(advance_name_translation(padvance));
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
         g_object_set_data(G_OBJECT(item), "player_from",
                           GINT_TO_POINTER(player_number(pgiver)));
@@ -361,7 +362,6 @@ static void popup_add_menu(GtkMenuShell *parent, gpointer data)
 
     gtk_widget_show_all(advance_item);
   }
-
 
   /* Trading: cities. */
 
@@ -564,7 +564,7 @@ static struct Diplomacy_notebook *diplomacy_main_create(void)
                           _("Cancel _all meetings"),
                           RESPONSE_CANCEL_MEETING_ALL);
 
-    /* Responces for _all_ meetings. */
+    /* Responses for _all_ meetings. */
     gui_dialog_response_set_callback(dipl_main->dialog,
                                      diplomacy_main_response);
     gui_dialog_set_default_response(dipl_main->dialog,
@@ -722,7 +722,7 @@ static struct Diplomacy_dialog *create_diplomacy_dialog(struct Treaty *ptreaty,
   gui_dialog_add_button(pdialog->dialog, NULL,
                         _("Cancel meeting"), RESPONSE_CANCEL_MEETING);
 
-  /* Responces for one meeting. */
+  /* Responses for one meeting. */
   gui_dialog_response_set_callback(pdialog->dialog, diplomacy_response);
   gui_dialog_set_default_response(pdialog->dialog, RESPONSE_CANCEL_MEETING);
 

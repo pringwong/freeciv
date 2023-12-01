@@ -243,7 +243,7 @@ type FTM                = uint8(enum free_tech_method)
 type GLS                = uint8(enum gameloss_style)
 type UTYF               = uint8(enum unit_type_flag_id)
 type CBONUS_TYPE        = uint8(enum combat_bonus_type)
-type TRI                = uint8(enum traderoute_illegal_cancelling)
+type TRI                = uint8(enum trade_route_illegal_cancelling)
 type RDIR               = uint8(enum route_direction)
 type MOVE_MODE          = uint8(enum road_move_mode)
 type ACTION_AUTO_CAUSE  = uint8(enum action_auto_perf_cause)
@@ -258,7 +258,7 @@ type HAPPYBORDERSTYPE   = uint8(enum happyborders_type)
 type TECH_COST_STYLE    = uint8(enum tech_cost_style)
 type TECH_LEAKAGE_STYLE = uint8(enum tech_leakage_style)
 type GOLD_UPKEEP_STYLE  = uint8(enum gold_upkeep_style)
-type TR_BONUS_TYPE      = uint8(enum traderoute_bonus_type)
+type TR_BONUS_TYPE      = uint8(enum trade_route_bonus_type)
 type GOODS_SELECTION    = uint8(enum goods_selection_method)
 type EUS                = uint8(enum extra_unit_seen_type)
 type VLAYER             = uint8(enum vision_layer)
@@ -373,6 +373,16 @@ end
 # For compatibility with older versions, this number cannot be changed.
 # Used in initial protocol.
 PACKET_PROCESSING_FINISHED = 1; sc
+end
+
+PACKET_INVESTIGATE_STARTED = 21; sc, lsend, dsend
+  UNIT unit_id;
+  CITY city_id;
+end
+
+PACKET_INVESTIGATE_FINISHED = 22; sc, lsend, dsend
+  UNIT unit_id;
+  CITY city_id;
 end
 
 /************** Login/pregame/endgame packets **********************/
@@ -737,7 +747,7 @@ PACKET_CITY_INFO = 31; sc, lsend, is-game-info, force, cancel(PACKET_CITY_SHORT_
   SINT16 food_stock;
   UINT16 shield_stock;
 
-  UINT8 traderoute_count;
+  UINT8 trade_route_count;
 
   UINT16 pollution;
   UINT16 illness_trade;
@@ -806,7 +816,7 @@ PACKET_CITY_SHORT_INFO = 32; sc, lsend, is-game-info, cancel(PACKET_CITY_INFO), 
   ESTRING name[MAX_LEN_CITYNAME];
 end
 
-PACKET_TRADEROUTE_INFO = 249; sc, lsend
+PACKET_TRADE_ROUTE_INFO = 249; sc, lsend
   CITY city;
   UINT8 index;
   CITY partner;
@@ -1395,6 +1405,7 @@ PACKET_RULESET_UNIT = 140; sc, lsend
   STRING rule_name[MAX_LEN_NAME];
   STRING graphic_str[MAX_LEN_NAME];
   STRING graphic_alt[MAX_LEN_NAME];
+  STRING graphic_alt2[MAX_LEN_NAME];
   STRING sound_move[MAX_LEN_NAME];
   STRING sound_move_alt[MAX_LEN_NAME];
   STRING sound_fight[MAX_LEN_NAME];
@@ -1656,6 +1667,7 @@ PACKET_RULESET_BUILDING = 150; sc, lsend
   STRING rule_name[MAX_LEN_NAME];
   STRING graphic_str[MAX_LEN_NAME];
   STRING graphic_alt[MAX_LEN_NAME];
+  STRING graphic_alt2[MAX_LEN_NAME];
   UINT8 reqs_count;
   REQUIREMENT reqs[MAX_NUM_REQS:reqs_count];
   UINT8 obs_count;
@@ -1759,6 +1771,7 @@ PACKET_RULESET_EXTRA = 232; sc, lsend
   STRING act_gfx_alt2[MAX_LEN_NAME];
   STRING rmact_gfx[MAX_LEN_NAME];
   STRING rmact_gfx_alt[MAX_LEN_NAME];
+  STRING rmact_gfx_alt2[MAX_LEN_NAME];
   STRING graphic_str[MAX_LEN_NAME];
   STRING graphic_alt[MAX_LEN_NAME];
   UINT8 reqs_count;
@@ -1900,6 +1913,7 @@ end
 PACKET_RULESET_COUNTER = 513; sc, lsend
   STRING name[MAX_LEN_NAME];
   STRING rule_name[MAX_LEN_NAME];
+  STRVEC helptext[MAX_LEN_PACKET];
   UINT32 def;
   UINT32 checkpoint;
   COUNTER_TARGET type;

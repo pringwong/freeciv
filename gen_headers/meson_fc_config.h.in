@@ -11,14 +11,15 @@
 #define LOCALEDIR "@LOCALEDIR@"
 
 #define BUG_URL "https://osdn.net/projects/freeciv/ticket/"
-#define HOMEPAGE_URL "https://www.freeciv.org/"
+#mesondefine HOMEPAGE_URL
 
 #define DATASUBDIR "@DATASUBDIR@"
 
 #define AI_MOD_DEFAULT "classic"
 
-#define AI_MOD_STATIC_CLASSIC
-#define AI_MOD_STATIC_TEX
+#mesondefine AI_MOD_STATIC_CLASSIC
+#mesondefine AI_MOD_STATIC_TEX
+#mesondefine AI_MOD_STATIC_STUB
 
 #mesondefine DEFAULT_SOCK_PORT
 
@@ -75,6 +76,15 @@
 
 /* Can run programs as root */
 #mesondefine ALWAYS_ROOT
+
+/* Development version save game compatibility */
+#mesondefine FREECIV_DEV_SAVE_COMPAT
+
+#ifdef FREECIV_DEV_SAVE_COMPAT
+/* Current development versions */
+#define FREECIV_DEV_SAVE_COMPAT_3_3
+#define FREECIV_DEV_SAVE_COMPAT_3_2
+#endif /* FREECIV_DEV_SAVE_COMPAT */
 
 /* Have magickwand mapimg toolkit */
 #mesondefine HAVE_MAPIMG_MAGICKWAND
@@ -360,9 +370,6 @@
 
 /* usleep() available */
 #mesondefine HAVE_USLEEP
-
-/* Have C99 va_copy() */
-#mesondefine HAVE_VA_COPY
 
 /* vprintf() available */
 #mesondefine HAVE_VPRINTF

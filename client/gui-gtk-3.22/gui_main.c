@@ -178,7 +178,6 @@ GtkTextView *main_message_area;
 GtkTextBuffer *message_buffer = NULL;
 static GtkWidget *allied_chat_toggle_button;
 
-static enum Display_color_type display_color_type;  /* practically unused */
 static gint timer_id;                               /*       ditto        */
 static GIOChannel *srv_channel;
 static guint srv_id;
@@ -244,12 +243,14 @@ static gboolean timer_callback(gpointer data)
 {
   double seconds = real_timer_callback();
 
-  if (!audio_paused && !client_focus) {
-    audio_pause();
-    audio_paused = TRUE;
-  } else if (audio_paused && client_focus) {
-    audio_resume();
-    audio_paused = FALSE;
+  if (gui_options.silent_when_not_in_focus) {
+    if (!audio_paused && !client_focus) {
+      audio_pause();
+      audio_paused = TRUE;
+    } else if (audio_paused && client_focus) {
+      audio_resume();
+      audio_paused = FALSE;
+    }
   }
 
   timer_id = g_timeout_add(seconds * 1000, timer_callback, NULL);
@@ -1978,12 +1979,9 @@ int ui_main(int argc, char **argv)
                                        0, 0, 0, 0);
   g_signal_connect(toplevel, "focus", G_CALLBACK(toplevel_focus), NULL);
 
-
-  display_color_type = get_visual();
-
   options_iterate(client_optset, poption) {
     if (OT_FONT == option_type(poption)) {
-      /* Force to call the appropriated callback. */
+      /* Force to call the appropriate callback. */
       option_changed(poption);
     }
   } options_iterate_end;
@@ -2044,11 +2042,6 @@ int ui_main(int argc, char **argv)
   gtk_main();
   gui_up = FALSE;
 
-  /* We have extra ref for unit_info_box that has protected
-   * it from getting destroyed when editinfobox_refresh()
-   * moves widgets around. Free that extra ref here. */
-  g_object_unref(unit_info_box);
-
   destroy_server_scans();
   free_mapcanvas_and_overview();
   spaceship_dialog_done();
@@ -2059,6 +2052,12 @@ int ui_main(int argc, char **argv)
   diplomacy_dialog_done();
   cma_fe_done();
   free_unit_table();
+
+  /* We have extra ref for unit_info_box that has protected
+   * it from getting destroyed when editinfobox_refresh()
+   * moves widgets around. Free that extra ref here. */
+  g_object_unref(unit_info_box);
+
   editgui_free();
   gtk_widget_destroy(toplevel_tabs);
   gtk_widget_destroy(toplevel);
@@ -2445,6 +2444,18 @@ static void allied_chat_only_callback(struct option *poption)
 }
 
 /**********************************************************************//**
+  Option callback for the 'fullscreen' gtk-gui option.
+**************************************************************************/
+void fullscreen_opt_refresh(struct option *poption)
+{
+  if (GUI_GTK_OPTION(fullscreen)) {
+    gtk_window_fullscreen(GTK_WINDOW(toplevel));
+  } else {
+    gtk_window_unfullscreen(GTK_WINDOW(toplevel));
+  }
+}
+
+/**********************************************************************//**
   Change the city names font.
 **************************************************************************/
 static void apply_city_names_font(struct option *poption)
@@ -2483,18 +2494,20 @@ static void apply_reqtree_text_font(struct option *poption)
 **************************************************************************/
 void options_extra_init(void)
 {
-
   struct option *poption;
 
 #define option_var_set_callback(var, callback)                              \
-  if ((poption = optset_option_by_name(client_optset, GUI_GTK_OPTION_STR(var)))) { \
+  if ((poption = optset_option_by_name(client_optset,                       \
+                                       GUI_GTK_OPTION_STR(var)))) {         \
     option_set_changed_callback(poption, callback);                         \
   } else {                                                                  \
-    log_error("Didn't find option %s!", GUI_GTK_OPTION_STR(var));      \
+    log_error("Didn't find option %s!", GUI_GTK_OPTION_STR(var));           \
   }
 
   option_var_set_callback(allied_chat_only,
                           allied_chat_only_callback);
+  option_var_set_callback(fullscreen,
+                          fullscreen_opt_refresh);
 
   option_var_set_callback(font_city_names,
                           apply_city_names_font);

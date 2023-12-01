@@ -57,6 +57,7 @@
 #include "climisc.h"
 #include "clinet.h"
 #include "editgui_g.h"
+#include "spaceshipdlg_g.h"
 #include "tilespec.h"
 #include "update_queue.h"
 
@@ -77,7 +78,6 @@
 #include "optiondlg.h"
 #include "repodlgs.h"
 #include "themespec.h"
-#include "spaceshipdlg.h"
 #include "widget.h"
 
 #include "gui_main.h"
@@ -99,7 +99,6 @@ Uint32 widget_info_counter = 0;
 int MOVE_STEP_X = DEFAULT_MOVE_STEP;
 int MOVE_STEP_Y = DEFAULT_MOVE_STEP;
 extern bool draw_goto_patrol_lines;
-SDL_Event *flush_event = NULL;
 bool is_unit_move_blocked;
 bool LSHIFT;
 bool RSHIFT;
@@ -114,6 +113,8 @@ int *client_font_sizes[FONT_COUNT] = {
   &city_productions_font_size  /* FONT_REQTREE_TEXT; not used yet */
 };
 
+static unsigned font_size_parameter = 0;
+
 /* ================================ Private ============================ */
 static int net_socket = -1;
 static bool autoconnect = FALSE;
@@ -123,9 +124,16 @@ static enum direction8 scroll_dir;
 static struct finger_behavior finger_behavior;
 static struct mouse_button_behavior button_behavior;
 
+static SDL_Event __net_user_event;
+static SDL_Event __anim_user_event;
+static SDL_Event __info_user_event;
+static SDL_Event __flush_user_event;
+static SDL_Event __map_scroll_user_event;
+
 static SDL_Event *net_user_event = NULL;
 static SDL_Event *anim_user_event = NULL;
 static SDL_Event *info_user_event = NULL;
+static SDL_Event *flush_user_event = NULL;
 static SDL_Event *map_scroll_user_event = NULL;
 
 static void print_usage(void);
@@ -167,6 +175,8 @@ static void print_usage(void)
   /* Add client-specific usage information here */
   fc_fprintf(stderr,
              _("  -f,  --fullscreen\tStart Client in Fullscreen mode\n"));
+  fc_fprintf(stderr,
+             _("  -F,  --Font SIZE\tUse SIZE as the base font size\n"));
   fc_fprintf(stderr, _("  -s,  --swrenderer\tUse SW renderer\n"));
   fc_fprintf(stderr, _("  -t,  --theme THEME\tUse GUI theme THEME\n"));
 
@@ -187,14 +197,21 @@ static void parse_options(int argc, char **argv)
       print_usage();
       exit(EXIT_SUCCESS);
     } else if (is_option("--fullscreen", argv[i])) {
-      gui_options.gui_sdl2_fullscreen = TRUE;
+      GUI_SDL_OPTION(fullscreen) = TRUE;
     } else if (is_option("--swrenderer", argv[i])) {
       sdl2_client_flags |= CF_SWRENDERER;
+    } else if ((option = get_option_malloc("--Font", argv, &i, argc, FALSE))) {
+      if (!str_to_uint(option, &font_size_parameter)) {
+        fc_fprintf(stderr, _("Invalid font size %s"), option);
+        exit(EXIT_FAILURE);
+      }
+      free(option);
     } else if ((option = get_option_malloc("--theme", argv, &i, argc, FALSE))) {
-      sz_strlcpy(gui_options.gui_sdl2_default_theme_name, option);
+      sz_strlcpy(GUI_SDL_OPTION(default_theme_name), option);
       free(option);
     } else {
       fc_fprintf(stderr, _("Unrecognized option: \"%s\"\n"), argv[i]);
+
       exit(EXIT_FAILURE);
     }
 
@@ -430,7 +447,7 @@ static Uint16 main_mouse_motion_handler(SDL_MouseMotionEvent *motion_event,
   }
 
 #ifndef UNDER_CE
-  if (gui_options.gui_sdl2_fullscreen) {
+  if (GUI_SDL_OPTION(fullscreen)) {
     check_scroll_area(motion_event->x, motion_event->y);
   }
 #endif /* UNDER_CE */
@@ -478,7 +495,7 @@ static void update_button_hold_state(void)
         button_behavior.hold_state = MB_HOLD_LONG;
         button_down_on_map(&button_behavior);
       }
-    }  
+    }
   }
 
   return;
@@ -598,7 +615,7 @@ Uint16 gui_event_loop(void *data,
   t_last_map_scrolling = t_last_unit_anim = real_timer_next_call = SDL_GetTicks();
   while (ID == ID_ERROR) {
     /* ========================================= */
-    /* net check with 10ms delay event loop */
+    /* Net check with 10ms delay event loop */
     if (net_socket >= 0) {
       FD_ZERO(&civfdset);
 
@@ -623,7 +640,7 @@ Uint16 gui_event_loop(void *data,
           }
         }
       }
-    } else { /* if connection is not establish */
+    } else { /* If connection is not establish */
       SDL_Delay(10);
     }
     /* ========================================= */
@@ -903,6 +920,33 @@ static void resize_window_callback(struct option *poption)
 }
 
 /**********************************************************************//**
+  Change fullscreen status after option changed.
+**************************************************************************/
+static void fullscreen_callback(struct option *poption)
+{
+  SDL_DisplayMode mode;
+
+  if (GUI_SDL_OPTION(fullscreen)) {
+    SDL_SetWindowFullscreen(main_data.screen, SDL_WINDOW_FULLSCREEN_DESKTOP);
+  } else {
+    SDL_SetWindowFullscreen(main_data.screen, 0);
+  }
+
+  SDL_GetWindowDisplayMode(main_data.screen, &mode);
+
+  if (!create_surfaces(mode.w, mode.h)) {
+    /* Try to revert */
+    if (!GUI_SDL_OPTION(fullscreen)) {
+      SDL_SetWindowFullscreen(main_data.screen, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    } else {
+      SDL_SetWindowFullscreen(main_data.screen, 0);
+    }
+  }
+
+  update_queue_add(real_resize_window_callback, NULL);
+}
+
+/**********************************************************************//**
   Extra initializers for client options. Here we make set the callback
   for the specific gui-sdl2 options.
 **************************************************************************/
@@ -911,14 +955,15 @@ void options_extra_init(void)
   struct option *poption;
 
 #define option_var_set_callback(var, callback)                              \
-  if ((poption = optset_option_by_name(client_optset, #var))) {             \
+  if ((poption = optset_option_by_name(client_optset,                       \
+                                       GUI_SDL_OPTION_STR(var)))) {         \
     option_set_changed_callback(poption, callback);                         \
   } else {                                                                  \
-    log_error("Didn't find option %s!", #var);                              \
+    log_error("Didn't find option %s!", GUI_SDL_OPTION_STR(var));           \
   }
 
-  option_var_set_callback(gui_sdl2_fullscreen, resize_window_callback);
-  option_var_set_callback(gui_sdl2_screen, resize_window_callback);
+  option_var_set_callback(fullscreen, fullscreen_callback);
+  option_var_set_callback(screen, resize_window_callback);
 #undef option_var_set_callback
 }
 
@@ -930,7 +975,7 @@ static void clear_double_messages_call(void)
 {
   int i;
 
-  /* clear double call */
+  /* Clear double call */
   for (i = 0; i <= event_type_max(); i++) {
     if (messages_where[i] & MW_MESSAGES) {
       messages_where[i] &= ~MW_OUTPUT;
@@ -974,11 +1019,6 @@ static void migrate_options_from_sdl(void)
 **************************************************************************/
 int ui_main(int argc, char *argv[])
 {
-  SDL_Event __net_user_event;
-  SDL_Event __anim_user_event;
-  SDL_Event __info_user_event;
-  SDL_Event __flush_user_event;
-  SDL_Event __map_scroll_user_event;
   Uint32 flags = 0;
 
   parse_options(argc, argv);
@@ -986,15 +1026,24 @@ int ui_main(int argc, char *argv[])
   if (!gui_options.gui_sdl2_migrated_from_sdl) {
     migrate_options_from_sdl();
   }
+  if (!GUI_SDL_OPTION(default_screen_size_set)) {
+    if (font_size_parameter > 10) {
+      GUI_SDL_OPTION(screen) = VIDEO_MODE(640 * font_size_parameter / 10,
+                                          480 * font_size_parameter / 10);
+    }
 
-  if (gui_options.gui_sdl2_fullscreen) {
+    GUI_SDL_OPTION(default_screen_size_set) = TRUE;
+  }
+
+  if (GUI_SDL_OPTION(fullscreen)) {
     flags |= SDL_WINDOW_FULLSCREEN;
   } else {
     flags &= ~SDL_WINDOW_FULLSCREEN;
   }
+
   log_normal(_("Using Video Output: %s"), SDL_GetCurrentVideoDriver());
-  if (!set_video_mode(gui_options.gui_sdl2_screen.width,
-                      gui_options.gui_sdl2_screen.height,
+  if (!set_video_mode(GUI_SDL_OPTION(screen.width),
+                      GUI_SDL_OPTION(screen.height),
                       flags)) {
     return EXIT_FAILURE;
   }
@@ -1027,7 +1076,7 @@ int ui_main(int argc, char *argv[])
   __flush_user_event.user.code = FLUSH;
   __flush_user_event.user.data1 = NULL;
   __flush_user_event.user.data2 = NULL;
-  flush_event = &__flush_user_event;
+  flush_user_event = &__flush_user_event;
 
   SDL_zero(__map_scroll_user_event);
   __map_scroll_user_event.type = user_event_type;
@@ -1059,7 +1108,7 @@ int ui_main(int argc, char *argv[])
 
   setup_auxiliary_tech_icons();
 
-  /* this need correct main_data.screen size */
+  /* This needs correct main_data.screen size */
   init_mapcanvas_and_overview();
 
   set_client_state(C_S_DISCONNECTED);
@@ -1080,8 +1129,8 @@ int ui_main(int argc, char *argv[])
 void ui_exit(void)
 {
 
-#if defined UNDER_CE && defined SMALL_SCREEN
-  /* change back to window mode to restore the title bar */
+#if defined UNDER_CE && defined GUI_SDL2_SMALL_SCREEN
+  /* Change back to window mode to restore the title bar */
   set_video_mode(320, 240, SDL_SWSURFACE | SDL_ANYFORMAT);
 #endif
 
@@ -1248,9 +1297,35 @@ void gui_update_font(const char *font_name, const char *font_value)
 }
 
 /**********************************************************************//**
+  Return default font size, from any source.
+**************************************************************************/
+unsigned default_font_size(struct theme *act_theme)
+{
+  return font_size_parameter > 0 ? font_size_parameter :
+    theme_default_font_size(act_theme);
+}
+
+/**********************************************************************//**
+  Update font sizes based on theme.
+**************************************************************************/
+void update_font_from_theme(int theme_font_size)
+{
+  *client_font_sizes[FONT_CITY_NAME] = theme_font_size;
+  *client_font_sizes[FONT_CITY_PROD] = theme_font_size;
+}
+
+/**********************************************************************//**
   Insert build information to help
 **************************************************************************/
 void insert_client_build_info(char *outbuf, size_t outlen)
 {
   /* PORTME */
+}
+
+/**********************************************************************//**
+  Queue a flush event to be handled later by SDL.
+**************************************************************************/
+bool flush_event(void)
+{
+  return SDL_PushEvent(flush_user_event) >= 0;
 }

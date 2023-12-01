@@ -79,8 +79,8 @@ GtkWidget *icon_label_button_new(const gchar *icon_name,
 }
 
 /**********************************************************************//**
-  Changes the label (with mnemonic) on an existing stockbutton.  See
-  gtk_stockbutton_new.
+  Changes the label (with mnemonic) on an existing stockbutton.
+  See gtk_stockbutton_new().
 **************************************************************************/
 void gtk_stockbutton_set_label(GtkWidget *button, const gchar *label_text)
 {
@@ -88,10 +88,10 @@ void gtk_stockbutton_set_label(GtkWidget *button, const gchar *label_text)
 }
 
 /**********************************************************************//**
-  Returns gettext-converted list of n strings.  The individual strings
-  in the list are as returned by gettext().  In case of no NLS, the strings
+  Returns gettext-converted list of n strings. The individual strings
+  in the list are as returned by gettext(). In case of no NLS, the strings
   will be the original strings, so caller should ensure that the originals
-  persist for as long as required.  (For no NLS, still allocate the
+  persist for as long as required. (For no NLS, still allocate the
   list, for consistency.)
 
   (This is not directly gui/gtk related, but it fits in here
@@ -215,6 +215,7 @@ gint gtk_tree_selection_get_row(GtkTreeSelection *selection)
     row = idx[0];
     gtk_tree_path_free(path);
   }
+
   return row;
 }
 
@@ -330,7 +331,7 @@ static void gui_dialog_destroy_handler(GtkWidget *w, struct gui_dialog *dlg)
 
       if (adialog->id == dlg->return_dialog_id) {
         gui_dialog_raise(adialog);
-	break;
+        break;
       }
     }
   }
@@ -375,10 +376,10 @@ static gint gui_dialog_delete_tab_handler(struct gui_dialog* dlg)
     gui_dialog_set_return_dialog(dlg, NULL);
   }
 
-  /* emit response signal. */
+  /* Emit response signal. */
   gui_dialog_response(dlg, GTK_RESPONSE_DELETE_EVENT);
 
-  /* do the destroy by default. */
+  /* Do the destroy by default. */
   return FALSE;
 }
 
@@ -463,7 +464,7 @@ static void gui_dialog_detach(struct gui_dialog *dlg)
   gtk_window_set_default_size(GTK_WINDOW(dlg->v.window),
                               dlg->default_width,
                               dlg->default_height);
-  gtk_widget_show(window);
+  gtk_widget_set_visible(window, TRUE);
 }
 
 /**********************************************************************//**
@@ -486,7 +487,7 @@ static gboolean click_on_tab_callback(GtkGestureClick *gesture,
   Sets pdlg to point to the dialog once it is create, Zeroes pdlg on
   dialog destruction.
   user_data will be passed through response function
-  check_top indicates if the layout deision should depend on the parent.
+  check_top indicates if the layout decision should depend on the parent.
 **************************************************************************/
 void gui_dialog_new(struct gui_dialog **pdlg, GtkNotebook *notebook,
                     gpointer user_data, bool check_top)
@@ -536,9 +537,9 @@ void gui_dialog_new(struct gui_dialog **pdlg, GtkNotebook *notebook,
     dlg->vertical_content = TRUE;
   }
 
-  gtk_widget_show(dlg->grid);
+  gtk_widget_set_visible(dlg->grid, TRUE);
   gui_dialog_add_content_widget(dlg, action_area);
-  gtk_widget_show(action_area);
+  gtk_widget_set_visible(action_area, TRUE);
 
   gtk_widget_set_margin_start(dlg->grid, 2);
   gtk_widget_set_margin_end(dlg->grid, 2);
@@ -595,12 +596,12 @@ void gui_dialog_new(struct gui_dialog **pdlg, GtkNotebook *notebook,
 
       gtk_box_append(GTK_BOX(hbox), button);
 
-      gtk_widget_show(hbox);
+      gtk_widget_set_visible(hbox, TRUE);
 
       gtk_notebook_append_page(GTK_NOTEBOOK(notebook), dlg->grid, hbox);
-      dlg->v.tab.handler_id =
-        g_signal_connect(notebook, "switch-page",
-                         G_CALLBACK(gui_dialog_switch_page_handler), dlg);
+      dlg->v.tab.handler_id
+        = g_signal_connect(notebook, "switch-page",
+                           G_CALLBACK(gui_dialog_switch_page_handler), dlg);
       dlg->v.tab.child = dlg->grid;
 
       gtk_style_context_add_provider(gtk_widget_get_style_context(label),
@@ -714,10 +715,10 @@ void gui_dialog_set_response_sensitive(struct gui_dialog *dlg,
        iter = gtk_widget_get_next_sibling(iter)) {
     if (GTK_IS_BUTTON(iter)) {
       gpointer data = g_object_get_data(G_OBJECT(iter),
-	  "gui-dialog-response-data");
+                                        "gui-dialog-response-data");
 
       if (response == GPOINTER_TO_INT(data)) {
-	gtk_widget_set_sensitive(iter, setting);
+        gtk_widget_set_sensitive(iter, setting);
       }
     }
   }
@@ -736,7 +737,7 @@ GtkWidget *gui_dialog_get_toplevel(struct gui_dialog *dlg)
 **************************************************************************/
 void gui_dialog_show_all(struct gui_dialog *dlg)
 {
-  gtk_widget_show(dlg->grid);
+  gtk_widget_set_visible(dlg->grid, TRUE);
 
   if (dlg->type == GUI_DIALOG_TAB) {
     GtkWidget *iter;
@@ -746,23 +747,23 @@ void gui_dialog_show_all(struct gui_dialog *dlg)
          iter != NULL;
          iter = gtk_widget_get_next_sibling(iter)) {
       if (!GTK_IS_BUTTON(iter)) {
-	num_visible++;
+        num_visible++;
       } else {
-	gpointer data = g_object_get_data(G_OBJECT(iter),
-	    "gui-dialog-response-data");
-	int response = GPOINTER_TO_INT(data);
+        gpointer data = g_object_get_data(G_OBJECT(iter),
+                                          "gui-dialog-response-data");
+        int response = GPOINTER_TO_INT(data);
 
-	if (response != GTK_RESPONSE_CLOSE
-	    && response != GTK_RESPONSE_CANCEL) {
-	  num_visible++;
-	} else {
-	  gtk_widget_hide(iter);
-	}
+        if (response != GTK_RESPONSE_CLOSE
+            && response != GTK_RESPONSE_CANCEL) {
+          num_visible++;
+        } else {
+          gtk_widget_set_visible(iter, FALSE);
+        }
       }
     }
 
     if (num_visible == 0) {
-      gtk_widget_hide(dlg->actions);
+      gtk_widget_set_visible(dlg->actions, FALSE);
     }
   }
 }
@@ -772,11 +773,11 @@ void gui_dialog_show_all(struct gui_dialog *dlg)
 **************************************************************************/
 void gui_dialog_present(struct gui_dialog *dlg)
 {
-  fc_assert_ret(NULL != dlg);
+  fc_assert_ret(nullptr != dlg);
 
   switch (dlg->type) {
   case GUI_DIALOG_WINDOW:
-    gtk_widget_show(dlg->v.window);
+    gtk_widget_set_visible(dlg->v.window, TRUE);
     break;
   case GUI_DIALOG_TAB:
     {
@@ -787,7 +788,7 @@ void gui_dialog_present(struct gui_dialog *dlg)
       n = gtk_notebook_page_num(notebook, dlg->grid);
 
       if (current != n) {
-	GtkWidget *label = dlg->v.tab.label;
+        GtkWidget *label = dlg->v.tab.label;
 
         gtk_style_context_add_class(gtk_widget_get_style_context(label),
                                     "notice");
@@ -982,8 +983,13 @@ void gui_update_font(const char *font_name, const char *font_value)
   size = pango_font_description_get_size(desc);
 
   if (size != 0) {
-    str = g_strdup_printf("#Freeciv #%s { font-family: %s; font-size: %dpx;%s%s}",
-                          font_name, fam, size / PANGO_SCALE, style, weight);
+    if (pango_font_description_get_size_is_absolute(desc)) {
+      str = g_strdup_printf("#Freeciv #%s { font-family: %s; font-size: %dpx;%s%s}",
+                            font_name, fam, size / PANGO_SCALE, style, weight);
+    } else {
+      str = g_strdup_printf("#Freeciv #%s { font-family: %s; font-size: %dpt;%s%s}",
+                            font_name, fam, size / PANGO_SCALE, style, weight);
+    }
   } else {
     str = g_strdup_printf("#Freeciv #%s { font-family: %s;%s%s}",
                           font_name, fam, style, weight);
@@ -1138,8 +1144,8 @@ gint blocking_dialog(GtkWidget *dlg)
   struct blocking_dialog_data data;
   GMainLoop *dlg_loop;
 
-  gtk_widget_show(dlg);
-  dlg_loop = g_main_loop_new(NULL, FALSE);
+  gtk_widget_set_visible(dlg, TRUE);
+  dlg_loop = g_main_loop_new(nullptr, FALSE);
   data.loop = dlg_loop;
   g_signal_connect(dlg, "response", G_CALLBACK(blocking_dialog_response),
                    &data);

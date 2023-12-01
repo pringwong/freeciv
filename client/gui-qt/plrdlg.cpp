@@ -232,7 +232,7 @@ QVariant plr_model::data(const QModelIndex &index, int role) const
 /**********************************************************************//**
   Returns header data from model
 **************************************************************************/
-QVariant plr_model::headerData(int section, Qt::Orientation orientation, 
+QVariant plr_model::headerData(int section, Qt::Orientation orientation,
                                int role) const
 {
   struct player_dlg_column *pcol;
@@ -251,14 +251,14 @@ QVariant plr_model::headerData(int section, Qt::Orientation orientation,
 /**********************************************************************//**
   Sets data in model
 **************************************************************************/
-bool plr_model::setData(const QModelIndex &index, const QVariant &value, 
+bool plr_model::setData(const QModelIndex &index, const QVariant &value,
                         int role)
 {
   if (!index.isValid() || role != Qt::DisplayRole) {
     return false;
   }
 
-  if (index.row() >= 0 && index.row() < rowCount() && index.column() >= 0 
+  if (index.row() >= 0 && index.row() < rowCount() && index.column() >= 0
     && index.column() < columnCount()) {
     bool change = plr_list[index.row()]->setData(index.column(), value, role);
 
@@ -347,7 +347,9 @@ bool plr_sorter::lessThan(const QModelIndex &left,
       }
     } players_iterate_end;
 
-    return column->sort_func(lplr, rplr);
+    // Convert three-state (left better, equal, right better)
+    // return from sort_func() to lessThan() boolean
+    return column->sort_func(lplr, rplr) < 0;
   }
 
   // Use default sort when no sort function defined
@@ -429,7 +431,7 @@ void plr_widget::display_header_menu(const QPoint &)
 
   for (int i = 0; i < list_model->columnCount(); ++i) {
     QAction *myAct = hideshow_column->addAction(
-                       list_model->headerData(i, Qt::Horizontal, 
+                       list_model->headerData(i, Qt::Horizontal,
                                               Qt::DisplayRole).toString());
     myAct->setCheckable(true);
     myAct->setChecked(!isColumnHidden(i));
@@ -658,7 +660,7 @@ void plr_widget::nation_selected(const QItemSelection &sl,
       advance_iterate(padvance) {
         tech_id = advance_number(padvance);
         if (research_invention_state(my_research, tech_id) == TECH_KNOWN
-            && (research_invention_state(research, tech_id) 
+            && (research_invention_state(research, tech_id)
                 != TECH_KNOWN)) {
           a++;
           sorted_list_a << research_advance_name_translation(research,
@@ -825,12 +827,28 @@ plr_report::plr_report():QWidget()
   withdraw_but->setText(_("Withdraw Vision"));
   toggle_ai_but = new QPushButton;
   toggle_ai_but->setText(_("AI Mode"));
+
   show_relations = new QPushButton;
-  show_relations->setText(_("Hide Relations"));
+  if (gui_options.gui_qt_show_relations_panel) {
+    show_relations->setText(_("Hide Relations"));
+  } else {
+    show_relations->setText(_("Show Relations"));
+  }
+
   show_techs = new QPushButton;
-  show_techs->setText(_("Hide Techs"));
+  if (gui_options.gui_qt_show_techs_panel) {
+    show_techs->setText(_("Hide Techs"));
+  } else {
+    show_techs->setText(_("Show Techs"));
+  }
+
   show_wonders = new QPushButton;
-  show_wonders->setText(_("Hide Wonders"));
+  if (gui_options.gui_qt_show_wonders_panel) {
+    show_wonders->setText(_("Hide Wonders"));
+  } else {
+    show_wonders->setText(_("Show Wonders"));
+  }
+
   meet_but->setDisabled(true);
   cancel_but->setDisabled(true);
   withdraw_but->setDisabled(true);
@@ -839,6 +857,9 @@ plr_report::plr_report():QWidget()
   h_splitter->addWidget(ally_label);
   h_splitter->addWidget(tech_label);
   h_splitter->addWidget(wonder_label);
+  ally_label->setVisible(gui_options.gui_qt_show_relations_panel);
+  tech_label->setVisible(gui_options.gui_qt_show_techs_panel);
+  wonder_label->setVisible(gui_options.gui_qt_show_wonders_panel);
   v_splitter->addWidget(h_splitter);
   layout->addWidget(v_splitter);
   hlayout->addWidget(meet_but);
@@ -902,7 +923,7 @@ void plr_report::call_meeting()
 **************************************************************************/
 void plr_report::req_caancel_threaty()
 {
-  dsend_packet_diplomacy_cancel_pact(&client.conn, 
+  dsend_packet_diplomacy_cancel_pact(&client.conn,
                                      player_number(other_player),
                                      CLAUSE_CEASEFIRE);
 }
@@ -921,7 +942,7 @@ void plr_report::req_meeeting()
 **************************************************************************/
 void plr_report::req_wiithdrw_vision()
 {
-  dsend_packet_diplomacy_cancel_pact(&client.conn, 
+  dsend_packet_diplomacy_cancel_pact(&client.conn,
                                      player_number(other_player),
                                      CLAUSE_VISION);
 }
@@ -989,9 +1010,11 @@ void plr_report::show_relations_toggle()
   if (ally_label->isVisible()) {
     ally_label->hide();
     show_relations->setText(_("Show Relations"));
+    gui_options.gui_qt_show_relations_panel = FALSE;
   } else {
     ally_label->show();
     show_relations->setText(_("Hide Relations"));
+    gui_options.gui_qt_show_relations_panel = TRUE;
   }
 }
 
@@ -1003,9 +1026,11 @@ void plr_report::show_techs_toggle()
   if (tech_label->isVisible()) {
     tech_label->hide();
     show_techs->setText(_("Show Techs"));
+    gui_options.gui_qt_show_techs_panel = FALSE;
   } else {
     tech_label->show();
     show_techs->setText(_("Hide Techs"));
+    gui_options.gui_qt_show_techs_panel = TRUE;
   }
 }
 
@@ -1017,9 +1042,11 @@ void plr_report::show_wonders_toggle()
   if (wonder_label->isVisible()) {
     wonder_label->hide();
     show_wonders->setText(_("Show Wonders"));
+    gui_options.gui_qt_show_wonders_panel = FALSE;
   } else {
     wonder_label->show();
     show_wonders->setText(_("Hide Wonders"));
+    gui_options.gui_qt_show_wonders_panel = TRUE;
   }
 }
 

@@ -12,8 +12,8 @@
 ***********************************************************************/
 
 /***********************************************************************
- This module is for generic handling of help data, independent
- of gui considerations.
+  This module is for generic handling of help data, independent
+  of gui considerations.
 ***********************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -54,6 +54,7 @@
 #include "client_main.h"
 #include "climisc.h"
 #include "gui_main_g.h" /* client_string */
+#include "music.h"
 
 #include "helpdata.h"
 
@@ -270,18 +271,7 @@ static bool insert_generated_text(char *outbuf, size_t outlen, const char *name)
             transform_result);
 
         if (clean_time != 0) {
-          extra_type_by_rmcause_iterate(ERM_CLEANPOLLUTION, pextra) {
-            int rmtime = pterrain->extra_removal_times[extra_index(pextra)];
-
-            if (rmtime != 0) {
-              if (clean_time < 0) {
-                clean_time = rmtime;
-              } else if (clean_time != rmtime) {
-                clean_time = 0; /* Give up */
-              }
-            }
-          } extra_type_by_rmcause_iterate_end;
-          extra_type_by_rmcause_iterate(ERM_CLEANFALLOUT, pextra) {
+          extra_type_by_rmcause_iterate(ERM_CLEAN, pextra) {
             int rmtime = pterrain->extra_removal_times[extra_index(pextra)];
 
             if (rmtime != 0) {
@@ -313,22 +303,7 @@ static bool insert_generated_text(char *outbuf, size_t outlen, const char *name)
     {
       int time = -1, factor = -1;
 
-      extra_type_by_rmcause_iterate(ERM_CLEANPOLLUTION, pextra) {
-        if (pextra->removal_time == 0) {
-          if (factor < 0) {
-            factor = pextra->removal_time_factor;
-          } else if (factor != pextra->removal_time_factor) {
-            factor = 0; /* Give up */
-          }
-        } else {
-          if (time < 0) {
-            time = pextra->removal_time;
-          } else if (time != pextra->removal_time) {
-            time = 0; /* Give up */
-          }
-        }
-      } extra_type_by_rmcause_iterate_end;
-      extra_type_by_rmcause_iterate(ERM_CLEANFALLOUT, pextra) {
+      extra_type_by_rmcause_iterate(ERM_CLEAN, pextra) {
         if (pextra->removal_time == 0) {
           if (factor < 0) {
             factor = pextra->removal_time_factor;
@@ -1048,6 +1023,80 @@ void boot_help_texts(void)
               help_list_append(help_nodes, pitem);
             }
             break;
+          case HELP_MUSICSET:
+            {
+              int desc_len;
+              int len;
+              const char *ms_name = current_musicset_name();
+              const char *version = current_musicset_version();
+              const char *summary = current_musicset_summary();
+              const char *description = current_musicset_description();
+
+              pitem = new_help_item(HELP_MUSICSET);
+              fc_snprintf(name, sizeof(name), "%*s%s", level, "",
+                          Q_(HELP_MUSICSET_ITEM));
+              pitem->topic = fc_strdup(name);
+              if (description != NULL) {
+                desc_len = strlen("\n\n") + strlen(description);
+              } else {
+                desc_len = 0;
+              }
+              if (summary != NULL) {
+                if (version != NULL && version[0] != '\0') {
+                  len = strlen(_(ms_name))
+                    + strlen(" ")
+                    + strlen(version)
+                    + strlen("\n\n")
+                    + strlen(_(summary))
+                    + 1;
+
+                  pitem->text = fc_malloc(len + desc_len);
+                  fc_snprintf(pitem->text, len, "%s %s\n\n%s",
+                              _(ms_name), version, _(summary));
+                } else {
+                  len = strlen(_(ms_name))
+                    + strlen("\n\n")
+                    + strlen(_(summary))
+                    + 1;
+
+                  pitem->text = fc_malloc(len + desc_len);
+                  fc_snprintf(pitem->text, len, "%s\n\n%s",
+                              _(ms_name), _(summary));
+                }
+              } else {
+                const char *nodesc = _("Current musicset contains no summary.");
+
+                if (version != NULL && version[0] != '\0') {
+                  len = strlen(_(ms_name))
+                    + strlen(" ")
+                    + strlen(version)
+                    + strlen("\n\n")
+                    + strlen(nodesc)
+                    + 1;
+
+                  pitem->text = fc_malloc(len + desc_len);
+                  fc_snprintf(pitem->text, len, "%s %s\n\n%s",
+                              _(ms_name), version,
+                              nodesc);
+                } else {
+                  len = strlen(_(ms_name))
+                    + strlen("\n\n")
+                    + strlen(nodesc)
+                    + 1;
+
+                  pitem->text = fc_malloc(len + desc_len);
+                  fc_snprintf(pitem->text, len, "%s\n\n%s",
+                              _(ms_name),
+                              nodesc);
+                }
+              }
+              if (description != NULL) {
+                fc_strlcat(pitem->text, "\n\n", len + desc_len);
+                fc_strlcat(pitem->text, description, len + desc_len);
+              }
+              help_list_append(help_nodes, pitem);
+            }
+            break;
           case HELP_NATIONS:
             nations_iterate(pnation) {
               if (client_state() < C_S_RUNNING
@@ -1106,9 +1155,9 @@ void boot_help_texts(void)
         bool inserted;
         const char *para = paras[i];
 
-        if (strncmp(para, "$", 1) == 0) {
-          inserted =
-            insert_generated_text(long_buffer, sizeof(long_buffer), para+1);
+        if (!fc_strncmp(para, "$", 1)) {
+          inserted
+            = insert_generated_text(long_buffer, sizeof(long_buffer), para+1);
         } else {
           sz_strlcat(long_buffer, _(para));
           inserted = TRUE;
@@ -1454,7 +1503,7 @@ char *helptext_building(char *buf, size_t bufsz, struct player *pplayer,
                        "action \'%s\'.\n"), BULLET,
                      action_id_name_translation(act));
         break;
-      case REQ_RANGE_TRADEROUTE:
+      case REQ_RANGE_TRADE_ROUTE:
         /* At least one action enabler needed the building in its target
          * requirements. */
         cat_snprintf(buf, bufsz,
@@ -1598,7 +1647,7 @@ char *helptext_building(char *buf, size_t bufsz, struct player *pplayer,
                      BULLET,
                      action_id_name_translation(act));
         break;
-      case REQ_RANGE_TRADEROUTE:
+      case REQ_RANGE_TRADE_ROUTE:
         cat_snprintf(buf, bufsz,
                      /* TRANS: Incite City */
                      _("%s Makes it impossible to do the action \'%s\' to "
@@ -2858,8 +2907,6 @@ char *helptext_unit(char *buf, size_t bufsz, struct player *pplayer,
         }
         break;
       case ACTRES_CLEAN:
-      case ACTRES_CLEAN_POLLUTION:
-      case ACTRES_CLEAN_FALLOUT:
         {
           struct astring extras_and = ASTRING_INIT;
           struct strvec *extras_vec = strvec_new();
@@ -3100,8 +3147,7 @@ char *helptext_unit(char *buf, size_t bufsz, struct player *pplayer,
 #endif
     /* FIXME: if we knew the raise chances on the client, we could be
      * more specific here about whether veteran status can be acquired
-     * through combat/missions/work. Should also take into account
-     * UTYF_NO_VETERAN when writing this text. (Gna patch #4794) */
+     * through combat/missions/work. */
     CATLSTR(buf, bufsz, _("%s May acquire veteran status.\n"), BULLET);
     if (utype_veteran_has_power_bonus(utype)) {
       if (utype_can_do_action(utype, ACTION_ATTACK)
@@ -3406,8 +3452,7 @@ void helptext_terrain(char *buf, size_t bufsz, struct player *pplayer,
 	    _("%s You cannot build cities on this terrain.\n"),
             BULLET);
   }
-  if (pterrain->road_time == 0
-      || !action_id_univs_not_blocking(ACTION_ROAD, NULL, &source)) {
+  if (!action_id_univs_not_blocking(ACTION_ROAD, NULL, &source)) {
     /* Can't build roads; only mention if ruleset has buildable roads */
     extra_type_by_cause_iterate(EC_ROAD, pextra) {
       if (pextra->buildable) {
@@ -3418,8 +3463,7 @@ void helptext_terrain(char *buf, size_t bufsz, struct player *pplayer,
       }
     } extra_type_by_cause_iterate_end;
   }
-  if (pterrain->base_time == 0
-      || !action_id_univs_not_blocking(ACTION_BASE, NULL, &source)) {
+  if (!action_id_univs_not_blocking(ACTION_BASE, NULL, &source)) {
     /* Can't build bases; only mention if ruleset has buildable bases */
     extra_type_by_cause_iterate(EC_BASE, pextra) {
       if (pextra->buildable) {
@@ -3828,8 +3872,7 @@ void helptext_extra(char *buf, size_t bufsz, struct player *pplayer,
                        pillage_time), pillage_time);
     }
   }
-  if (is_extra_removed_by(pextra, ERM_CLEANPOLLUTION)
-      || is_extra_removed_by(pextra, ERM_CLEANFALLOUT)) {
+  if (is_extra_removed_by(pextra, ERM_CLEAN)) {
     int clean_time = -1;
 
     if (pextra->removal_time != 0) {
@@ -4081,7 +4124,7 @@ void helptext_extra(char *buf, size_t bufsz, struct player *pplayer,
                 _("\nYields an output bonus with some terrains:\n\n"));
         CATLSTR(buf, bufsz,
                 _("Terrain       Bonus F/P/T\n"
-                  "-------------------------\n"));;
+                  "-------------------------\n"));
       }
       terrain_type_iterate(t) {
         int turns = road ? terrain_extra_build_time(t, ACTIVITY_GEN_ROAD, pextra)
@@ -4140,10 +4183,10 @@ void helptext_goods(char *buf, size_t bufsz, struct player *pplayer,
 
   if (pgood->onetime_pct == 0) {
     cat_snprintf(buf, bufsz,
-                 _("There's no bonuses paid when traderoute is established.\n\n"));
+                 _("There's no bonuses paid when trade route gets established.\n\n"));
   } else if (pgood->onetime_pct != 100) {
     cat_snprintf(buf, bufsz,
-                 _("When traderoute is established, %d%% of the normal bonus is paid.\n"),
+                 _("When trade route gets established, %d%% of the normal bonus is paid.\n"),
                  pgood->onetime_pct);
   }
   cat_snprintf(buf, bufsz, _("Sending city enjoys %d%% income from the route.\n"),

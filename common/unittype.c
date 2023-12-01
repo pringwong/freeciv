@@ -389,8 +389,8 @@ bool utype_can_do_action_result(const struct unit_type *putype,
 {
   fc_assert_ret_val(putype, FALSE);
 
-  action_by_result_iterate(paction, act_id, result) {
-    if (utype_can_do_action(putype, paction->id)) {
+  action_by_result_iterate(paction, result) {
+    if (utype_can_do_action(putype, action_id(paction))) {
       return TRUE;
     }
   } action_by_result_iterate_end;
@@ -979,8 +979,8 @@ bool utype_can_do_action_result_when_ustate(const struct unit_type *putype,
 {
   fc_assert_ret_val(putype, FALSE);
 
-  action_by_result_iterate(paction, act_id, result) {
-    if (utype_can_do_act_when_ustate(putype, paction->id, prop, is_there)) {
+  action_by_result_iterate(paction, result) {
+    if (utype_can_do_act_when_ustate(putype, action_id(paction), prop, is_there)) {
       return TRUE;
     }
   } action_by_result_iterate_end;
@@ -1229,8 +1229,8 @@ bool utype_is_consumed_by_action(const struct action *paction,
 bool utype_is_consumed_by_action_result(enum action_result result,
                                         const struct unit_type *utype)
 {
-  action_by_result_iterate(paction, act_id, result) {
-    if (!utype_can_do_action(utype, paction->id)) {
+  action_by_result_iterate(paction, result) {
+    if (!utype_can_do_action(utype, action_id(paction))) {
       continue;
     }
 
@@ -1390,7 +1390,8 @@ int utype_pays_mp_for_action_base(const struct action *paction,
   Returns an estimate of the amount of movement points successfully
   performing the specified action will consume in the actor unit type.
 **************************************************************************/
-int utype_pays_mp_for_action_estimate(const struct action *paction,
+int utype_pays_mp_for_action_estimate(const struct civ_map *nmap,
+                                      const struct action *paction,
                                       const struct unit_type *putype,
                                       const struct player *act_player,
                                       const struct tile *act_tile,
@@ -1409,7 +1410,7 @@ int utype_pays_mp_for_action_estimate(const struct action *paction,
 
   if (utype_pays_for_regular_move_to_tgt(paction, putype)) {
     /* Add the cost from the move. */
-    mpco += map_move_cost(&(wld.map), act_player, putype,
+    mpco += map_move_cost(nmap, act_player, putype,
                           act_tile, tgt_tile);
   }
 
@@ -2514,6 +2515,7 @@ void unit_classes_init(void)
     unit_classes[i].cache.native_tile_extras = NULL;
     unit_classes[i].cache.native_bases = NULL;
     unit_classes[i].cache.bonus_roads = NULL;
+    unit_classes[i].cache.hiding_extras = NULL;
     unit_classes[i].cache.subset_movers = NULL;
     unit_classes[i].helptext = NULL;
     unit_classes[i].ruledit_disabled = FALSE;
@@ -2543,6 +2545,10 @@ void unit_classes_free(void)
     if (unit_classes[i].cache.bonus_roads != NULL) {
       extra_type_list_destroy(unit_classes[i].cache.bonus_roads);
       unit_classes[i].cache.bonus_roads = NULL;
+    }
+    if (unit_classes[i].cache.hiding_extras != NULL) {
+      extra_type_list_destroy(unit_classes[i].cache.hiding_extras);
+      unit_classes[i].cache.hiding_extras = NULL;
     }
     if (unit_classes[i].cache.subset_movers != NULL) {
       unit_class_list_destroy(unit_classes[i].cache.subset_movers);
@@ -2739,6 +2745,7 @@ void set_unit_class_caches(struct unit_class *pclass)
   pclass->cache.native_tile_extras = extra_type_list_new();
   pclass->cache.native_bases = extra_type_list_new();
   pclass->cache.bonus_roads = extra_type_list_new();
+  pclass->cache.hiding_extras = extra_type_list_new();
   pclass->cache.subset_movers = unit_class_list_new();
 
   extra_type_iterate(pextra) {
@@ -2756,6 +2763,9 @@ void set_unit_class_caches(struct unit_class *pclass)
       }
       if (proad != NULL && road_provides_move_bonus(proad)) {
         extra_type_list_append(pclass->cache.bonus_roads, pextra);
+      }
+      if (pextra->eus == EUS_HIDDEN) {
+        extra_type_list_append(pclass->cache.hiding_extras, pextra);
       }
     }
   } extra_type_iterate_end;

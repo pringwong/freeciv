@@ -316,7 +316,8 @@ static int save_cma_callback(struct widget *pwidget)
 
     cma->adv = fc_calloc(1, sizeof(struct advanced_dialog));
 
-    pstr = create_utf8_from_char(_("Name new preset"), adj_font(12));
+    pstr = create_utf8_from_char_fonto(_("Name new preset"),
+                                       FONTO_ATTENTION);
     pstr->style |= TTF_STYLE_BOLD;
 
     pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -331,9 +332,9 @@ static int save_cma_callback(struct widget *pwidget)
     area.h = MAX(area.h, 1);
 
     /* ============================================================= */
-    /* label */
-    pstr = create_utf8_from_char(_("What should we name the preset?"),
-                                 adj_font(10));
+    /* Label */
+    pstr = create_utf8_from_char_fonto(_("What should we name the preset?"),
+                                       FONTO_DEFAULT);
     pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
     pstr->fgcol = *get_theme_color(COLOR_THEME_CMA_TEXT);
 
@@ -344,7 +345,8 @@ static int save_cma_callback(struct widget *pwidget)
     /* ============================================================= */
 
     buf = create_edit(NULL, pwindow->dst,
-                      create_utf8_from_char(_("new preset"), adj_font(12)),
+                      create_utf8_from_char_fonto(_("new preset"),
+                                                  FONTO_ATTENTION),
                       adj_size(100),
                       (WF_RESTORE_BACKGROUND|WF_FREE_STRING));
     set_wstate(buf, FC_WS_NORMAL);
@@ -354,9 +356,10 @@ static int save_cma_callback(struct widget *pwidget)
     add_to_gui_list(ID_EDIT, buf);
     /* ============================================================= */
 
-    buf = create_themeicon_button_from_chars(current_theme->ok_icon,
-                                             pwindow->dst,
-                                             _("Yes"), adj_font(12), 0);
+    buf = create_themeicon_button_from_chars_fonto(current_theme->ok_icon,
+                                                   pwindow->dst,
+                                                   _("Yes"),
+                                                   FONTO_ATTENTION, 0);
 
     buf->action = ok_save_cma_callback;
     set_wstate(buf, FC_WS_NORMAL);
@@ -364,9 +367,9 @@ static int save_cma_callback(struct widget *pwidget)
     add_to_gui_list(ID_BUTTON, buf);
     buf->data.ptr = (void *)buf->next;
 
-    buf = create_themeicon_button_from_chars(current_theme->cancel_icon,
-                                             pwindow->dst, _("No"),
-                                             adj_font(12), 0);
+    buf = create_themeicon_button_from_chars_fonto(current_theme->cancel_icon,
+                                                   pwindow->dst, _("No"),
+                                                   FONTO_ATTENTION, 0);
     buf->action = cancel_sld_cma_callback;
     set_wstate(buf, FC_WS_NORMAL);
     buf->key = SDLK_ESCAPE;
@@ -500,7 +503,7 @@ static void popup_load_del_presets_dialog(bool load, struct widget *button)
 
   cma->adv = fc_calloc(1, sizeof(struct advanced_dialog));
 
-  pstr = create_utf8_from_char(_("Presets"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("Presets"), FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -514,11 +517,11 @@ static void popup_load_del_presets_dialog(bool load, struct widget *button)
   area = pwindow->area;
 
   /* ---------- */
-  /* create exit button */
+  /* Create exit button */
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                          adj_font(12));
+  buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                FONTO_ATTENTION);
   buf->action = cancel_sld_cma_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_ESCAPE;
@@ -528,7 +531,7 @@ static void popup_load_del_presets_dialog(bool load, struct widget *button)
   /* ---------- */
 
   for (i = 0; i < count; i++) {
-    pstr = create_utf8_from_char(cmafec_preset_get_descr(i), adj_font(10));
+    pstr = create_utf8_from_char_fonto(cmafec_preset_get_descr(i), FONTO_DEFAULT);
     pstr->style |= TTF_STYLE_BOLD;
     buf = create_iconlabel(NULL, pwindow->dst, pstr,
             (WF_RESTORE_BACKGROUND|WF_DRAW_TEXT_LABEL_WITH_SPACE));
@@ -546,7 +549,7 @@ static void popup_load_del_presets_dialog(bool load, struct widget *button)
     }
 
     add_to_gui_list(MAX_ID - i, buf);
-    
+
     if (i > 10) {
       set_wflag(buf, WF_HIDDEN);
     }
@@ -793,15 +796,15 @@ void update_city_cma_dialog(void)
     }
   }
 
-  /* create result text surface */
-  pstr = create_utf8_from_char(cmafec_get_result_descr(cma->pcity, result,
-                                                       &cma->edited_cm_parm),
-                               adj_font(12));
+  /* Create result text surface */
+  pstr = create_utf8_from_char_fonto(cmafec_get_result_descr(cma->pcity, result,
+                                                             &cma->edited_cm_parm),
+                                     FONTO_ATTENTION);
 
   text = create_text_surf_from_utf8(pstr);
   FREEUTF8STR(pstr);
 
-  /* fill result text background */  
+  /* Fill result text background */
   dst.x = buf->area.x + adj_size(7);
   dst.y = buf->area.y + adj_size(186);
   dst.w = text->w + adj_size(10);
@@ -817,7 +820,7 @@ void update_city_cma_dialog(void)
   alphablit(text, NULL, buf->dst->surface, &dst, 255);
   FREESURFACE(text);
 
-  /* happy factor scrollbar */
+  /* Happy factor scrollbar */
   buf = cma->dlg->begin_widget_list->next->next->next->next->next->next->next;
   if (client_under_control && get_checkbox_state(buf->prev)) {
     set_wstate(buf, FC_WS_NORMAL);
@@ -825,7 +828,7 @@ void update_city_cma_dialog(void)
     set_wstate(buf, FC_WS_DISABLED);
   }
 
-  /* save as ... */
+  /* Save as ... */
   buf = buf->prev->prev;
   if (client_under_control) {
     set_wstate(buf, FC_WS_NORMAL);
@@ -833,7 +836,7 @@ void update_city_cma_dialog(void)
     set_wstate(buf, FC_WS_DISABLED);
   }
 
-  /* load */
+  /* Load */
   buf = buf->prev;
   if (cma_presets_exist && client_under_control) {
     set_wstate(buf, FC_WS_NORMAL);
@@ -841,7 +844,7 @@ void update_city_cma_dialog(void)
     set_wstate(buf, FC_WS_DISABLED);
   }
 
-  /* del */
+  /* Del */
   buf = buf->prev;
   if (cma_presets_exist && client_under_control) {
     set_wstate(buf, FC_WS_NORMAL);
@@ -865,7 +868,7 @@ void update_city_cma_dialog(void)
     set_wstate(buf, FC_WS_DISABLED);
   }
 
-  /* stop */
+  /* Stop */
   buf = buf->prev;
   if (client_under_control && controlled) {
     set_wstate(buf, FC_WS_NORMAL);
@@ -917,7 +920,7 @@ void popup_city_cma_dialog(struct city *pcity)
               population_to_text(city_population(pcity)),
               _("Citizen Governor"));
 
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -930,11 +933,11 @@ void popup_city_cma_dialog(struct city *pcity)
   area = pwindow->area;
 
   /* ---------- */
-  /* create exit button */
+  /* Create exit button */
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                          adj_font(12));
+  buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                FONTO_ATTENTION);
   buf->action = exit_cma_dialog_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_ESCAPE;
@@ -942,7 +945,7 @@ void popup_city_cma_dialog(struct city *pcity)
 
   add_to_gui_list(ID_BUTTON, buf);
 
-  pstr = create_utf8_str(NULL, 0, adj_font(12));
+  pstr = create_utf8_str_fonto(NULL, 0, FONTO_ATTENTION);
   text_w = 0;
 
   copy_chars_to_utf8_str(pstr, _("Minimal Surplus"));
@@ -957,14 +960,14 @@ void popup_city_cma_dialog(struct city *pcity)
     text[i] = create_text_surf_from_utf8(pstr);
     text_w = MAX(text_w, text[i]->w);
 
-    /* minimal label */
+    /* Minimal label */
     buf = create_iconlabel(NULL, pwindow->dst,
-                           create_utf8_from_char("999", adj_font(10)),
+                           create_utf8_from_char_fonto("999", FONTO_DEFAULT),
                            (WF_FREE_STRING | WF_RESTORE_BACKGROUND));
 
     add_to_gui_list(ID_LABEL, buf);
 
-    /* minimal scrollbar */
+    /* Minimal scrollbar */
     buf = create_horizontal(current_theme->horiz, pwindow->dst, adj_size(30),
                             (WF_RESTORE_BACKGROUND));
 
@@ -975,14 +978,14 @@ void popup_city_cma_dialog(struct city *pcity)
 
     add_to_gui_list(ID_SCROLLBAR, buf);
 
-    /* factor label */
+    /* Factor label */
     buf = create_iconlabel(NULL, pwindow->dst,
-                           create_utf8_from_char("999", adj_font(10)),
+                           create_utf8_from_char_fonto("999", FONTO_DEFAULT),
                            (WF_FREE_STRING | WF_RESTORE_BACKGROUND));
 
     add_to_gui_list(ID_LABEL, buf);
 
-    /* factor scrollbar */
+    /* Factor scrollbar */
     buf = create_horizontal(current_theme->horiz, pwindow->dst, adj_size(30),
                             (WF_RESTORE_BACKGROUND));
 
@@ -998,14 +1001,14 @@ void popup_city_cma_dialog(struct city *pcity)
   text[O_LAST] = create_text_surf_from_utf8(pstr);
   FREEUTF8STR(pstr);
 
-  /* happy factor label */
+  /* Happy factor label */
   buf = create_iconlabel(NULL, pwindow->dst,
-                         create_utf8_from_char("999", adj_font(10)),
+                         create_utf8_from_char_fonto("999", FONTO_DEFAULT),
                          (WF_FREE_STRING | WF_RESTORE_BACKGROUND));
 
   add_to_gui_list(ID_LABEL, buf);
 
-  /* happy factor scrollbar */
+  /* Happy factor scrollbar */
   buf = create_horizontal(current_theme->horiz, pwindow->dst, adj_size(30),
                           (WF_RESTORE_BACKGROUND));
 
@@ -1025,71 +1028,71 @@ void popup_city_cma_dialog(struct city *pcity)
   buf->action = toggle_cma_celebrating_callback;
   add_to_gui_list(ID_CHECKBOX, buf);
 
-  /* save as ... */
+  /* Save as ... */
   buf = create_themeicon(current_theme->save_icon, pwindow->dst,
                          WF_RESTORE_BACKGROUND |WF_WIDGET_HAS_INFO_LABEL);
   buf->action = save_cma_callback;
-  buf->info_label = create_utf8_from_char(_("Save settings as..."),
-                                          adj_font(10));
+  buf->info_label = create_utf8_from_char_fonto(_("Save settings as..."),
+                                                FONTO_DEFAULT);
 
   add_to_gui_list(ID_ICON, buf);
 
-  /* load settings */
+  /* Load settings */
   buf = create_themeicon(current_theme->load_icon, pwindow->dst,
                          WF_RESTORE_BACKGROUND | WF_WIDGET_HAS_INFO_LABEL);
   buf->action = load_cma_callback;
-  buf->info_label = create_utf8_from_char(_("Load settings"),
-                                          adj_font(10));
+  buf->info_label = create_utf8_from_char_fonto(_("Load settings"),
+                                                FONTO_DEFAULT);
 
   add_to_gui_list(ID_ICON, buf);
 
-  /* del settings */
+  /* Del settings */
   buf = create_themeicon(current_theme->delete_icon, pwindow->dst,
                          WF_RESTORE_BACKGROUND | WF_WIDGET_HAS_INFO_LABEL);
   buf->action = del_cma_callback;
-  buf->info_label = create_utf8_from_char(_("Delete settings"),
-                                          adj_font(10));
+  buf->info_label = create_utf8_from_char_fonto(_("Delete settings"),
+                                                FONTO_DEFAULT);
 
   add_to_gui_list(ID_ICON, buf);
 
-  /* run cma */
+  /* Run cma */
   buf = create_themeicon(current_theme->qprod_icon, pwindow->dst,
                          WF_RESTORE_BACKGROUND | WF_WIDGET_HAS_INFO_LABEL);
   buf->action = run_cma_callback;
-  buf->info_label = create_utf8_from_char(_("Control city"), adj_font(10));
+  buf->info_label = create_utf8_from_char_fonto(_("Control city"), FONTO_DEFAULT);
 
   add_to_gui_list(ID_ICON, buf);
 
-  /* run cma onece */
+  /* Run cma once */
   buf = create_themeicon(current_theme->find_city_icon, pwindow->dst,
                          WF_RESTORE_BACKGROUND | WF_WIDGET_HAS_INFO_LABEL);
   buf->action = run_cma_once_callback;
-  buf->info_label = create_utf8_from_char(_("Apply once"), adj_font(10));
+  buf->info_label = create_utf8_from_char_fonto(_("Apply once"), FONTO_DEFAULT);
 
   add_to_gui_list(ID_ICON, buf);
 
-  /* del settings */
+  /* Del settings */
   buf = create_themeicon(current_theme->support_icon, pwindow->dst,
                          WF_RESTORE_BACKGROUND | WF_WIDGET_HAS_INFO_LABEL);
   buf->action = stop_cma_callback;
-  buf->info_label = create_utf8_from_char(_("Release city"), adj_font(10));
+  buf->info_label = create_utf8_from_char_fonto(_("Release city"), FONTO_DEFAULT);
 
   add_to_gui_list(ID_ICON, buf);
 
   /* -------------------------------- */
   cma->dlg->begin_widget_list = buf;
 
-#ifdef SMALL_SCREEN
+#ifdef GUI_SDL2_SMALL_SCREEN
   area.w = MAX(pcity_map->w + adj_size(220) + text_w + adj_size(10) +
                (pwindow->prev->prev->size.w + adj_size(5 + 70 + 5) +
                 pwindow->prev->prev->size.w + adj_size(5 + 55 + 15)), area.w);
   area.h = adj_size(390) - (pwindow->size.w - pwindow->area.w);
-#else  /* SMALL_SCREEN */
+#else  /* GUI_SDL2_SMALL_SCREEN */
   area.w = MAX(pcity_map->w + adj_size(150) + text_w + adj_size(10) +
                (pwindow->prev->prev->size.w + adj_size(5 + 70 + 5) +
                 pwindow->prev->prev->size.w + adj_size(5 + 55 + 15)), area.w);
   area.h = adj_size(360) - (pwindow->size.w - pwindow->area.w);
-#endif /* SMALL_SCREEN */
+#endif /* GUI_SDL2_SMALL_SCREEN */
 
   logo = theme_get_background(active_theme, BACKGROUND_CITYGOVDLG);
   if (resize_window(pwindow, logo, NULL,
@@ -1121,7 +1124,7 @@ void popup_city_cma_dialog(struct city *pcity)
      (text_w + adj_size(10) + pwindow->prev->prev->size.w + adj_size(5 + 70 + 5) +
       pwindow->prev->prev->size.w + adj_size(5 + 55))) / 2;
 
-#ifdef SMALL_SCREEN
+#ifdef GUI_SDL2_SMALL_SCREEN
   dst.x += 22;
 #endif
 
@@ -1217,19 +1220,19 @@ void popup_city_cma_dialog(struct city *pcity)
                area.x, area.y, area.w - 1, area.h - 1,
                get_theme_color(COLOR_THEME_CMA_FRAME));
 
-  /* celebrate cbox */
+  /* Celebrate cbox */
   buf = buf->prev;
   buf->size.x = pwindow->size.x + dst.x + adj_size(10);
   buf->size.y = pwindow->size.y + dst.y;
 
-  /* celebrate static text */
+  /* Celebrate static text */
   dst.x += (adj_size(10) + buf->size.w + adj_size(5));
   dst.y += (buf->size.h - text[O_LAST]->h) / 2;
   alphablit(text[O_LAST], NULL, pwindow->theme, &dst, 255);
   FREESURFACE(text[O_LAST]);
   /* ------------------------ */
 
-  /* save as */
+  /* Save as */
   buf = buf->prev;
   buf->size.x = pwindow->size.x + x + (w - (buf->size.w + adj_size(6)) * 6) / 2;
   buf->size.y = pwindow->size.y + pwindow->size.h - buf->size.h * 2 - adj_size(10);
@@ -1244,33 +1247,33 @@ void popup_city_cma_dialog(struct city *pcity)
                area.x, area.y, area.w - 1, area.h - 1,
                get_theme_color(COLOR_THEME_CMA_FRAME));
 
-  /* load */
+  /* Load */
   buf = buf->prev;
   buf->size.x = buf->next->size.x + buf->next->size.w + adj_size(4);
   buf->size.y = buf->next->size.y;
 
-  /* del */
+  /* Del */
   buf = buf->prev;
   buf->size.x = buf->next->size.x + buf->next->size.w + adj_size(4);
   buf->size.y = buf->next->size.y;
 
-  /* run */
+  /* Run */
   buf = buf->prev;
   buf->size.x = buf->next->size.x + buf->next->size.w + adj_size(4);
   buf->size.y = buf->next->size.y;
 
-  /* run one time */
+  /* Run one time */
   buf = buf->prev;
   buf->size.x = buf->next->size.x + buf->next->size.w + adj_size(4);
   buf->size.y = buf->next->size.y;
 
-  /* del */
+  /* Del */
   buf = buf->prev;
   buf->size.x = buf->next->size.x + buf->next->size.w + adj_size(4);
   buf->size.y = buf->next->size.y;
 
   /* ------------------------ */
-  /* check if Citizen Icons style was loaded */
+  /* Check if Citizen Icons style was loaded */
   cs = style_of_city(cma->pcity);
 
   if (cs != icons->style) {

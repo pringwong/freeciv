@@ -57,11 +57,10 @@ enum munit {
   FORTRESS,
   AIRBASE,
   CLEAN,
-  FALLOUT,
   SENTRY,
   HOMECITY,
   WAKEUP,
-  AUTOSETTLER,
+  AUTOWORKER,
   CONNECT_ROAD,
   CONNECT_RAIL,
   CONNECT_MAGLEV,
@@ -70,7 +69,7 @@ enum munit {
   AIRLIFT,
   BUILD_WONDER,
   AUTOTRADEROUTE,
-  ORDER_TRADEROUTE,
+  ORDER_TRADE_ROUTE,
   ORDER_DIPLOMAT_DLG,
   UPGRADE,
   NOT_4_OBS,
@@ -315,7 +314,7 @@ private slots:
   void slot_build_path(int id);
   void slot_build_base(int id);
   void slot_build_city();
-  void slot_auto_settler();
+  void slot_auto_worker();
   void slot_build_road();
   void slot_build_irrigation();
   void slot_cultivate();
@@ -326,8 +325,7 @@ private slots:
   void slot_conn_maglev();
   void slot_conn_irrigation();
   void slot_transform();
-  void slot_clean_pollution();
-  void slot_clean_fallout();
+  void slot_clean();
 
   // Used by unit menu
   void slot_unit_sentry();
@@ -369,7 +367,7 @@ private slots:
   void slot_city_growth();
   void slot_city_production();
   void slot_city_buycost();
-  void slot_city_traderoutes();
+  void slot_city_trade_routes();
   void slot_stack_size();
   void slot_city_names();
   void zoom_in();

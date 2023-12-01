@@ -73,9 +73,7 @@ static void apply_help_font(struct option *poption);
 static void apply_notify_font(struct option *poption);
 static void apply_sidebar(struct option *poption);
 static void apply_titlebar(struct option *poption);
-
-// Uncomment to enable svg flags
-//#define FC_QT_SVGFLAG
+static void apply_fullscreen(struct option *poption);
 
 /**********************************************************************//**
   Return fc_client instance
@@ -98,18 +96,12 @@ int main(int argc, char **argv)
 {
   setup_gui_funcs();
 
-  log_normal("Entry point for whole freeciv client program")
-
-#ifdef FC_QT_SVGFLAG
-  svg_flag_enable();
-#endif // FC_QT_SVGFLAG
-
   return client_main(argc, argv, TRUE);
 }
 
 /**********************************************************************//**
   Print extra usage information, including one line help on each option,
-  to stderr. 
+  to stderr.
 **************************************************************************/
 static void print_usage()
 {
@@ -120,6 +112,11 @@ static void print_usage()
 
   fc_fprintf(stderr,
              _("Other gui-specific options are:\n"));
+
+#ifdef FREECIV_SVG_FLAGS
+  fc_fprintf(stderr,
+             _("-f, --flags\tEnable svgflags features\n"));
+#endif // FREECIV_SVG_FLAGS
 
   fc_fprintf(stderr,
              _("-s, --shortcutreset\tReset shortcut keys to "
@@ -147,6 +144,12 @@ static bool parse_options(int argc, char **argv)
     }
     if (is_option("--shortcutreset", argv[i])) {
       shortcutreset();
+    } else if (is_option("--flags", argv[i])) {
+#ifdef FREECI_SVG_FLAGS
+      svg_flag_enable();
+#else  // FREECIV_SVG_FLAGS
+      fc_fprintf(stderr, _("svg flags not enabled in this freeciv build."));
+#endif // FREECIV_SVG_FLAGS
     }
     // Can't check against unknown options, as those might be Qt options
 
@@ -259,6 +262,8 @@ void qtg_options_extra_init()
                           apply_titlebar);
   option_var_set_callback(gui_qt_sidebar_left,
                           apply_sidebar);
+  option_var_set_callback(gui_qt_fullscreen,
+                          apply_fullscreen);
 #undef option_var_set_callback
 }
 
@@ -382,7 +387,7 @@ void apply_titlebar(struct option *poption)
   QWidget *w;
   Qt::WindowFlags flags = Qt::Window;
   val = option_bool_get(poption);
-  
+
   if (gui()->current_page() < PAGE_GAME) {
     return;
   }
@@ -475,6 +480,13 @@ static void apply_notify_font(struct option *poption)
   }
 }
 
+/**********************************************************************//**
+  Applies fullscreen changes
+**************************************************************************/
+static void apply_fullscreen(struct option *poption)
+{
+  gui()->apply_fullscreen();
+}
 
 /**********************************************************************//**
   Stub for editor function

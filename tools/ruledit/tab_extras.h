@@ -52,6 +52,7 @@ class tab_extras : public QWidget
     void select_extra();
     void add_now();
     void delete_now();
+    void edit_now();
     void same_name_toggle(bool checked);
     void edit_reqs();
     void edit_effects();

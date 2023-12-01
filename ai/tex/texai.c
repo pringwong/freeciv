@@ -22,7 +22,6 @@
 /* ai/default */
 #include "aiferry.h"
 #include "aihand.h"
-#include "aitools.h"
 #include "daicity.h"
 #include "daidiplomacy.h"
 #include "daidomestic.h"
@@ -30,6 +29,8 @@
 #include "daimilitary.h"
 #include "daiplayer.h"
 #include "daisettler.h"
+#include "daitools.h"
+#include "daiunit.h"
 
 /* tex ai */
 #include "texaicity.h"
@@ -389,11 +390,14 @@ static void texwai_auto_settler_reset(struct player *pplayer)
 /**********************************************************************//**
   Call default ai with tex ai type as parameter.
 **************************************************************************/
-static void texwai_auto_settler_run(struct player *pplayer, struct unit *punit,
+static void texwai_auto_settler_run(struct player *pplayer,
+                                    struct unit *punit,
                                     struct settlermap *state)
 {
   TEXAI_AIT;
-  TEXAI_DFUNC(dai_auto_settler_run, pplayer, punit, state);
+
+  /* TODO: Operate on tex map */
+  TEXAI_DFUNC(dai_auto_settler_run, &(wld.map), pplayer, punit, state);
 }
 
 /**********************************************************************//**
@@ -404,7 +408,9 @@ static void texwai_auto_settler_cont(struct player *pplayer,
                                      struct settlermap *state)
 {
   TEXAI_AIT;
-  TEXAI_DFUNC(dai_auto_settler_cont, pplayer, punit, state);
+
+  /* TODO: Operate on tex map */
+  TEXAI_DFUNC(dai_auto_settler_cont, &(wld.map), pplayer, punit, state);
 }
 
 /**********************************************************************//**

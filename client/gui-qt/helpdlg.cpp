@@ -59,9 +59,9 @@ static canvas *terrain_canvas(struct terrain *terrain,
                               enum extra_cause cause = EC_COUNT);
 
 /**********************************************************************//**
-  Popup the help dialog to get help on the given string topic.  Note
-  that the topic may appear in multiple sections of the help (it may
-  be both an improvement and a unit, for example).
+  Popup the help dialog to get help on the given string topic.
+  Note that the topic may appear in multiple sections of the help
+  (it may be both an improvement and a unit, for example).
 
   The given string should be untranslated.
 **************************************************************************/
@@ -810,6 +810,7 @@ void help_widget::set_topic(const help_item *topic)
     case HELP_MULTIPLIER:
     case HELP_RULESET:
     case HELP_TILESET:
+    case HELP_MUSICSET:
     case HELP_TEXT:
       set_topic_other(topic, title);
       break;
@@ -1345,7 +1346,7 @@ void help_widget::set_topic_terrain(const help_item *topic,
       fc_snprintf(cult_buffer, sizeof(cult_buffer), PL_("%d turn", "%d turns",
                                                         pterrain->cultivate_time),
                   pterrain->cultivate_time);
-      str = N_("Cultiv. Rslt/Time:");;
+      str = N_("Cultiv. Rslt/Time:");
       str = str + link_me(terrain_name_translation(pterrain->cultivate_result),
                           HELP_TERRAIN)
             + QString(cult_buffer).toHtmlEscaped();
@@ -1367,7 +1368,7 @@ void help_widget::set_topic_terrain(const help_item *topic,
       fc_snprintf(plant_buffer, sizeof(plant_buffer), PL_("%d turn", "%d turns",
                                                           pterrain->plant_time),
                   pterrain->plant_time);
-      str = N_("Plant Rslt/Time:");;
+      str = N_("Plant Rslt/Time:");
       str = str + link_me(terrain_name_translation(pterrain->plant_result),
                           HELP_TERRAIN)
             + QString(plant_buffer).toHtmlEscaped();
@@ -1405,19 +1406,21 @@ void help_widget::set_topic_terrain(const help_item *topic,
     }
 
     if (action_id_univs_not_blocking(ACTION_IRRIGATE, NULL, &for_terr)) {
-      // TRANS: this and similar literal strings interpreted as (Qt) HTML
-      add_extras_of_act_for_terrain(pterrain, ACTIVITY_IRRIGATE, _("Build as irrigation"));
+      // TRANS: This and similar literal strings interpreted as (Qt) HTML
+      add_extras_of_act_for_terrain(pterrain, ACTIVITY_IRRIGATE,
+                                    _("Build as irrigation"));
     }
     if (action_id_univs_not_blocking(ACTION_MINE, NULL, &for_terr)) {
-      add_extras_of_act_for_terrain(pterrain, ACTIVITY_MINE, _("Build as mine"));
+      add_extras_of_act_for_terrain(pterrain, ACTIVITY_MINE,
+                                    _("Build as mine"));
     }
-    if (pterrain->road_time != 0
-        && action_id_univs_not_blocking(ACTION_ROAD, NULL, &for_terr)) {
-      add_extras_of_act_for_terrain(pterrain, ACTIVITY_GEN_ROAD, _("Build as road"));
+    if (action_id_univs_not_blocking(ACTION_ROAD, NULL, &for_terr)) {
+      add_extras_of_act_for_terrain(pterrain, ACTIVITY_GEN_ROAD,
+                                    _("Build as road"));
     }
-    if (pterrain->base_time != 0
-        && action_id_univs_not_blocking(ACTION_BASE, NULL, &for_terr)) {
-      add_extras_of_act_for_terrain(pterrain, ACTIVITY_BASE, _("Build as base"));
+    if (action_id_univs_not_blocking(ACTION_BASE, NULL, &for_terr)) {
+      add_extras_of_act_for_terrain(pterrain, ACTIVITY_BASE,
+                                    _("Build as base"));
     }
 
     info_panel_done();
@@ -1655,11 +1658,13 @@ struct terrain *help_widget::terrain_max_values()
 struct unit_type *help_widget::uclass_max_values(struct unit_class *uclass)
 {
   struct unit_type *max = new struct unit_type;
+
   max->uclass = uclass;
   max->attack_strength = 0;
   max->bombard_rate = 0;
   max->build_cost = 0;
   max->city_size = 0;
+  max->convert_time = 0;
   max->defense_strength = 0;
   max->firepower = 0;
   max->fuel = 0;
@@ -1674,10 +1679,13 @@ struct unit_type *help_widget::uclass_max_values(struct unit_class *uclass)
   max->upkeep[O_SHIELD] = 0;
   max->upkeep[O_TRADE] = 0;
   max->vision_radius_sq = 0;
+
   unit_type_iterate(utype) {
     if (utype->uclass == uclass) {
-#define SET_MAX(v) \
+
+#define SET_MAX(v)                                      \
       max->v = max->v > utype->v ? max->v : utype->v
+
       SET_MAX(attack_strength);
       SET_MAX(bombard_rate);
       SET_MAX(build_cost);
@@ -1697,8 +1705,11 @@ struct unit_type *help_widget::uclass_max_values(struct unit_class *uclass)
       SET_MAX(upkeep[O_SHIELD]);
       SET_MAX(upkeep[O_TRADE]);
       SET_MAX(vision_radius_sq);
+
 #undef SET_MAX
+
     }
   } unit_type_iterate_end
+
   return max;
 }

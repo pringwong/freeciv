@@ -71,15 +71,15 @@
 #include "aiferry.h"
 #include "aiguard.h"
 #include "aihand.h"
-#include "aihunt.h"
 #include "aiparatrooper.h"
-#include "aitools.h"
 #include "daicity.h"
 #include "daidata.h"
 #include "daieffects.h"
+#include "daihunter.h"
 #include "dailog.h"
 #include "daimilitary.h"
 #include "daiplayer.h"
+#include "daitools.h"
 
 #include "daiunit.h"
 
@@ -297,7 +297,7 @@ static int unit_def_rating_squared(const struct unit *attacker,
 
 /**********************************************************************//**
   Defense rating of def_type unit against att_type unit, squared.
-  See get_virtual_defense_power for the arguments att_type, def_type,
+  See get_virtual_defense_power() for the arguments att_type, def_type,
   x, y, fortified and veteran.
 **************************************************************************/
 int unittype_def_rating_squared(const struct unit_type *att_type,
@@ -306,8 +306,9 @@ int unittype_def_rating_squared(const struct unit_type *att_type,
                                 struct tile *ptile, bool fortified,
                                 int veteran)
 {
-  int v = get_virtual_defense_power(att_type, def_type, def_player, ptile,
-                                    fortified, veteran)
+  struct civ_map *nmap = &(wld.map);
+  int v = get_virtual_defense_power(nmap, att_type, def_type, def_player,
+                                    ptile, fortified, veteran)
     * def_type->hp * def_type->firepower / POWER_DIVIDER;
 
   return v * v;
@@ -397,45 +398,48 @@ static void reinforcements_cost_and_value(struct unit *punit,
 **************************************************************************/
 static bool is_my_turn(struct unit *punit, struct unit *pdef)
 {
-  int val = unit_att_rating_now(punit), cur, d;
+  int val = unit_att_rating_now(punit);
+  int cur, d;
+  const struct unit_type *def_type = unit_type_get(pdef);
+  struct tile *def_tile = unit_tile(pdef);
+  struct civ_map *nmap = &(wld.map);
 
   CHECK_UNIT(punit);
 
-  square_iterate(&(wld.map), unit_tile(pdef), 1, ptile) {
+  square_iterate(nmap, def_tile, 1, ptile) {
     unit_list_iterate(ptile->units, aunit) {
       if (aunit == punit || unit_owner(aunit) != unit_owner(punit)) {
         continue;
       }
-      if ((unit_attack_units_at_tile_result(aunit, NULL, unit_tile(pdef))
+      if ((unit_attack_units_at_tile_result(aunit, NULL, def_tile)
            != ATT_OK)
           || (unit_attack_unit_at_tile_result(aunit, NULL,
-                                              pdef, unit_tile(pdef))
+                                              pdef, def_tile)
               != ATT_OK)) {
         continue;
       }
-      d = get_virtual_defense_power(unit_type_get(aunit), unit_type_get(pdef),
-                                    unit_owner(pdef), unit_tile(pdef),
+      d = get_virtual_defense_power(nmap, unit_type_get(aunit), def_type,
+                                    unit_owner(pdef), def_tile,
                                     FALSE, 0);
       if (d == 0) {
         return TRUE;            /* Thanks, Markus -- Syela */
       }
       cur = unit_att_rating_now(aunit) *
-          get_virtual_defense_power(unit_type_get(punit), unit_type_get(pdef),
-                                    unit_owner(pdef), unit_tile(pdef),
-                                    FALSE, 0) / d;
+        get_virtual_defense_power(nmap, unit_type_get(punit), def_type,
+                                  unit_owner(pdef), def_tile,
+                                  FALSE, 0) / d;
       if (cur > val && ai_fuzzy(unit_owner(punit), TRUE)) {
         return FALSE;
       }
-    }
-    unit_list_iterate_end;
-  }
-  square_iterate_end;
+    } unit_list_iterate_end;
+  } square_iterate_end;
+
   return TRUE;
 }
 
 /**********************************************************************//**
   This function appraises the location (x, y) for a quick hit-n-run
-  operation.  We do not take into account reinforcements: rampage is for
+  operation. We do not take into account reinforcements: rampage is for
   loners.
 
   Returns value as follows:
@@ -453,11 +457,12 @@ static int dai_rampage_want(struct unit *punit, struct tile *ptile)
 {
   struct player *pplayer = unit_owner(punit);
   struct unit *pdef;
+  struct civ_map *nmap = &(wld.map);
 
   CHECK_UNIT(punit);
 
   if (can_unit_attack_tile(punit, NULL, ptile)
-      && (pdef = get_defender(punit, ptile, NULL))) {
+      && (pdef = get_defender(nmap, punit, ptile, NULL))) {
     /* See description of kill_desire() about these variables. */
     int attack = unit_att_rating_now(punit);
     int benefit = stack_cost(punit, pdef);
@@ -477,7 +482,7 @@ static int dai_rampage_want(struct unit *punit, struct tile *ptile)
 
     /* If we have non-zero attack rating... */
     if (attack > 0 && is_my_turn(punit, pdef)) {
-      double chance = unit_win_chance(punit, pdef, NULL);
+      double chance = unit_win_chance(nmap, punit, pdef, NULL);
       int desire = avg_benefit(benefit, loss, chance);
 
       /* No need to amortize, our operation takes one turn. */
@@ -524,8 +529,9 @@ static struct pf_path *find_rampage_target(struct unit *punit,
   /* Want of the best target */
   int max_want = 0;
   struct player *pplayer = unit_owner(punit);
- 
-  pft_fill_unit_attack_param(&parameter, punit);
+  const struct civ_map *nmap = &(wld.map);
+
+  pft_fill_unit_attack_param(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   /* When trying to find rampage targets we ignore risks such as
    * enemy units because we are looking for trouble!
@@ -717,6 +723,7 @@ adv_want look_for_charge(struct ai_type *ait, struct player *pplayer,
   int def, best_def = -1;
   /* Arbitrary: 3 turns. */
   const int max_move_cost = 3 * unit_move_rate(punit);
+  const struct civ_map *nmap = &(wld.map);
 
   *aunit = NULL;
   *acity = NULL;
@@ -726,7 +733,7 @@ adv_want look_for_charge(struct ai_type *ait, struct player *pplayer,
     return 0;
   }
 
-  pft_fill_unit_parameter(&parameter, punit);
+  pft_fill_unit_parameter(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   pfm = pf_map_new(&parameter);
 
@@ -1163,6 +1170,7 @@ adv_want find_something_to_kill(struct ai_type *ait, struct player *pplayer,
   adv_want best = 0;    /* Best of all wants. */
   struct tile *goto_dest_tile = NULL;
   bool can_occupy;
+  struct civ_map *nmap = &(wld.map);
 
   /* Very preliminary checks. */
   *pdest_tile = punit_tile;
@@ -1270,7 +1278,7 @@ adv_want find_something_to_kill(struct ai_type *ait, struct player *pplayer,
   bcost = unit_build_shield_cost_base(punit);
   bcost_bal = build_cost_balanced(punit_type);
 
-  pft_fill_unit_attack_param(&parameter, punit);
+  pft_fill_unit_attack_param(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   punit_map = pf_map_new(&parameter);
 
@@ -1297,7 +1305,7 @@ adv_want find_something_to_kill(struct ai_type *ait, struct player *pplayer,
 
   if (NULL != ferryboat) {
     boattype = unit_type_get(ferryboat);
-    pft_fill_unit_overlap_param(&parameter, ferryboat);
+    pft_fill_unit_overlap_param(&parameter, nmap, ferryboat);
     parameter.omniscience = !has_handicap(pplayer, H_MAP);
     ferry_map = pf_map_new(&parameter);
   } else {
@@ -1308,8 +1316,8 @@ adv_want find_something_to_kill(struct ai_type *ait, struct player *pplayer,
     }
     if (NULL != boattype && harbor) {
       /* Let's simulate a boat at 'punit' position. */
-      pft_fill_utype_overlap_param(&parameter, boattype, punit_tile,
-                                   pplayer);
+      pft_fill_utype_overlap_param(&parameter, nmap, boattype,
+                                   punit_tile, pplayer);
       parameter.omniscience = !has_handicap(pplayer, H_MAP);
       ferry_map = pf_map_new(&parameter);
     } else {
@@ -1374,7 +1382,7 @@ adv_want find_something_to_kill(struct ai_type *ait, struct player *pplayer,
       }
 
       if (can_unit_attack_tile(punit, NULL, city_tile(acity))
-          && (pdefender = get_defender(punit, city_tile(acity), NULL))) {
+          && (pdefender = get_defender(nmap, punit, city_tile(acity), NULL))) {
         vulnerability = unit_def_rating_squared(punit, pdefender);
         benefit = unit_build_shield_cost_base(pdefender);
       } else {
@@ -1545,7 +1553,7 @@ adv_want find_something_to_kill(struct ai_type *ait, struct player *pplayer,
        * We cannot use can_player_attack_tile, because we might not
        * be at war with aplayer yet */
       if (!can_unit_attack_tile(punit, NULL, atile)
-          || aunit != get_defender(punit, atile, NULL)) {
+          || aunit != get_defender(nmap, punit, atile, NULL)) {
         /* We cannot attack it, or it is not the main defender. */
         continue;
       }
@@ -1624,8 +1632,9 @@ struct city *find_nearest_safe_city(struct unit *punit)
   struct player *pplayer = unit_owner(punit);
   struct city *pcity, *best_city = NULL;
   int best = FC_INFINITY, cur;
+  const struct civ_map *nmap = &(wld.map);
 
-  pft_fill_unit_parameter(&parameter, punit);
+  pft_fill_unit_parameter(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   pfm = pf_map_new(&parameter);
 
@@ -2603,13 +2612,12 @@ static void dai_manage_settler(struct ai_type *ait, struct player *pplayer,
 {
   struct unit_ai *unit_data = def_ai_unit_data(punit, ait);
 
-  unit_server_side_agent_set(pplayer, punit, SSA_AUTOSETTLER);
-  unit_data->done = TRUE; /* we will manage this unit later... ugh */
-  /* if BUILD_CITY must remain BUILD_CITY, otherwise turn into autosettler */
+  unit_server_side_agent_set(pplayer, punit, SSA_AUTOWORKER);
+  unit_data->done = TRUE; /* We will manage this unit later... ugh */
+  /* If BUILD_CITY must remain BUILD_CITY, otherwise turn into autosettler */
   if (unit_data->task == AIUNIT_NONE) {
     adv_unit_new_task(punit, AUT_AUTO_SETTLER, NULL);
   }
-  return;
 }
 
 /**********************************************************************//**
@@ -2923,13 +2931,15 @@ static void dai_manage_barbarian_leader(struct ai_type *ait,
   int move_cost, best_move_cost;
   int body_guards;
   bool alive = TRUE;
+  const struct civ_map *nmap = &(wld.map);
 
   CHECK_UNIT(leader);
 
-  if (0 == leader->moves_left
+  if (leader->moves_left == 0
       || (can_unit_survive_at_tile(&(wld.map), leader, leader_tile)
           && 1 < unit_list_size(leader_tile->units))) {
     unit_activity_handling(leader, ACTIVITY_SENTRY);
+
     return;
   }
 
@@ -2970,11 +2980,12 @@ static void dai_manage_barbarian_leader(struct ai_type *ait,
   } unit_list_iterate_end;
 
   if (0 < body_guards) {
-    pft_fill_unit_parameter(&parameter, leader);
+    pft_fill_unit_parameter(&parameter, nmap, leader);
     parameter.omniscience = !has_handicap(pplayer, H_MAP);
     pfm = pf_map_new(&parameter);
 
-    /* Find the closest body guard. FIXME: maybe choose the strongest too? */
+    /* Find the closest body guard.
+     * FIXME: maybe choose the strongest too? */
     pf_map_tiles_iterate(pfm, ptile, FALSE) {
       unit_list_iterate(ptile->units, punit) {
         if (unit_owner(punit) == pplayer
@@ -3023,7 +3034,7 @@ static void dai_manage_barbarian_leader(struct ai_type *ait,
     return;
   }
 
-  pft_fill_unit_parameter(&parameter, worst_danger);
+  pft_fill_unit_parameter(&parameter, nmap, worst_danger);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   pfm = pf_map_new(&parameter);
   best_move_cost = pf_map_move_cost(pfm, leader_tile);
@@ -3410,8 +3421,9 @@ bool dai_unit_can_strike_my_unit(const struct unit *attacker,
   const struct tile *ptarget = unit_tile(defender);
   int max_move_cost = attacker->moves_left;
   bool able_to_strike = FALSE;
+  const struct civ_map *nmap = &(wld.map);
 
-  pft_fill_unit_parameter(&parameter, attacker);
+  pft_fill_unit_parameter(&parameter, nmap, attacker);
   parameter.omniscience = !has_handicap(unit_owner(defender), H_MAP);
   pfm = pf_map_new(&parameter);
 

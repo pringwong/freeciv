@@ -241,6 +241,8 @@ static bool edit_tile_terrain_handling(struct tile *ptile,
     update_tile_knowledge(ptile);
   }
 
+  tile_change_side_effects(ptile, TRUE);
+
   return TRUE;
 }
 
@@ -281,6 +283,8 @@ static bool edit_tile_extra_handling(struct tile *ptile,
   if (send_info) {
     update_tile_knowledge(ptile);
   }
+
+  tile_change_side_effects(ptile, TRUE);
 
   return TRUE;
 }
@@ -418,6 +422,8 @@ void handle_edit_tile(struct connection *pc,
     update_tile_knowledge(ptile);
     send_tile_info(NULL, ptile, FALSE);
   }
+
+  tile_change_side_effects(ptile, TRUE);
 }
 
 /************************************************************************//**
@@ -948,9 +954,10 @@ void handle_edit_player_create(struct connection *pc, int tag)
   pplayer->unassigned_user = TRUE;
   pplayer->is_connected = FALSE;
   pplayer->government = init_government_of_nation(pnation);
-  pplayer->server.got_first_city = FALSE;
+  BV_CLR(pplayer->flags, PLRF_FIRST_CITY);
 
   pplayer->economic.gold = 0;
+  pplayer->economic.infra_points = 0;
   player_limit_to_max_rates(pplayer);
 
   presearch = research_get(pplayer);
@@ -1421,7 +1428,7 @@ void handle_edit_game(struct connection *pc,
     changed = TRUE;
   }
 
-  if (0 != strncmp(packet->scenario_name, game.scenario.name, 256)) {
+  if (fc_strncmp(packet->scenario_name, game.scenario.name, 256)) {
     sz_strlcpy(game.scenario.name, packet->scenario_name);
     changed = TRUE;
   }
@@ -1429,8 +1436,8 @@ void handle_edit_game(struct connection *pc,
   FC_STATIC_ASSERT(sizeof(packet->scenario_authors) == sizeof(game.scenario.authors),
                    scen_authors_field_size_mismatch);
 
-  if (0 != strncmp(packet->scenario_authors, game.scenario.authors,
-                   sizeof(game.scenario.authors))) {
+  if (fc_strncmp(packet->scenario_authors, game.scenario.authors,
+                 sizeof(game.scenario.authors))) {
     sz_strlcpy(game.scenario.authors, packet->scenario_authors);
     changed = TRUE;
   }
@@ -1476,8 +1483,8 @@ void handle_edit_game(struct connection *pc,
 ****************************************************************************/
 void handle_edit_scenario_desc(struct connection *pc, const char *scenario_desc)
 {
-  if (0 != strncmp(scenario_desc, game.scenario_desc.description,
-                   MAX_LEN_PACKET)) {
+  if (fc_strncmp(scenario_desc, game.scenario_desc.description,
+                 MAX_LEN_PACKET)) {
     sz_strlcpy(game.scenario_desc.description, scenario_desc);
     send_scenario_description(NULL);
   }

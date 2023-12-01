@@ -92,7 +92,7 @@ void request_unit_load(struct unit *pcargo, struct unit *ptransporter,
 void request_unit_unload(struct unit *pcargo);
 void request_unit_ssa_set(const struct unit *punit,
                           enum server_side_agent agent);
-void request_unit_autosettlers(const struct unit *punit);
+void request_unit_autoworker(const struct unit *punit);
 void request_unit_build_city(struct unit *punit);
 void request_unit_caravan_action(struct unit *punit, action_id action);
 void request_unit_change_homecity(struct unit *punit);
@@ -243,7 +243,7 @@ void key_recall_previous_focus_unit(void);
 void key_unit_move(enum direction8 gui_dir);
 void key_unit_airbase(void);
 void key_unit_auto_explore(void);
-void key_unit_auto_settle(void);
+void key_unit_auto_work(void);
 void key_unit_build_city(void);
 void key_unit_build_wonder(void);
 void key_unit_connect(enum unit_activity activity,
@@ -253,7 +253,6 @@ void key_unit_action_select_tgt(void);
 void key_unit_clean(void);
 void key_unit_convert(void);
 void key_unit_done(void);
-void key_unit_fallout(void);
 void key_unit_fortify(void);
 void key_unit_fortress(void);
 void key_unit_goto(void);
@@ -265,7 +264,6 @@ void key_unit_plant(void);
 void key_unit_patrol(void);
 void key_unit_paradrop(void);
 void key_unit_pillage(void);
-void key_unit_pollution(void);
 void key_unit_road(void);
 void key_unit_sentry(void);
 void key_unit_teleport(void);

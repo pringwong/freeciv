@@ -190,7 +190,7 @@ void fc_client::init()
   pages[PAGE_GAME] = new QWidget(central_wdg);
   init_mapcanvas_and_overview();
   create_game_page();
-  
+
   pages[PAGE_GAME + 1] = new QWidget(central_wdg);
   create_loading_page();
 
@@ -319,7 +319,7 @@ bool fc_client::chat_active_on_page(enum client_pages check)
   Switch from one client page to another.
   Argument is int cause QSignalMapper doesn't want to work with enum
   Because chat widget is in 2 layouts we need to switch between them here
-  (addWidget removes it from prevoius layout automatically)
+  (addWidget removes it from previous layout automatically)
 ****************************************************************************/
 void fc_client::switch_page(int new_pg)
 {
@@ -362,14 +362,15 @@ void fc_client::switch_page(int new_pg)
       setWindowFlags(Qt::Window | Qt::CustomizeWindowHint);
     }
     showMaximized();
-    // For MS Windows, it might ingore first
+    // For MS Windows, it might ignore first
     showMaximized();
     gui()->infotab->chtwdg->update_widgets();
     status_bar->setVisible(false);
+
     if (gui_options.gui_qt_fullscreen) {
-      gui()->showFullScreen();
-      gui()->game_tab_widget->showFullScreen();
+      apply_fullscreen();
     }
+
     menuBar()->setVisible(true);
     mapview_wdg->setFocus();
     center_on_something();
@@ -406,6 +407,21 @@ void fc_client::switch_page(int new_pg)
 }
 
 /************************************************************************//**
+  Apply current fullscreen option
+****************************************************************************/
+void fc_client::apply_fullscreen()
+{
+  if (gui_options.gui_qt_fullscreen) {
+    gui()->showFullScreen();
+    gui()->game_tab_widget->showFullScreen();
+  } else {
+    // FIXME: Doesn't return properly, probably something with sidebar
+    gui()->showNormal();
+    gui()->game_tab_widget->showNormal();
+  }
+}
+
+/************************************************************************//**
   Returns currently open page
 ****************************************************************************/
 enum client_pages fc_client::current_page()
@@ -420,7 +436,7 @@ void fc_client::add_server_source(int sock)
 {
   server_notifier = new QSocketNotifier(sock, QSocketNotifier::Read);
 
-  connect(server_notifier, &QSocketNotifier::activated, this, 
+  connect(server_notifier, &QSocketNotifier::activated, this,
           &fc_client::server_input);
 }
 

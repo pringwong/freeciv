@@ -351,12 +351,6 @@ ui_name_pillage = _("Pilla%sge%s")
 ; /* TRANS: Clean (100% chance of success). */
 ui_name_clean = _("%sClean%s")
 
-; /* TRANS: Clean _Pollution (100% chance of success). */
-ui_name_clean_pollution = _("Clean %sPollution%s")
-
-; /* TRANS: Clean _Fallout (100% chance of success). */
-ui_name_clean_fallout = _("Clean %sFallout%s")
-
 ; /* TRANS: _Fortify (100% chance of success). */
 ui_name_fortify = _("%sFortify%s")
 
@@ -718,7 +712,7 @@ target_reqs   =
       "CityTile", "Center", "Tile", FALSE
     }
 
-[actionenabler_traderoute]
+[actionenabler_trade_route]
 action = "Establish Trade Route"
 actor_reqs    =
     { "type",   "name", "range", "present"
@@ -920,32 +914,34 @@ actor_reqs    =
 [actionenabler_conquer_city_native]
 action = "Conquer City"
 actor_reqs    =
-    { "type",           "name",          "range", "present"
-      "UnitClassFlag",  "CanOccupyCity", "Local", TRUE
-      "UnitFlag",       "NonMil",        "Local", FALSE
-      "DiplRel",        "War",           "Local", TRUE
-      "MinMoveFrags",   "1",             "Local", TRUE
-      "UnitState",      "OnLivableTile", "Local", TRUE
+    { "type",           "name",           "range",  "present"
+      "UnitClassFlag",  "CanOccupyCity",  "Local",  TRUE
+      "UnitFlag",       "NonMil",         "Local",  FALSE
+      "DiplRel",        "War",            "Local",  TRUE
+      "MinMoveFrags",   "1",              "Local",  TRUE
+      "UnitState",      "OnLivableTile",  "Local",  TRUE
+      "Nation",         "Animal Kingdom", "Player", FALSE
     }
 target_reqs    =
-    { "type",           "name",          "range", "present"
-      "MaxUnitsOnTile", "0",             "Tile",  TRUE
+    { "type",           "name",           "range",  "present"
+      "MaxUnitsOnTile", "0",              "Tile",   TRUE
     }
 
 [actionenabler_conquer_city_marines]
-action = "Conquer City 2"
+action        = "Conquer City 2"
 actor_reqs    =
-    { "type",           "name",          "range", "present"
-      "UnitClassFlag",  "CanOccupyCity", "Local", TRUE
-      "UnitFlag",       "NonMil",        "Local", FALSE
-      "DiplRel",        "War",           "Local", TRUE
-      "MinMoveFrags",   "1",             "Local", TRUE
-      "UnitFlag",       "Marines",       "Local", TRUE
-      "UnitState",      "OnLivableTile", "Local", FALSE
+    { "type",           "name",           "range",  "present"
+      "UnitClassFlag",  "CanOccupyCity",  "Local",  TRUE
+      "UnitFlag",       "NonMil",         "Local",  FALSE
+      "DiplRel",        "War",            "Local",  TRUE
+      "MinMoveFrags",   "1",              "Local",  TRUE
+      "UnitFlag",       "Marines",        "Local",  TRUE
+      "UnitState",      "OnLivableTile",  "Local",  FALSE
+      "Nation",         "Animal Kingdom", "Player", FALSE
     }
-target_reqs    =
-    { "type",           "name",          "range", "present"
-      "MaxUnitsOnTile", "0",             "Tile",  TRUE
+target_reqs   =
+    { "type",           "name",           "range",  "present"
+      "MaxUnitsOnTile", "0",              "Tile",   TRUE
     }
 
 [actionenabler_change_home_city]
@@ -998,17 +994,18 @@ target_reqs   =
     }
 
 [actionenabler_paradrop_base_to_war_conquer]
-action = "Paradrop Unit Enter Conquer"
+action        = "Paradrop Unit Enter Conquer"
 actor_reqs    =
-    { "type",          "name",          "range", "present"
-      "UnitFlag",      "Paratroopers",  "Local", TRUE
-      "MinMoveFrags",  "6",             "Local", TRUE
-      "UnitState",     "Transporting",  "Local", FALSE
-      "ExtraFlag",     "ParadropFrom",  "Tile",  TRUE
-      "DiplRel",       "War",           "Local", TRUE
-      "UnitClassFlag", "CanOccupyCity", "Local", TRUE
-      "UnitFlag",      "NonMil",        "Local", FALSE
-      "UnitClassFlag", "HutFrighten",   "Local", FALSE
+    { "type",          "name",           "range",  "present"
+      "UnitFlag",      "Paratroopers",   "Local",  TRUE
+      "MinMoveFrags",  "6",              "Local",  TRUE
+      "UnitState",     "Transporting",   "Local",  FALSE
+      "ExtraFlag",     "ParadropFrom",   "Tile",   TRUE
+      "DiplRel",       "War",            "Local",  TRUE
+      "UnitClassFlag", "CanOccupyCity",  "Local",  TRUE
+      "UnitFlag",      "NonMil",         "Local",  FALSE
+      "UnitClassFlag", "HutFrighten",    "Local",  FALSE
+      "Nation",        "Animal Kingdom", "Player", FALSE
     }
 target_reqs   =
     { "type",     "name",    "range", "present"
@@ -1048,17 +1045,18 @@ target_reqs   =
     }
 
 [actionenabler_paradrop_city_to_war_conquer]
-action = "Paradrop Unit Enter Conquer"
+action        = "Paradrop Unit Enter Conquer"
 actor_reqs    =
-    { "type",          "name",          "range", "present"
-      "UnitFlag",      "Paratroopers",  "Local", TRUE
-      "MinMoveFrags",  "6",             "Local", TRUE
-      "UnitState",     "Transporting",  "Local", FALSE
-      "CityTile",      "Center",        "Tile",  TRUE
-      "DiplRel",       "War",           "Local", TRUE
-      "UnitClassFlag", "CanOccupyCity", "Local", TRUE
-      "UnitFlag",      "NonMil",        "Local", FALSE
-      "UnitClassFlag", "HutFrighten",   "Local", FALSE
+    { "type",          "name",           "range",  "present"
+      "UnitFlag",      "Paratroopers",   "Local",  TRUE
+      "MinMoveFrags",  "6",              "Local",  TRUE
+      "UnitState",     "Transporting",   "Local",  FALSE
+      "CityTile",      "Center",         "Tile",   TRUE
+      "DiplRel",       "War",            "Local",  TRUE
+      "UnitClassFlag", "CanOccupyCity",  "Local",  TRUE
+      "UnitFlag",      "NonMil",         "Local",  FALSE
+      "UnitClassFlag", "HutFrighten",    "Local",  FALSE
+      "Nation",        "Animal Kingdom", "Player", FALSE
     }
 target_reqs   =
     { "type",     "name",    "range", "present"
@@ -1121,20 +1119,6 @@ actor_reqs    =
       "UnitFlag",      "Settlers",     "Local", TRUE
     }
 
-[actionenabler_clean_pollution]
-action        = "Clean Pollution"
-actor_reqs    =
-    { "type",          "name",         "range", "present"
-      "UnitFlag",      "Settlers",     "Local", TRUE
-    }
-
-[actionenabler_clean_fallout]
-action        = "Clean Fallout"
-actor_reqs    =
-    { "type",          "name",         "range", "present"
-      "UnitFlag",      "Settlers",     "Local", TRUE
-    }
-
 [actionenabler_fortify_terrain]
 action        = "Fortify"
 actor_reqs    =
@@ -1161,12 +1145,20 @@ actor_reqs    =
     { "type",          "name",         "range"
       "UnitFlag",      "Settlers",     "Local"
     }
+target_reqs   =
+    { "type",         "name",    "range"
+      "TerrainAlter", "CanRoad", "Tile"
+    }
 
 [actionenabler_base]
 action        = "Build Base"
 actor_reqs    =
     { "type",          "name",         "range"
       "UnitFlag",      "Settlers",     "Local"
+    }
+target_reqs   =
+    { "type",         "name",    "range"
+      "TerrainAlter", "CanBase", "Tile"
     }
 
 [actionenabler_mining]
@@ -1466,4 +1458,11 @@ actor_reqs    =
       "UnitState",      "OnNativeTile", "Local", FALSE
       "CityTile",       "Center",       "Tile",  FALSE
       "UnitClassFlag",  "HutFrighten",  "Local", TRUE
+    }
+
+[actionenabler_gain_veterancy]
+action        = "Gain Veterancy"
+actor_reqs    =
+    { "type",           "name",         "range", "present"
+      "UnitFlag",       "NoVeteran",    "Local", FALSE
     }

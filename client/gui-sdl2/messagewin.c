@@ -52,13 +52,14 @@
 #include "messagewin.h"
 
 
-#ifdef SMALL_SCREEN
+#ifdef GUI_SDL2_SMALL_SCREEN
 #define N_MSG_VIEW               3    /* max before scrolling happens */
 #else
 #define N_MSG_VIEW		 6
 #endif
 
-#define PTSIZE_LOG_FONT		adj_font(10)
+/* 0 -> use theme default */
+#define PTSIZE_LOG_FONT		0
 
 static struct advanced_dialog *msg_dlg = NULL;
 
@@ -252,8 +253,8 @@ void meswin_dialog_popup(bool raise)
 
   msg_dlg = fc_calloc(1, sizeof(struct advanced_dialog));
 
-  /* create window */
-  pstr = create_utf8_from_char(_("Messages"), adj_font(12));
+  /* Create window */
+  pstr = create_utf8_from_char_fonto(_("Messages"), FONTO_ATTENTION);
   pstr->style = TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);

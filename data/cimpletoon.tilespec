@@ -30,6 +30,9 @@ normal_tile_height = 48
 small_tile_width   = 15
 small_tile_height  = 20
 
+; The height svg flags should be drawn to, if they are used
+svg_height = 44
+
 ; Basic tile style.
 type = "isometric"
 is_hex = FALSE
@@ -157,6 +160,7 @@ files =
   "misc/specialists.spec",
   "amplio2/veterancy.spec",
   "cimpletoon/orient_units.spec",
+  "cimpletoon/units/storm/xxx.spec",
   "misc/buildings-large.spec",
   "misc/wonders-large.spec",
   "misc/space.spec",
@@ -174,7 +178,7 @@ files =
   "misc/shields-large.spec",
   "misc/editor.spec",
   "misc/icons.spec",
-  ;add XYZ and Elefant units
+  ; Add XYZ and Elefant units
   "cimpletoon/units/abrams/xxx.spec",
   "cimpletoon/units/assaultgun/xxx.spec",
   "cimpletoon/units/biplane/xxx.spec",

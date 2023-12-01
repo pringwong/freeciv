@@ -222,7 +222,8 @@ static int popup_upgrade_unit_callback(struct widget *pwidget)
           utype_name_translation(ut2),
           value, tBuf);
 
-    pstr = create_utf8_from_char(_("Upgrade Obsolete Units"), adj_font(12));
+    pstr = create_utf8_from_char_fonto(_("Upgrade Obsolete Units"),
+                                       FONTO_ATTENTION);
     pstr->style |= TTF_STYLE_BOLD;
 
     pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -238,8 +239,8 @@ static int popup_upgrade_unit_callback(struct widget *pwidget)
 
     /* ============================================================= */
 
-    /* create text label */
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    /* Create text label */
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
     pstr->fgcol = *get_theme_color(COLOR_THEME_UNITUPGRADE_TEXT);
 
@@ -249,10 +250,10 @@ static int popup_upgrade_unit_callback(struct widget *pwidget)
     area.h += (text->h + adj_size(10));
     area.w = MAX(area.w, text->w + adj_size(20));
 
-    /* cancel button */
-    buf = create_themeicon_button_from_chars(current_theme->cancel_icon,
-                                             pwindow->dst, _("No"),
-                                             adj_font(12), 0);
+    /* Cancel button */
+    buf = create_themeicon_button_from_chars_fonto(current_theme->cancel_icon,
+                                                   pwindow->dst, _("No"),
+                                                   FONTO_ATTENTION, 0);
 
     buf->action = cancel_upgrade_unit_callback;
     set_wstate(buf, FC_WS_NORMAL);
@@ -262,9 +263,10 @@ static int popup_upgrade_unit_callback(struct widget *pwidget)
     add_to_gui_list(ID_BUTTON, buf);
 
     if (value <= client.conn.playing->economic.gold) {
-      buf = create_themeicon_button_from_chars(current_theme->ok_icon,
-                                               pwindow->dst,
-                                               _("Yes"), adj_font(12), 0);
+      buf = create_themeicon_button_from_chars_fonto(current_theme->ok_icon,
+                                                     pwindow->dst,
+                                                     _("Yes"),
+                                                     FONTO_ATTENTION, 0);
 
       buf->action = ok_upgrade_unit_window_callback;
       set_wstate(buf, FC_WS_NORMAL);
@@ -373,7 +375,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
   }
 
   fc_snprintf(cbuf, sizeof(cbuf), _("active"));
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= SF_CENTER;
   text1 = create_text_surf_from_utf8(pstr);
 
@@ -396,7 +398,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
   FREEUTF8STR(pstr);
 
   /* --------------- */
-  pstr = create_utf8_from_char(_("Units Report"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("Units Report"), FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -410,20 +412,21 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
   area = pwindow->area;
 
   /* ------------------------- */
-  /* exit button */
+  /* Exit button */
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"), adj_font(12));
+  buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                FONTO_ATTENTION);
   buf->action = exit_units_dlg_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_ESCAPE;
 
   add_to_gui_list(ID_BUTTON, buf);
   /* ------------------------- */
-  /* totals */
+  /* Totals */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", total->active_count);
 
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -435,7 +438,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
   /* ---------------------------------------------- */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", total->upkeep[O_SHIELD]);
 
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr, WF_RESTORE_BACKGROUND);
@@ -445,7 +448,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
   /* ---------------------------------------------- */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", total->upkeep[O_FOOD]);
 
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr, WF_RESTORE_BACKGROUND);
@@ -455,7 +458,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
   /* ---------------------------------------------- */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", total->upkeep[O_GOLD]);
 
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr, WF_RESTORE_BACKGROUND);
@@ -465,7 +468,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
   /* ---------------------------------------------- */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", total->building_count);
 
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -482,7 +485,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
         || (units[utype_index(i)].building_count > 0)) {
       upgrade = (can_upgrade_unittype(client.conn.playing, i) != NULL);
 
-      /* unit type icon */
+      /* Unit type icon */
       buf = create_iconlabel(adj_surf(get_unittype_surface(i, direction8_invalid())),
                              pwindow->dst, NULL,
                              WF_RESTORE_BACKGROUND | WF_FREE_THEME);
@@ -492,8 +495,9 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       hh = buf->size.h;
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
-      /* unit type name */
-      pstr = create_utf8_from_char(utype_name_translation(i), adj_font(12));
+      /* Unit type name */
+      pstr = create_utf8_from_char_fonto(utype_name_translation(i),
+                                         FONTO_ATTENTION);
       pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
       buf = create_iconlabel(NULL, pwindow->dst, pstr,
                              (WF_RESTORE_BACKGROUND | WF_SELECT_WITHOUT_BAR));
@@ -512,9 +516,9 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       name_w = MAX(buf->size.w, name_w);
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
-      /* active */
+      /* Active */
       fc_snprintf(cbuf, sizeof(cbuf), "%d", units[utype_index(i)].active_count);
-      pstr = create_utf8_from_char(cbuf, adj_font(10));
+      pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
       pstr->style |= SF_CENTER;
       buf = create_iconlabel(NULL, pwindow->dst, pstr,
                              WF_RESTORE_BACKGROUND);
@@ -525,9 +529,9 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       buf->size.w = text1->w + adj_size(6);
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
-      /* shield upkeep */
+      /* Shield upkeep */
       fc_snprintf(cbuf, sizeof(cbuf), "%d", units[utype_index(i)].upkeep[O_SHIELD]);
-      pstr = create_utf8_from_char(cbuf, adj_font(10));
+      pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
       pstr->style |= SF_CENTER;
       buf = create_iconlabel(NULL, pwindow->dst, pstr,
                              WF_RESTORE_BACKGROUND);
@@ -538,9 +542,9 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       buf->size.w = text1->w;
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
-      /* food upkeep */
+      /* Food upkeep */
       fc_snprintf(cbuf, sizeof(cbuf), "%d", units[utype_index(i)].upkeep[O_FOOD]);
-      pstr = create_utf8_from_char(cbuf, adj_font(10));
+      pstr = create_utf8_from_char(cbuf, FONTO_DEFAULT);
       pstr->style |= SF_CENTER;
       buf = create_iconlabel(NULL, pwindow->dst, pstr,
                              WF_RESTORE_BACKGROUND);
@@ -552,9 +556,9 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       buf->size.w = text1->w;
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
-      /* gold upkeep */
+      /* Gold upkeep */
       fc_snprintf(cbuf, sizeof(cbuf), "%d", units[utype_index(i)].upkeep[O_GOLD]);
-      pstr = create_utf8_from_char(cbuf, adj_font(10));
+      pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
       pstr->style |= SF_CENTER;
       buf = create_iconlabel(NULL, pwindow->dst, pstr,
                              WF_RESTORE_BACKGROUND);
@@ -566,13 +570,13 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       buf->size.w = text1->w;
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
-      /* building */
+      /* Building */
       if (units[utype_index(i)].building_count > 0) {
         fc_snprintf(cbuf, sizeof(cbuf), "%d", units[utype_index(i)].building_count);
       } else {
         fc_snprintf(cbuf, sizeof(cbuf), "--");
       }
-      pstr = create_utf8_from_char(cbuf, adj_font(10));
+      pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
       pstr->style |= SF_CENTER;
       buf = create_iconlabel(NULL, pwindow->dst, pstr,
                              WF_RESTORE_BACKGROUND);
@@ -583,7 +587,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       buf->size.w = text2->w + adj_size(6);
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
-      /* soonest completion */
+      /* Soonest completion */
       if (units[utype_index(i)].building_count > 0) {
         fc_snprintf(cbuf, sizeof(cbuf), "%d %s",
                     units[utype_index(i)].soonest_completions,
@@ -592,7 +596,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
         fc_snprintf(cbuf, sizeof(cbuf), "--");
       }
 
-      pstr = create_utf8_from_char(cbuf, adj_font(10));
+      pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
       pstr->style |= SF_CENTER;
       buf = create_iconlabel(NULL, pwindow->dst, pstr,
                              WF_RESTORE_BACKGROUND);
@@ -605,7 +609,7 @@ static void real_activeunits_report_dialog_update(struct units_entry *units,
       add_to_gui_list(MAX_ID - utype_number(i), buf);
 
       count += adj_size(8);
-      area.h += (hh/2);
+      area.h += (hh / 2);
     }
   } unit_type_iterate_end;
 
@@ -898,15 +902,15 @@ void real_units_report_dialog_update(void *unused)
 
     get_units_report_data(units, &units_total);
 
-    /* find if there are new units entry (if not then rebuild all) */
-    pwidget = units_dlg->end_active_widget_list; /* icon of first list entry */
+    /* Find if there are new units entry (if not then rebuild all) */
+    pwidget = units_dlg->end_active_widget_list; /* Icon of first list entry */
     unit_type_iterate(i) {
       if ((units[utype_index(i)].active_count > 0)
           || (units[utype_index(i)].building_count > 0)) {
         is_in_list = FALSE;
 
-        pbuf = pwidget; /* unit type icon */
-        while (pbuf) {
+        pbuf = pwidget; /* Unit type icon */
+        while (pbuf != NULL) {
           if ((MAX_ID - pbuf->id) == utype_number(i)) {
             is_in_list = TRUE;
             pwidget = pbuf;
@@ -917,7 +921,7 @@ void real_units_report_dialog_update(void *unused)
             break;
           }
 
-          /* first widget of next list entry */
+          /* First widget of next list entry */
           pbuf = pbuf->prev->prev->prev->prev->prev->prev->prev->prev;
         }
 
@@ -928,137 +932,142 @@ void real_units_report_dialog_update(void *unused)
       }
     } unit_type_iterate_end;
 
-    /* update list */
+    /* Update list */
     pwidget = units_dlg->end_active_widget_list;
-    unit_type_iterate(i) {
-      pbuf = pwidget; /* first widget (icon) of the first list entry */
+    if (pwidget != NULL) {
+      unit_type_iterate(i) {
+        pbuf = pwidget; /* First widget (icon) of the first list entry */
 
-      if ((units[utype_index(i)].active_count > 0)
-          || (units[utype_index(i)].building_count > 0)) {
-        /* the player has at least one unit of this type */
+        if ((units[utype_index(i)].active_count > 0)
+            || (units[utype_index(i)].building_count > 0)) {
+          /* The player has at least one unit of this type */
 
-        search_finished = FALSE;
-        while (!search_finished) {
-          if ((MAX_ID - pbuf->id) == utype_number(i)) {
-            /* list entry for this unit type found */
+          search_finished = FALSE;
+          while (!search_finished) {
+            if ((MAX_ID - pbuf->id) == utype_number(i)) {
+              /* List entry for this unit type found */
 
-            upgrade = (can_upgrade_unittype(client.conn.playing, i) != NULL);
+              upgrade = (can_upgrade_unittype(client.conn.playing, i) != NULL);
 
-            pbuf = pbuf->prev; /* unit type name */
-            if (upgrade) {
-              pbuf->string_utf8->fgcol = *get_theme_color(COLOR_THEME_UNITUPGRADE_TEXT);
-              pbuf->action = popup_upgrade_unit_callback;
-              set_wstate(pbuf, FC_WS_NORMAL);
-            }
+              pbuf = pbuf->prev; /* Unit type name */
+              if (upgrade) {
+                pbuf->string_utf8->fgcol
+                  = *get_theme_color(COLOR_THEME_UNITUPGRADE_TEXT);
+                pbuf->action = popup_upgrade_unit_callback;
+                set_wstate(pbuf, FC_WS_NORMAL);
+              }
 
-            pbuf = pbuf->prev; /* active */
-            fc_snprintf(cbuf, sizeof(cbuf), "%d",
-                        units[utype_index(i)].active_count);
-            copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
-
-            pbuf = pbuf->prev; /* shield upkeep */
-            fc_snprintf(cbuf, sizeof(cbuf), "%d",
-                        units[utype_index(i)].upkeep[O_SHIELD]);
-            copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
-
-            pbuf = pbuf->prev; /* food upkeep */
-            fc_snprintf(cbuf, sizeof(cbuf), "%d",
-                        units[utype_index(i)].upkeep[O_FOOD]);
-            copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
-
-            pbuf = pbuf->prev; /* gold upkeep */
-            fc_snprintf(cbuf, sizeof(cbuf), "%d",
-                        units[utype_index(i)].upkeep[O_GOLD]);
-            copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
-
-            pbuf = pbuf->prev; /* building */
-            if (units[utype_index(i)].building_count > 0) {
+              pbuf = pbuf->prev; /* Active */
               fc_snprintf(cbuf, sizeof(cbuf), "%d",
-                          units[utype_index(i)].building_count);
-            } else {
-              fc_snprintf(cbuf, sizeof(cbuf), "--");
-            }
-            copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
+                          units[utype_index(i)].active_count);
+              copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-            pbuf = pbuf->prev; /* soonest completion */
-            if (units[utype_index(i)].building_count > 0) {
-              fc_snprintf(cbuf, sizeof(cbuf), "%d %s",
-                          units[utype_index(i)].soonest_completions,
-                          PL_("turn", "turns",
-                              units[utype_index(i)].soonest_completions));
-            } else {
-              fc_snprintf(cbuf, sizeof(cbuf), "--");
-            }
-            copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
+              pbuf = pbuf->prev; /* Shield upkeep */
+              fc_snprintf(cbuf, sizeof(cbuf), "%d",
+                          units[utype_index(i)].upkeep[O_SHIELD]);
+              copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-            pwidget = pbuf->prev; /* icon of next unit type */
+              pbuf = pbuf->prev; /* Food upkeep */
+              fc_snprintf(cbuf, sizeof(cbuf), "%d",
+                          units[utype_index(i)].upkeep[O_FOOD]);
+              copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-            search_finished = TRUE;
+              pbuf = pbuf->prev; /* Gold upkeep */
+              fc_snprintf(cbuf, sizeof(cbuf), "%d",
+                          units[utype_index(i)].upkeep[O_GOLD]);
+              copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-          } else { /* list entry for this unit type not found yet */
+              pbuf = pbuf->prev; /* Building */
+              if (units[utype_index(i)].building_count > 0) {
+                fc_snprintf(cbuf, sizeof(cbuf), "%d",
+                            units[utype_index(i)].building_count);
+              } else {
+                fc_snprintf(cbuf, sizeof(cbuf), "--");
+              }
+              copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-            /* search it */
-            pbuf = pwidget->next;
-            do {
-              del_widget_from_vertical_scroll_widget_list(units_dlg, pbuf->prev);
-            } while (((MAX_ID - pbuf->prev->id) != utype_number(i))
-                     && (pbuf->prev != units_dlg->begin_active_widget_list));
+              pbuf = pbuf->prev; /* Soonest completion */
+              if (units[utype_index(i)].building_count > 0) {
+                fc_snprintf(cbuf, sizeof(cbuf), "%d %s",
+                            units[utype_index(i)].soonest_completions,
+                            PL_("turn", "turns",
+                                units[utype_index(i)].soonest_completions));
+              } else {
+                fc_snprintf(cbuf, sizeof(cbuf), "--");
+              }
+              copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-            if (pbuf->prev == units_dlg->begin_active_widget_list) {
-              /* list entry not found - can this really happen? */
-              del_widget_from_vertical_scroll_widget_list(units_dlg, pbuf->prev);
-              pwidget = pbuf->prev; /* units_dlg->begin_active_widget_list */
+              pwidget = pbuf->prev; /* Icon of next unit type */
+
               search_finished = TRUE;
+
+            } else { /* List entry for this unit type not found yet */
+
+              /* Search it */
+              pbuf = pwidget->next;
+              do {
+                del_widget_from_vertical_scroll_widget_list(units_dlg,
+                                                            pbuf->prev);
+              } while (((MAX_ID - pbuf->prev->id) != utype_number(i))
+                       && (pbuf->prev != units_dlg->begin_active_widget_list));
+
+              if (pbuf->prev == units_dlg->begin_active_widget_list) {
+                /* List entry not found - can this really happen? */
+                del_widget_from_vertical_scroll_widget_list(units_dlg,
+                                                            pbuf->prev);
+                pwidget = pbuf->prev; /* units_dlg->begin_active_widget_list */
+                search_finished = TRUE;
+              } else {
+                /* Found it */
+                pbuf = pbuf->prev; /* First widget (icon) of list entry */
+              }
+            }
+          }
+        } else { /* Player has no unit of this type */
+          if (pbuf->next != units_dlg->begin_active_widget_list) {
+            if (utype_number(i) < (MAX_ID - pbuf->id)) {
+              continue;
             } else {
-              /* found it */
-              pbuf = pbuf->prev; /* first widget (icon) of list entry */
+              pbuf = pbuf->next;
+              do {
+                del_widget_from_vertical_scroll_widget_list(units_dlg,
+                                                            pbuf->prev);
+              } while (((MAX_ID - pbuf->prev->id) == utype_number(i))
+                       && (pbuf->prev != units_dlg->begin_active_widget_list));
+              if (pbuf->prev == units_dlg->begin_active_widget_list) {
+                del_widget_from_vertical_scroll_widget_list(units_dlg,
+                                                            pbuf->prev);
+              }
+              pwidget = pbuf->prev;
             }
           }
         }
-      } else { /* player has no unit of this type */
-        if (pbuf && pbuf->next != units_dlg->begin_active_widget_list) {
-          if (utype_number(i) < (MAX_ID - pbuf->id)) {
-            continue;
-          } else {
-            pbuf = pbuf->next;
-            do {
-              del_widget_from_vertical_scroll_widget_list(units_dlg,
-                                                          pbuf->prev);
-            } while (((MAX_ID - pbuf->prev->id) == utype_number(i))
-                     && (pbuf->prev != units_dlg->begin_active_widget_list));
-            if (pbuf->prev == units_dlg->begin_active_widget_list) {
-              del_widget_from_vertical_scroll_widget_list(units_dlg,
-                                                          pbuf->prev);
-            }
-            pwidget = pbuf->prev;
-          }
-        }
-      }
-    } unit_type_iterate_end;
+      } unit_type_iterate_end;
+    }
 
     /* -------------------------------------- */
 
-    /* total active */
+    /* Total active */
     pbuf = units_dlg->end_widget_list->prev->prev;
     fc_snprintf(cbuf, sizeof(cbuf), "%d", units_total.active_count);
     copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-    /* total shields cost */
+    /* Total shields cost */
     pbuf = pbuf->prev;
     fc_snprintf(cbuf, sizeof(cbuf), "%d", units_total.upkeep[O_SHIELD]);
     copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-    /* total food cost widget */
+    /* Total food cost widget */
     pbuf = pbuf->prev;
     fc_snprintf(cbuf, sizeof(cbuf), "%d", units_total.upkeep[O_FOOD]);
     copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-    /* total gold cost widget */
+    /* Total gold cost widget */
     pbuf = pbuf->prev;
     fc_snprintf(cbuf, sizeof(cbuf), "%d", units_total.upkeep[O_GOLD]);
     copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
 
-    /* total building count */
+    /* Total building count */
     pbuf = pbuf->prev;
     fc_snprintf(cbuf, sizeof(cbuf), "%d", units_total.building_count);
     copy_chars_to_utf8_str(pbuf->string_utf8, cbuf);
@@ -1072,7 +1081,7 @@ void real_units_report_dialog_update(void *unused)
 }
 
 /**********************************************************************//**
-  Popup (or raise) the units report (F2).  It may or may not be modal.
+  Popup (or raise) the units report (F2). It may or may not be modal.
 **************************************************************************/
 void units_report_dialog_popup(bool make_modal)
 {
@@ -1627,7 +1636,7 @@ static int popup_sell_impr_callback(struct widget *pwidget)
                   improvement_name_translation(improvement_by_number(imp)));
     }
 
-    pstr = create_utf8_from_char(_("Sell It?"), adj_font(12));
+    pstr = create_utf8_from_char_fonto(_("Sell It?"), FONTO_ATTENTION);
     pstr->style |= TTF_STYLE_BOLD;
 
     pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -1643,8 +1652,8 @@ static int popup_sell_impr_callback(struct widget *pwidget)
 
     /* ============================================================= */
 
-    /* create text label */
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    /* Create text label */
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
     pstr->fgcol = *get_theme_color(COLOR_THEME_SELLIMPR_TEXT);
 
@@ -1654,10 +1663,10 @@ static int popup_sell_impr_callback(struct widget *pwidget)
     area.w = MAX(area.w, text->w + adj_size(20));
     area.h += (text->h + adj_size(10));
 
-    /* cancel button */
-    buf = create_themeicon_button_from_chars(current_theme->cancel_icon,
-                                             pwindow->dst, _("No"),
-                                             adj_font(12), 0);
+    /* Cancel button */
+    buf = create_themeicon_button_from_chars_fonto(current_theme->cancel_icon,
+                                                   pwindow->dst, _("No"),
+                                                   FONTO_ATTENTION, 0);
 
     buf->action = cancel_sell_impr_callback;
     set_wstate(buf, FC_WS_NORMAL);
@@ -1667,9 +1676,10 @@ static int popup_sell_impr_callback(struct widget *pwidget)
     add_to_gui_list(ID_BUTTON, buf);
 
     if (count > 0) {
-      buf = create_themeicon_button_from_chars(current_theme->ok_icon,
-                                               pwindow->dst,
-                                               _("Sell"), adj_font(12), 0);
+      buf = create_themeicon_button_from_chars_fonto(current_theme->ok_icon,
+                                                     pwindow->dst,
+                                                     _("Sell"),
+                                                     FONTO_ATTENTION, 0);
 
       buf->action = ok_sell_impr_callback;
       set_wstate(buf, FC_WS_NORMAL);
@@ -1851,7 +1861,7 @@ void economy_report_dialog_popup(bool make_modal)
   get_economy_report_data(entries, &entries_used, &total, &tax);
 
   /* --------------- */
-  pstr = create_utf8_from_char(_("Economy Report"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("Economy Report"), FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -1867,14 +1877,14 @@ void economy_report_dialog_popup(bool make_modal)
 
   /* "Treasury" text surface */
   fc_snprintf(cbuf, sizeof(cbuf), _("Treasury: "));
-  pstr2 = create_utf8_from_char(cbuf, adj_font(12));
+  pstr2 = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   pstr2->style |= TTF_STYLE_BOLD;
   treasury_text = create_text_surf_from_utf8(pstr2);
   w3 = MAX(w3, treasury_text->w);
 
-  /* "Treasury" value label*/
+  /* "Treasury" value label */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", client.conn.playing->economic.gold);
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   buf = create_iconlabel(icons->big_coin, pwindow->dst, pstr,
@@ -1892,9 +1902,9 @@ void economy_report_dialog_popup(bool make_modal)
   w3 = MAX(w3, tax_rate_text->w);
 
   /* "Tax Rate" value label */
-  /* it is important to leave 1 space at ending of this string */
+  /* It is important to leave 1 space at ending of this string. */
   fc_snprintf(cbuf, sizeof(cbuf), "%d%% ", client.conn.playing->economic.tax);
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr, WF_RESTORE_BACKGROUND);
@@ -1912,7 +1922,7 @@ void economy_report_dialog_popup(bool make_modal)
 
   /* "Total Icome" value label */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", tax);
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr, WF_RESTORE_BACKGROUND);
@@ -1929,7 +1939,7 @@ void economy_report_dialog_popup(bool make_modal)
 
   /* "Total Cost" value label */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", total);
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   buf = create_iconlabel(NULL, pwindow->dst, pstr, WF_RESTORE_BACKGROUND);
@@ -1947,7 +1957,7 @@ void economy_report_dialog_popup(bool make_modal)
 
   /* "Net Icome" value label */
   fc_snprintf(cbuf, sizeof(cbuf), "%d", tax - total);
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
   if (tax - total < 0) {
@@ -1971,11 +1981,11 @@ void economy_report_dialog_popup(bool make_modal)
   FREEUTF8STR(pstr2);
 
   /* ------------------------- */
-  /* lux rate */
+  /* Lux rate */
 
-  /* lux rate lock */
+  /* Lux rate lock */
   fc_snprintf(cbuf, sizeof(cbuf), _("Lock"));
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= TTF_STYLE_BOLD;
 
   buf = create_checkbox(pwindow->dst,
@@ -2002,7 +2012,7 @@ void economy_report_dialog_popup(bool make_modal)
 
   add_to_gui_list(ID_CHANGE_TAXRATE_DLG_LUX_SCROLLBAR, buf);
 
-  w2 += adj_size(184);  
+  w2 += adj_size(184);
 
   /* lux rate iconlabel */
 
@@ -2018,11 +2028,11 @@ void economy_report_dialog_popup(bool make_modal)
   w2 += (adj_size(5) + buf->size.w + adj_size(10));
 
   /* ------------------------- */
-  /* science rate */
+  /* Science rate */
 
-  /* science rate lock */
+  /* Science rate lock */
   fc_snprintf(cbuf, sizeof(cbuf), _("Lock"));
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= TTF_STYLE_BOLD;
 
   buf = create_checkbox(pwindow->dst,
@@ -2064,7 +2074,7 @@ void economy_report_dialog_popup(bool make_modal)
   /* ---- */
 
   fc_snprintf(cbuf, sizeof(cbuf), _("Update"));
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   buf = create_themeicon_button(current_theme->small_ok_icon, pwindow->dst,
                                 pstr, 0);
   buf->action = apply_taxrates_callback;
@@ -2075,7 +2085,7 @@ void economy_report_dialog_popup(bool make_modal)
   /* ---- */
 
   fc_snprintf(cbuf, sizeof(cbuf), _("Close Dialog (Esc)"));
-  pstr = create_utf8_from_char(cbuf, adj_font(12));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_ATTENTION);
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
   buf->info_label = pstr;
@@ -2100,7 +2110,7 @@ void economy_report_dialog_popup(bool make_modal)
                  0, 0, background->w - 1, background->h - 1,
                  get_theme_color(COLOR_THEME_ECONOMYDLG_FRAME));
 
-    pstr = create_utf8_str(NULL, 0, adj_font(10));
+    pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
     pstr->style |= (SF_CENTER|TTF_STYLE_BOLD);
     pstr->bgcol = (SDL_Color) {0, 0, 0, 0};
 
@@ -2125,7 +2135,7 @@ void economy_report_dialog_popup(bool make_modal)
       text = create_text_surf_from_utf8(pstr);
 
       /*-----------------*/
-  
+
       zoomed = get_building_surface(pimprove);
       zoomed = zoomSurface(zoomed, DEFAULT_ZOOM * ((float)54 / zoomed->w),
                            DEFAULT_ZOOM * ((float)54 / zoomed->w), 1);
@@ -2633,19 +2643,19 @@ void real_science_report_dialog_update(void *unused)
       cost = 0;
     }
 
-    /* update current research icons */
+    /* Update current research icons */
     FREESURFACE(change_research_button->theme);
     change_research_button->theme = get_tech_icon(presearch->researching);
     FREESURFACE(change_research_goal_button->theme);
     change_research_goal_button->theme = get_tech_icon(presearch->tech_goal);
 
-    /* redraw Window */
+    /* Redraw Window */
     widget_redraw(pwindow);
 
     /* ------------------------------------- */
 
-    /* research progress text */
-    str = create_utf8_from_char(science_dialog_text(), adj_font(12));
+    /* Research progress text */
+    str = create_utf8_from_char_fonto(science_dialog_text(), FONTO_ATTENTION);
     str->style |= SF_CENTER;
     str->fgcol = *get_theme_color(COLOR_THEME_SCIENCEDLG_TEXT);
 
@@ -2950,7 +2960,8 @@ static void popup_change_research_dialog(void)
 
   change_tech_dlg = fc_calloc(1, sizeof(struct advanced_dialog));
 
-  pstr = create_utf8_from_char(_("What should we focus on now?"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("What should we focus on now?"),
+                                     FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -2963,11 +2974,11 @@ static void popup_change_research_dialog(void)
   area = pwindow->area;
 
   /* ------------------------- */
-  /* exit button */
+  /* Exit button */
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                          adj_font(12));
+  buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                FONTO_ATTENTION);
   area.w += buf->size.w + adj_size(10);
   buf->action = exit_change_tech_dlg_callback;
   set_wstate(buf, FC_WS_NORMAL);
@@ -3000,7 +3011,7 @@ static void popup_change_research_dialog(void)
     }
   }
 
-  pstr = create_utf8_str(NULL, 0, adj_font(10));
+  pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD | SF_CENTER);
 
   count = 0;
@@ -3139,7 +3150,7 @@ static void popup_change_research_goal_dialog(void)
 
   change_tech_dlg = fc_calloc(1, sizeof(struct advanced_dialog));
 
-  pstr = create_utf8_from_char(_("Select target :"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("Select target :"), FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -3152,11 +3163,11 @@ static void popup_change_research_goal_dialog(void)
   area = pwindow->area;
 
   /* ------------------------- */
-  /* exit button */
+  /* Exit button */
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                          adj_font(12));
+  buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                FONTO_ATTENTION);
   area.w += buf->size.w + adj_size(10);
   buf->action = exit_change_tech_dlg_callback;
   set_wstate(buf, FC_WS_NORMAL);
@@ -3190,7 +3201,7 @@ static void popup_change_research_goal_dialog(void)
     }
   }
 
-  pstr = create_utf8_str(NULL, 0, adj_font(10));
+  pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
   pstr->style |= (TTF_STYLE_BOLD | SF_CENTER);
 
   /* Collect all techs which are reachable in under 11 steps
@@ -3250,7 +3261,7 @@ static void popup_change_research_goal_dialog(void)
   area.w = MAX(area.w, (col * buf->size.w + adj_size(2) + i));
   area.h = MAX(area.h, count * buf->size.h + adj_size(2));
 
-  /* alloca window theme and win background buffer */
+  /* Alloca window theme and win background buffer */
   surf = theme_get_background(active_theme, BACKGROUND_CHANGERESEARCHDLG);
   resize_window(pwindow, surf, NULL,
                 (pwindow->size.w - pwindow->area.w) + area.w,
@@ -3263,7 +3274,7 @@ static void popup_change_research_goal_dialog(void)
                       (main_window_width() - pwindow->size.w) / 2,
                       (main_window_height() - pwindow->size.h) / 2);
 
-  /* exit button */
+  /* Exit button */
   buf = pwindow->prev;
   buf->size.x = area.x + area.w - buf->size.w - 1;
   buf->size.y = pwindow->size.y + adj_size(2);
@@ -3350,7 +3361,7 @@ static int popdown_science_dialog_callback(struct widget *pwidget)
 }
 
 /**********************************************************************//**
-  Popup (or raise) the science report(F6).  It may or may not be modal.
+  Popup (or raise) the science report(F6). It may or may not be modal.
 **************************************************************************/
 void science_report_dialog_popup(bool raise)
 {
@@ -3370,7 +3381,7 @@ void science_report_dialog_popup(bool raise)
 
   presearch = research_get(client_player());
 
-  /* disable research button */
+  /* Disable research button */
   pwidget = get_research_widget();
   set_wstate(pwidget, FC_WS_DISABLED);
   widget_redraw(pwidget);
@@ -3379,14 +3390,14 @@ void science_report_dialog_popup(bool raise)
   science_dlg = fc_calloc(1, sizeof(struct small_dialog));
 
   /* TRANS: Research report title */
-  pstr = create_utf8_from_char(_("Research"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("Research"), FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
-#ifdef SMALL_SCREEN
+#ifdef GUI_SDL2_SMALL_SCREEN
   pwindow = create_window(NULL, pstr, 200, 132, 0);
-#else  /* SMALL_SCREEN */
+#else  /* GUI_SDL2_SMALL_SCREEN */
   pwindow = create_window(NULL, pstr, adj_size(400), adj_size(246), 0);
-#endif /* SMALL_SCREEN */
+#endif /* GUI_SDL2_SMALL_SCREEN */
   set_wstate(pwindow, FC_WS_NORMAL);
   pwindow->action = science_dialog_callback;
 
@@ -3440,12 +3451,12 @@ void science_report_dialog_popup(bool raise)
   add_to_gui_list(ID_SCIENCE_DLG_CHANGE_GOAL_BUTTON, change_research_goal_button);
 
   /* ------ */
-  /* exit button */
+  /* Exit button */
   exit_button = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                                  WF_WIDGET_HAS_INFO_LABEL
                                  | WF_RESTORE_BACKGROUND);
-  exit_button->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                                  adj_font(12));
+  exit_button->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                        FONTO_ATTENTION);
   exit_button->action = popdown_science_dialog_callback;
   set_wstate(exit_button, FC_WS_NORMAL);
   exit_button->key = SDLK_ESCAPE;

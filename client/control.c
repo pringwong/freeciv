@@ -124,8 +124,6 @@ static int action_selection_in_progress_for = IDENTITY_NUMBER_ZERO;
  */
 bool non_ai_unit_focus;
 
-static void key_unit_gen_clean(enum unit_activity act, enum extra_rmcause rmcause);
-
 static void do_unit_teleport_to(struct unit *punit, struct tile *ptile);
 
 /*************************************************************************/
@@ -1274,8 +1272,8 @@ void control_mouse_cursor(struct tile *ptile)
     }
     break;
   case HOVER_TELEPORT:
-    /* FIXME: check for invalid tiles & teleport specific cursor type. */
-    mouse_cursor_type = CURSOR_PARADROP;
+    /* FIXME: check for invalid tiles. */
+    mouse_cursor_type = CURSOR_TELEPORT;
     break;
   case HOVER_PARADROP:
     /* FIXME: check for invalid tiles. */
@@ -1358,7 +1356,7 @@ int check_recursive_road_connect(struct tile *ptile, const struct extra_type *pe
 
 /*******************************************************************//**
   Can tile be irrigated by given unit? Unit can be NULL to check if
-  any settler type unit of any player can irrigate.
+  any worker type unit of any player can irrigate.
 ***********************************************************************/
 static bool can_be_irrigated(const struct tile *ptile,
                              const struct unit *punit)
@@ -2103,16 +2101,16 @@ void request_unit_ssa_set(const struct unit *punit,
 }
 
 /**********************************************************************//**
-  Call to request (from the server) that the settler unit is put into
-  autosettler mode.
+  Call to request (from the server) that the worker unit is put into
+  autoworker mode.
 **************************************************************************/
-void request_unit_autosettlers(const struct unit *punit)
+void request_unit_autoworker(const struct unit *punit)
 {
-  if (punit && can_unit_do_autosettlers(punit)) {
-    request_unit_ssa_set(punit, SSA_AUTOSETTLER);
+  if (punit && can_unit_do_autoworker(punit)) {
+    request_unit_ssa_set(punit, SSA_AUTOWORKER);
   } else if (punit) {
     create_event(unit_tile(punit), E_BAD_COMMAND, ftc_client,
-                 _("Only settler units can be put into auto mode."));
+                 _("Only worker units can be put into auto working mode."));
   }
 }
 
@@ -2131,17 +2129,18 @@ void request_unit_load(struct unit *pcargo, struct unit *ptrans,
   if (ptrans
       && can_client_issue_orders()
       && could_unit_load(pcargo, ptrans)) {
-    action_by_result_iterate(paction, act_id,
+    action_by_result_iterate(paction,
                              same_pos(unit_tile(pcargo), ptile)
                              ? ACTRES_TRANSPORT_BOARD
                              : ACTRES_TRANSPORT_EMBARK) {
-      if (action_prob_possible(action_prob_vs_unit(pcargo, paction->id,
+      enum gen_action act_id = action_id(paction);
+
+      if (action_prob_possible(action_prob_vs_unit(pcargo, act_id,
                                                    ptrans))) {
         /* Try the first action that may be legal. */
         /* Implement something like do_disband_alternative() if a ruleset
          * appears where this isn't good enough. */
-        request_do_action(paction->id,
-                          pcargo->id, ptrans->id, 0, "");
+        request_do_action(act_id, pcargo->id, ptrans->id, 0, "");
         break;
       }
     } action_by_result_iterate_end;
@@ -2184,7 +2183,7 @@ void request_unit_unload(struct unit *pcargo)
 }
 
 /**********************************************************************//**
-  Send request to do caravan action - establishing traderoute or
+  Send request to do caravan action - establishing trade route or
   helping in wonder building - to server.
 **************************************************************************/
 void request_unit_caravan_action(struct unit *punit, action_id action)
@@ -3464,7 +3463,7 @@ void key_unit_teleport(void)
 }
 
 /**********************************************************************//**
-  Handle user 'establish traderoute' input
+  Handle user 'establish trade route' input
 **************************************************************************/
 void key_unit_trade_route(void)
 {
@@ -3551,13 +3550,13 @@ void key_unit_auto_explore(void)
 
 /**********************************************************************//**
   Call to request (from the server) that the focus unit is put into
-  autosettler mode.
+  autoworker mode.
 **************************************************************************/
-void key_unit_auto_settle(void)
+void key_unit_auto_work(void)
 {
   unit_list_iterate(get_units_in_focus(), punit) {
-    if (can_unit_do_autosettlers(punit)) {
-      request_unit_autosettlers(punit);
+    if (can_unit_do_autoworker(punit)) {
+      request_unit_autoworker(punit);
     }
   } unit_list_iterate_end;
 }
@@ -3570,14 +3569,6 @@ void key_unit_convert(void)
   unit_list_iterate(get_units_in_focus(), punit) {
     request_unit_convert(punit);
   } unit_list_iterate_end;
-}
-
-/**********************************************************************//**
-  Handle user 'clean fallout' input
-**************************************************************************/
-void key_unit_fallout(void)
-{
-  key_unit_gen_clean(ACTIVITY_FALLOUT, ERM_CLEANFALLOUT);
 }
 
 /**********************************************************************//**
@@ -3631,25 +3622,6 @@ static void key_unit_extra(enum unit_activity act, enum extra_cause cause)
                                                  punit);
 
     if (can_unit_do_activity_targeted(punit, act, tgt)) {
-      request_new_unit_activity_targeted(punit, act, tgt);
-    }
-  } unit_list_iterate_end;
-}
-
-/**********************************************************************//**
-  Handle user extra cleaning input of given class
-**************************************************************************/
-static void key_unit_gen_clean(enum unit_activity act,
-                               enum extra_rmcause rmcause)
-{
-  unit_list_iterate(get_units_in_focus(), punit) {
-    struct extra_type *tgt = prev_extra_in_tile(unit_tile(punit),
-                                                rmcause,
-                                                unit_owner(punit),
-                                                punit);
-
-    if (tgt != NULL
-        && can_unit_do_activity_targeted(punit, act, tgt)) {
       request_new_unit_activity_targeted(punit, act, tgt);
     }
   } unit_list_iterate_end;
@@ -3714,33 +3686,15 @@ void key_unit_clean(void)
 {
   unit_list_iterate(get_units_in_focus(), punit) {
     struct extra_type *tgt = prev_extra_in_tile(unit_tile(punit),
-                                                ERM_CLEANPOLLUTION,
+                                                ERM_CLEAN,
                                                 unit_owner(punit),
                                                 punit);
 
     if (tgt != NULL
         && can_unit_do_activity_targeted(punit, ACTIVITY_CLEAN, tgt)) {
       request_new_unit_activity_targeted(punit, ACTIVITY_CLEAN, tgt);
-    } else {
-      tgt = prev_extra_in_tile(unit_tile(punit),
-                               ERM_CLEANFALLOUT,
-                               unit_owner(punit),
-                               punit);
-
-      if (tgt != NULL
-          && can_unit_do_activity_targeted(punit, ACTIVITY_CLEAN, tgt)) {
-        request_new_unit_activity_targeted(punit, ACTIVITY_CLEAN, tgt);
-      }
     }
   } unit_list_iterate_end;
-}
-
-/**********************************************************************//**
-  Handle user 'clean pollution' input
-**************************************************************************/
-void key_unit_pollution(void)
-{
-  key_unit_gen_clean(ACTIVITY_POLLUTION, ERM_CLEANPOLLUTION);
 }
 
 /**********************************************************************//**

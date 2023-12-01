@@ -199,8 +199,6 @@ const action_id auto_attack_blockers[] = {
   ACTION_PLANT,
   ACTION_PILLAGE,
   ACTION_CLEAN,
-  ACTION_CLEAN_POLLUTION,
-  ACTION_CLEAN_FALLOUT,
   ACTION_ROAD,
   ACTION_BASE,
   ACTION_MINE,
@@ -730,10 +728,9 @@ void handle_city_info(const struct packet_city_info *packet)
               TILE_XY(ptile), TILE_XY(pcenter));
     return;
   } else {
-    name_changed = (0 != strncmp(packet->name, pcity->name,
-                                 MAX_LEN_CITYNAME));
+    name_changed = (fc_strncmp(packet->name, pcity->name, MAX_LEN_CITYNAME));
 
-    while (trade_route_list_size(pcity->routes) > packet->traderoute_count) {
+    while (trade_route_list_size(pcity->routes) > packet->trade_route_count) {
       struct trade_route *proute = trade_route_list_get(pcity->routes, -1);
 
       trade_route_list_remove(pcity->routes, proute);
@@ -1066,12 +1063,12 @@ static void city_packet_common(struct city *pcity, struct tile *pcenter,
 
       unit_list_destroy(pcity->client.info_units_present);
       pcity->client.info_units_present =
-          pcity->client.collecting_info_units_present;
+        pcity->client.collecting_info_units_present;
       pcity->client.collecting_info_units_present = NULL;
 
       unit_list_destroy(pcity->client.info_units_supported);
       pcity->client.info_units_supported =
-          pcity->client.collecting_info_units_supported;
+        pcity->client.collecting_info_units_supported;
       pcity->client.collecting_info_units_supported = NULL;
     } else {
       /* We didn't get any unit, let's clear the unit lists. */
@@ -1112,9 +1109,10 @@ static void city_packet_common(struct city *pcity, struct tile *pcenter,
 }
 
 /************************************************************************//**
-  A traderoute-info packet contains information about one end of a traderoute
+  A trade route-info packet contains information about one end
+  of a trade route
 ****************************************************************************/
-void handle_traderoute_info(const struct packet_traderoute_info *packet)
+void handle_trade_route_info(const struct packet_trade_route_info *packet)
 {
   struct city *pcity = game_city_by_number(packet->city);
   struct trade_route *proute;
@@ -1220,8 +1218,7 @@ void handle_city_short_info(const struct packet_city_short_info *packet)
               TILE_XY(city_tile(pcity)), TILE_XY(pcenter));
     return;
   } else {
-    name_changed = (0 != strncmp(packet->name, pcity->name,
-                                 MAX_LEN_CITYNAME));
+    name_changed = (fc_strncmp(packet->name, pcity->name, MAX_LEN_CITYNAME));
 
     /* Check if city descriptions should be updated */
     if (gui_options.draw_city_names && name_changed) {
@@ -2105,6 +2102,40 @@ static bool handle_unit_packet_common(struct unit *packet_unit)
 }
 
 /************************************************************************//**
+  Receive an investigate_started packet
+
+  Can't rely on generic packet_processing_started, as that works for
+  the requesting connection only, and not for observers.
+****************************************************************************/
+void handle_investigate_started(const struct packet_investigate_started *packet)
+{
+  struct city *pcity = game_city_by_number(packet->city_id);
+
+  if (!pcity) {
+    log_error("Investigate city: unknown city id %d!",
+              packet->city_id);
+    return;
+  }
+
+  /* Start collecting supported and present units. */
+
+  /* Ensure we are not already in an investigate cycle. */
+  fc_assert(pcity->client.collecting_info_units_supported == NULL);
+  fc_assert(pcity->client.collecting_info_units_present == NULL);
+  pcity->client.collecting_info_units_supported =
+    unit_list_new_full(unit_virtual_destroy);
+  pcity->client.collecting_info_units_present =
+    unit_list_new_full(unit_virtual_destroy);
+}
+
+/************************************************************************//**
+  Receive an investigate_finished packet
+****************************************************************************/
+void handle_investigate_finished(const struct packet_investigate_finished *packet)
+{
+}
+
+/************************************************************************//**
   Receive a short_unit info packet.
 ****************************************************************************/
 void handle_unit_short_info(const struct packet_unit_short_info *packet)
@@ -2118,7 +2149,6 @@ void handle_unit_short_info(const struct packet_unit_short_info *packet)
    * info. */
   if (packet->packet_use == UNIT_INFO_CITY_SUPPORTED
       || packet->packet_use == UNIT_INFO_CITY_PRESENT) {
-    static int last_serial_num = 0;
 
     pcity = game_city_by_number(packet->info_city_id);
     if (!pcity) {
@@ -2127,21 +2157,7 @@ void handle_unit_short_info(const struct packet_unit_short_info *packet)
       return;
     }
 
-    /* New serial number: start collecting supported and present units. */
-    if (last_serial_num
-        != client.conn.client.request_id_of_currently_handled_packet) {
-      last_serial_num =
-          client.conn.client.request_id_of_currently_handled_packet;
-      /* Ensure we are not already in an investigate cycle. */
-      fc_assert(pcity->client.collecting_info_units_supported == NULL);
-      fc_assert(pcity->client.collecting_info_units_present == NULL);
-      pcity->client.collecting_info_units_supported =
-          unit_list_new_full(unit_virtual_destroy);
-      pcity->client.collecting_info_units_present =
-          unit_list_new_full(unit_virtual_destroy);
-    }
-
-    /* Okay, append a unit struct to the proper list. */
+    /* Append a unit struct to the proper list. */
     punit = unpackage_short_unit(packet);
     if (packet->packet_use == UNIT_INFO_CITY_SUPPORTED) {
       fc_assert(pcity->client.collecting_info_units_supported != NULL);
@@ -2456,6 +2472,8 @@ void handle_player_info(const struct packet_player_info *pinfo)
   /* Team. */
   tslot = team_slot_by_number(pinfo->team);
   fc_assert(NULL != tslot);
+
+  /* Should never fail when slot given is not nullptr */
   team_add_player(pplayer, team_new(tslot));
 
   pnation = nation_by_number(pinfo->nation);
@@ -3575,6 +3593,7 @@ void handle_ruleset_unit(const struct packet_ruleset_unit *p)
   names_set(&u->name, NULL, p->name, p->rule_name);
   sz_strlcpy(u->graphic_str, p->graphic_str);
   sz_strlcpy(u->graphic_alt, p->graphic_alt);
+  sz_strlcpy(u->graphic_alt2, p->graphic_alt2);
   sz_strlcpy(u->sound_move, p->sound_move);
   sz_strlcpy(u->sound_move_alt, p->sound_move_alt);
   sz_strlcpy(u->sound_fight, p->sound_fight);
@@ -3858,6 +3877,7 @@ void handle_ruleset_building(const struct packet_ruleset_building *p)
   names_set(&b->name, NULL, p->name, p->rule_name);
   sz_strlcpy(b->graphic_str, p->graphic_str);
   sz_strlcpy(b->graphic_alt, p->graphic_alt);
+  sz_strlcpy(b->graphic_alt2, p->graphic_alt2);
   for (i = 0; i < p->reqs_count; i++) {
     requirement_vector_append(&b->reqs, p->reqs[i]);
   }
@@ -4182,6 +4202,7 @@ void handle_ruleset_extra(const struct packet_ruleset_extra *p)
   sz_strlcpy(pextra->act_gfx_alt2, p->act_gfx_alt2);
   sz_strlcpy(pextra->rmact_gfx, p->rmact_gfx);
   sz_strlcpy(pextra->rmact_gfx_alt, p->rmact_gfx_alt);
+  sz_strlcpy(pextra->rmact_gfx_alt2, p->rmact_gfx_alt2);
   sz_strlcpy(pextra->graphic_str, p->graphic_str);
   sz_strlcpy(pextra->graphic_alt, p->graphic_alt);
 
@@ -5535,8 +5556,8 @@ void handle_diplomacy_remove_clause(int counterpart, int giver,
 }
 
 /**********************************************************************//**
-Handle each counter ruleset's packet send from server instance to this
-client.
+  Handle each counter's ruleset packet sent from server instance to this
+  client.
 **************************************************************************/
 void handle_ruleset_counter(const struct packet_ruleset_counter *packet)
 {
@@ -5550,39 +5571,40 @@ void handle_ruleset_counter(const struct packet_ruleset_counter *packet)
   curr->def = packet->def;
 
   if (!counter_behaviour_is_valid(curr->type)
-    || curr->target != CTGT_CITY) {
-
+      || curr->target != CTGT_CITY) {
     return;
   }
 
+  PACKET_STRVEC_EXTRACT(curr->helptext, packet->helptext);
   attach_city_counter(curr);
 }
 
 /**********************************************************************//**
-Handle updating city's counter, when server request
+  Handle updating city's counters, when server request
 **************************************************************************/
 void handle_city_update_counters(const struct packet_city_update_counters *packet)
 {
-  uint8_t i;
-  uint8_t counters_count = counters_get_city_counters_count();
-
+  int i;
+  int counters_count;
   struct city *pcity = game_city_by_number(packet->city);
 
   if (NULL == pcity) {
-
-    return;
-  }
-
-  if (counters_count != packet->count) {
-
     return;
   }
 
   counters_count = counters_get_city_counters_count();
+  if (counters_count != packet->count) {
+    return;
+  }
+
   for (i = 0; i < counters_count; i++) {
     pcity->counter_values[i] = packet->counters[i];
   }
 
-  update_city_description(pcity);
+  if (pcity->tile != NULL) {
+    /* City's location known */
+    update_city_description(pcity);
+  }
+
   city_report_dialog_update_city(pcity);
 }

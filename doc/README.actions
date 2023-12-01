@@ -15,12 +15,12 @@ action is enabled (and all its hard requirements are fulfilled). A ruleset
 author can therefore disable an action by not defining any action enablers for
 it in their ruleset.
 
-A generalized action enabler lives in game.ruleset. It consists of the action it
-enables and two requirement vectors. The first requirement vector, actor_reqs,
-applies to the entity doing the action. The second, target_reqs, applies to its
-target. If both requirement vectors are fulfilled the action is enabled as far
-as the action enabler is concerned. Note that an action's hard requirements
-still may make it impossible.
+A generalized action enabler lives in actions.ruleset. It consists of
+the action it enables and two requirement vectors.
+The first requirement vector, actor_reqs, applies to the entity doing
+the action. The second, target_reqs, applies to its target. If both requirement
+vectors are fulfilled the action is enabled as far as the action enabler is
+concerned. Note that an action's hard requirements still may make it impossible.
 
 In some situations an action controlled by generalized action enablers may be
 impossible because of limitations in Freeciv it self. Those limitations are
@@ -34,6 +34,11 @@ client will indicate the uncertainty to the player.
 Should the player order a unit to do an illegal action the server will
 inform the player that their unit was unable to perform the action. The
 actor unit may also lose a ruleset configurable amount of move fragments.
+
+Some action enablers guard things that user is not able to initiate,
+but which will happen automatically. These are listed as
+'internal' actions.
+
 
 Example
 =======
@@ -1151,34 +1156,7 @@ Actions done by a unit against a tile
  * the terrain of the target tile must have a non 0 clean_pollution_time
    or non 0 clean_fallout_time, depending on the removal cause
    of the extra
- * the target extra must have the CleanPollution or
-   CleanFallout removal cause
- * the target extra's rmreqs must be fulfilled
- * the target extra can't have the AlwaysOnCityCenter extra flag if the
-   target tile has a city
- * the target extra can't have the AutoOnCityCenter extra flag if the
-   target tile has a city and the city's owner can rebuild it
-
-"Clean Pollution"   - clean extra from the target tile.
- * UI name can be set using ui_name_clean_pollution
- * actor must be on the same tile as the target.
- * the actor unit has the "Settlers" unit type flag (!)
- * the target extra must be present at the target tile
- * the terrain of the target tile must have a non 0 clean_pollution_time
- * the target extra must have the CleanPollution removal cause
- * the target extra's rmreqs must be fulfilled
- * the target extra can't have the AlwaysOnCityCenter extra flag if the
-   target tile has a city
- * the target extra can't have the AutoOnCityCenter extra flag if the
-   target tile has a city and the city's owner can rebuild it
-
-"Clean Fallout"     - clean extra from the target tile.
- * UI name can be set using ui_name_clean_fallout
- * actor must be on the same tile as the target.
- * the actor unit has the "Settlers" unit type flag (!)
- * the target extra must be present at the target tile
- * the terrain of the target tile must have a non 0 clean_fallout_time
- * the target extra must have the CleanFallout removal cause
+ * the target extra must have the Clean removal cause
  * the target extra's rmreqs must be fulfilled
  * the target extra can't have the AlwaysOnCityCenter extra flag if the
    target tile has a city
@@ -1195,7 +1173,7 @@ Actions done by a unit against a tile
  * the target extra (the extra to be built) is an road
  * the target tile doesn't already have the target extra
  * the target extra is buildable (see extra type's buildable)
- * the target tile's terrain's road_time isn't 0
+ * the target tile's terrain's road_time is above 0 (!)
  * if the target extra is both a road and a base the target tile's terrain's
    base_time isn't 0
  * if the target extra is both a road and a base the target extra can't
@@ -1215,7 +1193,7 @@ Actions done by a unit against a tile
  * the target extra (the extra to be built) is an base
  * the target tile doesn't already have the target extra
  * the target extra is buildable (see extra type's buildable)
- * the target tile's terrain's base_time isn't 0
+ * the target tile's terrain's base_time is above 0 (!)
  * the target extra can't claim land (see base type's border_sq) if the
    target tile has a city
  * if the target extra is both a road and a base the target tile's terrain's
@@ -1502,6 +1480,13 @@ Actions done by a unit to it self
 "Unit Make Homeless" - unhome the actor unit.
  * UI name can be set using ui_name_homeless
  * the actor unit must have a home city. (!)
+
+Internal actions
+================
+
+"Gain Veterancy" - unit can get new veterancy levels
+ * Unit's veterancy system must have veterancy levels for the unit
+   to advance to.
 
 Ruleset defined actions
 =======================

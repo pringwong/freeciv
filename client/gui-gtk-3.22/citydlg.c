@@ -2954,8 +2954,8 @@ static void popup_workertask_dlg(struct city *pcity, struct tile *ptile)
     workertask_req.loc = ptile;
 
     shl = choice_dialog_start(GTK_WINDOW(toplevel),
-			       _("What Action to Request"),
-			       _("Select autosettler activity:"));
+                              _("What Action to Request"),
+                              _("Select autoworker activity:"));
 
     ptask = worker_task_list_get(pcity->task_reqs, 0);
     if (ptask != NULL) {
@@ -3000,17 +3000,11 @@ static void popup_workertask_dlg(struct city *pcity, struct tile *ptile)
                         G_CALLBACK(set_city_workertask),
                         GINT_TO_POINTER(ACTIVITY_TRANSFORM), FALSE, NULL);
     }
-    if (prev_extra_in_tile(ptile, ERM_CLEANPOLLUTION,
+    if (prev_extra_in_tile(ptile, ERM_CLEAN,
                            city_owner(pcity), NULL) != NULL) {
-      choice_dialog_add(shl, _("Clean Pollution"),
+      choice_dialog_add(shl, _("Clean"),
                         G_CALLBACK(set_city_workertask),
-                        GINT_TO_POINTER(ACTIVITY_POLLUTION), FALSE, NULL);
-    }
-    if (prev_extra_in_tile(ptile, ERM_CLEANFALLOUT,
-                           city_owner(pcity), NULL) != NULL) {
-      choice_dialog_add(shl, _("Clean Fallout"),
-                        G_CALLBACK(set_city_workertask),
-                        GINT_TO_POINTER(ACTIVITY_FALLOUT), FALSE, NULL);
+                        GINT_TO_POINTER(ACTIVITY_CLEAN), FALSE, NULL);
     }
 
     choice_dialog_add(shl, _("_Cancel"), 0, 0, FALSE, NULL);

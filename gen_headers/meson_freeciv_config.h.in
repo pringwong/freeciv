@@ -39,6 +39,9 @@
 /* C++20 capture this supported */
 #mesondefine FREECIV_HAVE_CXX20_CAPTURE_THIS
 
+/* __builtin_unreachable() available */
+#mesondefine FREECIV_HAVE_UNREACHABLE
+
 /* Use pthreads as thread implementation */
 #mesondefine FREECIV_HAVE_PTHREAD
 
@@ -47,6 +50,9 @@
 
 /* Has thread condition variable implementation */
 #define FREECIV_HAVE_THREAD_COND
+
+/* Has svg flags support enabled */
+#mesondefine FREECIV_SVG_FLAGS
 
 /* Max number of AI modules */
 #define FREECIV_AI_MOD_LAST @FREECIV_AI_MOD_LAST@
@@ -84,6 +90,9 @@
 
 /* Produce debug version */
 #mesondefine FREECIV_DEBUG
+
+/* Testmatic integration enabled */
+#mesondefine FREECIV_TESTMATIC
 
 /* Winsock available */
 #mesondefine FREECIV_HAVE_WINSOCK
@@ -129,6 +138,9 @@
 
 /* Readline support */
 #mesondefine FREECIV_HAVE_LIBREADLINE
+
+/* zlib is available */
+#mesondefine FREECIV_HAVE_LIBZ
 
 /* liblzma is available */
 #mesondefine FREECIV_HAVE_LIBLZMA

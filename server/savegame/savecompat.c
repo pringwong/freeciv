@@ -393,15 +393,18 @@ static void compat_load_020400(struct loaddata *loading,
       /* This savefile contains known information in a sane format.
        * Just move any entries to where 2.4.x+ expect to find them. */
       struct section *map = secfile_section_by_name(loading->file, "map");
-      if (map) {
+
+      if (map != NULL) {
         entry_list_iterate(section_entries(map), pentry) {
           const char *name = entry_name(pentry);
-          if (strncmp(name, "kvb", 3) == 0) {
+
+          if (!fc_strncmp(name, "kvb", 3)) {
             /* Rename the "kvb..." entry to "k..." */
             char *name2 = fc_strdup(name), *newname = name2 + 2;
+
             *newname = 'k';
             /* Savefile probably contains existing "k" entries, which are bogus
-             * so we trash them */
+             * so we trash them. */
             secfile_entry_delete(loading->file, "map.%s", newname);
             entry_set_name(pentry, newname);
             FC_FREE(name2);
@@ -1493,9 +1496,9 @@ static void insert_server_side_agent(struct loaddata *loading,
                                        plrno, unit);
 
       if (ai) {
-        /* Autosettler and Autoexplore are separated by
-         * compat_post_load_030100() when set to SSA_AUTOSETTLER */
-        secfile_insert_int(loading->file, SSA_AUTOSETTLER,
+        /* Autoworker and Autoexplore are separated by
+         * compat_post_load_030100() when set to SSA_AUTOWORKER */
+        secfile_insert_int(loading->file, SSA_AUTOWORKER,
                            "player%d.u%d.server_side_agent",
                            plrno, unit);
       } else {
@@ -1657,8 +1660,6 @@ static void unit_order_activity_to_action(struct unit *act_unit)
 
     switch (order->activity) {
     case ACTIVITY_CLEAN:
-    case ACTIVITY_POLLUTION:
-    case ACTIVITY_FALLOUT:
     case ACTIVITY_MINE:
     case ACTIVITY_IRRIGATE:
     case ACTIVITY_PLANT:
@@ -1954,6 +1955,7 @@ static void compat_load_030200(struct loaddata *loading,
       const char **savemod;
       int j;
       const char *dur_name = "Transport Deboard";
+      const char *clean_name = "Clean";
 
       modname = secfile_lookup_str_vec(loading->file, &loading->action.size,
                                        "savefile.action_vector");
@@ -1963,6 +1965,9 @@ static void compat_load_030200(struct loaddata *loading,
       for (j = 0; j < action_count; j++) {
         if (!fc_strcasecmp("Transport Alight", modname[j])) {
           savemod[j] = dur_name;
+        } else if (!fc_strcasecmp("Clean Pollution", modname[j])
+                   || !fc_strcasecmp("Clean Fallout", modname[j])) {
+          savemod[j] = clean_name;
         } else {
           savemod[j] = modname[j];
         }
@@ -1970,6 +1975,39 @@ static void compat_load_030200(struct loaddata *loading,
 
       secfile_replace_str_vec(loading->file, savemod, action_count,
                               "savefile.action_vector");
+
+      free(savemod);
+    }
+  }
+
+  {
+    int activities_count;
+
+    activities_count = secfile_lookup_int_default(loading->file, 0,
+                                                  "savefile.activities_size");
+
+    if (activities_count > 0) {
+      const char **modname;
+      const char **savemod;
+      int j;
+      const char *clean_name = "Clean";
+
+      modname = secfile_lookup_str_vec(loading->file, &loading->activities.size,
+                                       "savefile.activities_vector");
+
+      savemod = fc_calloc(activities_count, sizeof(*savemod));
+
+      for (j = 0; j < activities_count; j++) {
+        if (!fc_strcasecmp("Pollution", modname[j])
+            || !fc_strcasecmp("Fallout", modname[j])) {
+          savemod[j] = clean_name;
+        } else {
+          savemod[j] = modname[j];
+        }
+      }
+
+      secfile_replace_str_vec(loading->file, savemod, activities_count,
+                              "savefile.activities_vector");
 
       free(savemod);
     }
@@ -1999,6 +2037,13 @@ static void compat_load_030200(struct loaddata *loading,
         if (fc_strcasecmp(old_name, name)) {
           /* Setting's name changed */
           secfile_replace_str(loading->file, name, "settings.set%d.name", i);
+        }
+
+        if (!gamestart_valid) {
+          /* Older savegames saved these values even when they were not valid.
+           * Silence warnings caused by them. */
+          (void) secfile_entry_lookup(loading->file, "settings.set%d.gamestart", i);
+          (void) secfile_entry_lookup(loading->file, "settings.set%d.gamesetdef", i);
         }
 
         if (!fc_strcasecmp("compresstype", name)) {
@@ -2139,7 +2184,7 @@ static void compat_load_030200(struct loaddata *loading,
             || !secfile_lookup_bool(loading->file, &alltemperate,
                                     "settings.set%d.value",
                                     alltemperate_idx)) {
-          /* infer what would've been the ruleset default */
+          /* Infer what would've been the ruleset default */
           alltemperate = (wld.map.north_latitude == wld.map.south_latitude);
         }
 
@@ -2147,7 +2192,7 @@ static void compat_load_030200(struct loaddata *loading,
             || !secfile_lookup_bool(loading->file, &singlepole,
                                     "settings.set%d.value",
                                     singlepole_idx)) {
-          /* infer what would've been the ruleset default */
+          /* Infer what would've been the ruleset default */
           singlepole = (wld.map.south_latitude >= 0);
         }
 
@@ -2251,8 +2296,8 @@ static void compat_load_030200(struct loaddata *loading,
       bool got_tech = FALSE;
       int bulbs = 0;
       bool got_tech_multi
-       = secfile_lookup_bool_default(loading->file, FALSE,
-                                     "research.r%d.got_tech_multi", i);
+        = secfile_lookup_bool_default(loading->file, FALSE,
+                                      "research.r%d.got_tech_multi", i);
 
       if (secfile_lookup_bool(loading->file, &got_tech,
                               "research.r%d.got_tech", i)
@@ -2284,9 +2329,37 @@ static void compat_load_030200(struct loaddata *loading,
       int ncities;
       int cnro;
       size_t wlist_max_length = 0;
+      bool first_city;
 
       if (secfile_section_lookup(loading->file, "player%d", plrno) == NULL) {
         continue;
+      }
+
+      first_city = secfile_lookup_bool_default(loading->file, FALSE,
+                                               "player%d.got_first_city",
+                                               plrno);
+      if (first_city) {
+        const char **flag_names = fc_calloc(PLRF_COUNT, sizeof(char *));
+        int flagcount = 0;
+        const char **flags_sg;
+        size_t nval;
+
+        flag_names[flagcount++] = plr_flag_id_name(PLRF_FIRST_CITY);
+
+        flags_sg = secfile_lookup_str_vec(loading->file, &nval,
+                                          "player%d.flags", plrno);
+
+        for (i = 0; i < nval; i++) {
+          enum plr_flag_id fid = plr_flag_id_by_name(flags_sg[i],
+                                                     fc_strcasecmp);
+
+          flag_names[flagcount++] = plr_flag_id_name(fid);
+        }
+
+        secfile_replace_str_vec(loading->file, flag_names, flagcount,
+                                "player%d.flags", plrno);
+
+        free(flag_names);
       }
 
       ncities = secfile_lookup_int_default(loading->file, 0,
@@ -2298,6 +2371,23 @@ static void compat_load_030200(struct loaddata *loading,
                                                    plrno, cnro);
 
         wlist_max_length = MAX(wlist_max_length, wl_length);
+
+        if (format_class == SAVEGAME_3) {
+          if (secfile_lookup_int_default(loading->file, plrno,
+                                         "player%d.c%d.original",
+                                         plrno, cnro) != plrno) {
+            secfile_insert_int(loading->file, CACQ_CONQUEST,
+                               "player%d.c%d.acquire_t",
+                               plrno, cnro);
+            secfile_insert_int(loading->file, WLCB_SMART,
+                               "player%d.c%d.wlcb",
+                               plrno, cnro);
+          } else {
+            secfile_insert_int(loading->file, CACQ_FOUNDED,
+                               "player%d.c%d.acquire_t",
+                               plrno, cnro);
+          }
+        }
       }
 
       secfile_insert_int(loading->file, wlist_max_length,
@@ -2343,6 +2433,37 @@ static void compat_load_030300(struct loaddata *loading,
   sg_check_ret();
 
   log_debug("Upgrading data from savegame to version 3.3.0");
+
+  {
+    int ssa_count;
+
+    ssa_count = secfile_lookup_int_default(loading->file, 0,
+                                           "savefile.server_side_agent_size");
+    if (ssa_count > 0) {
+      const char **modname;
+      const char **savemod;
+      int j;
+      const char *aw_name = "AutoWorker";
+
+      modname = secfile_lookup_str_vec(loading->file, &loading->ssa.size,
+                                       "savefile.server_side_agent_list");
+
+      savemod = fc_calloc(ssa_count, sizeof(*savemod));
+
+      for (j = 0; j < ssa_count; j++) {
+        if (!fc_strcasecmp("Autosettlers", modname[j])) {
+          savemod[j] = aw_name;
+        } else {
+          savemod[j] = modname[j];
+        }
+      }
+
+      secfile_replace_str_vec(loading->file, savemod, ssa_count,
+                              "savefile.server_side_agent_list");
+
+      free(savemod);
+    }
+  }
 }
 
 /************************************************************************//**
@@ -2357,11 +2478,10 @@ static void compat_load_dev(struct loaddata *loading)
   /* Check status and return if not OK (sg_success FALSE). */
   sg_check_ret();
 
-  log_debug("Upgrading data between development revisions");
+  log_verbose("Upgrading data between development revisions");
 
-  if (!secfile_lookup_int(loading->file, &game_version, "scenario.game_version")) {
-    game_version = 2060000;
-  }
+  sg_failure_ret(secfile_lookup_int(loading->file, &game_version, "scenario.game_version"),
+                 "No save version found");
 
 #ifdef FREECIV_DEV_SAVE_COMPAT_3_2
 
@@ -2875,7 +2995,7 @@ static void compat_load_dev(struct loaddata *loading)
 #ifdef FREECIV_DEV_SAVE_COMPAT_3_3
 
   if (game_version < 3029100) {
-    /* Before version number bump to 3.2.91 */
+    /* Before version number bump to 3.2.91, September 2023 */
 
     {
       const char *str = secfile_lookup_str_default(loading->file, NULL,
@@ -2887,6 +3007,76 @@ static void compat_load_dev(struct loaddata *loading)
         secfile_insert_str(loading->file, "old savegame3, or older",
                            "savefile.orig_version");
       }
+    }
+
+    /* Add acquire_t entries for cities */
+    {
+      player_slots_iterate(pslot) {
+        int plrno = player_slot_index(pslot);
+        int ncities;
+        int cnro;
+        bool first_city;
+
+        if (secfile_section_lookup(loading->file, "player%d", plrno) == NULL) {
+          continue;
+        }
+
+        first_city = secfile_lookup_bool_default(loading->file, FALSE,
+                                                 "player%d.got_first_city",
+                                                 plrno);
+        if (first_city) {
+          const char **flag_names = fc_calloc(PLRF_COUNT, sizeof(char *));
+          int flagcount = 0;
+          const char **flags_sg;
+          size_t nval;
+          int i;
+
+          flag_names[flagcount++] = plr_flag_id_name(PLRF_FIRST_CITY);
+
+          flags_sg = secfile_lookup_str_vec(loading->file, &nval,
+                                            "player%d.flags", plrno);
+
+          for (i = 0; i < nval; i++) {
+            enum plr_flag_id fid = plr_flag_id_by_name(flags_sg[i],
+                                                       fc_strcasecmp);
+
+            flag_names[flagcount++] = plr_flag_id_name(fid);
+          }
+
+          secfile_replace_str_vec(loading->file, flag_names, flagcount,
+                                  "player%d.flags", plrno);
+
+          free(flag_names);
+        }
+
+        ncities = secfile_lookup_int_default(loading->file, 0,
+                                             "player%d.ncities", plrno);
+
+        for (cnro = 0; cnro < ncities; cnro++) {
+          if (secfile_entry_lookup(loading->file,
+                                   "player%d.c%d.acquire_t",
+                                   plrno, cnro) == NULL) {
+            if (secfile_lookup_int_default(loading->file, plrno,
+                                           "player%d.c%d.original",
+                                           plrno, cnro) != plrno) {
+              secfile_insert_int(loading->file, CACQ_CONQUEST,
+                                 "player%d.c%d.acquire_t",
+                                 plrno, cnro);
+            } else {
+              secfile_insert_int(loading->file, CACQ_FOUNDED,
+                                 "player%d.c%d.acquire_t",
+                                 plrno, cnro);
+            }
+          }
+          if (secfile_entry_lookup(loading->file,
+                                   "player%d.c%d.wlcb",
+                                   plrno, cnro) == NULL) {
+            secfile_insert_int(loading->file, WLCB_SMART,
+                               "player%d.c%d.wlcb",
+                               plrno, cnro);
+          }
+        }
+      } player_slots_iterate_end;
     }
 
     /* Add orders_max_length entries for players */
@@ -2920,7 +3110,133 @@ static void compat_load_dev(struct loaddata *loading)
       } player_slots_iterate_end;
     }
 
+    {
+      int action_count;
+
+      action_count = secfile_lookup_int_default(loading->file, 0,
+                                                "savefile.action_size");
+
+      if (action_count > 0) {
+        const char **modname;
+        const char **savemod;
+        int j;
+        const char *clean_name = "Clean";
+
+        modname = secfile_lookup_str_vec(loading->file, &loading->action.size,
+                                         "savefile.action_vector");
+
+        savemod = fc_calloc(action_count, sizeof(*savemod));
+
+        for (j = 0; j < action_count; j++) {
+          if (!fc_strcasecmp("Clean Pollution", modname[j])
+              || !fc_strcasecmp("Clean Fallout", modname[j])) {
+            savemod[j] = clean_name;
+          } else {
+            savemod[j] = modname[j];
+          }
+        }
+
+        secfile_replace_str_vec(loading->file, savemod, action_count,
+                                "savefile.action_vector");
+
+        free(savemod);
+      }
+    }
+
+    {
+      int activities_count;
+
+      activities_count = secfile_lookup_int_default(loading->file, 0,
+                                                    "savefile.activities_size");
+
+      if (activities_count > 0) {
+        const char **modname;
+        const char **savemod;
+        int j;
+        const char *clean_name = "Clean";
+
+        modname = secfile_lookup_str_vec(loading->file, &loading->activities.size,
+                                         "savefile.activities_vector");
+
+        savemod = fc_calloc(activities_count, sizeof(*savemod));
+
+        for (j = 0; j < activities_count; j++) {
+          if (!fc_strcasecmp("Pollution", modname[j])
+              || !fc_strcasecmp("Fallout", modname[j])) {
+            savemod[j] = clean_name;
+          } else {
+            savemod[j] = modname[j];
+          }
+        }
+
+        secfile_replace_str_vec(loading->file, savemod, activities_count,
+                                "savefile.activities_vector");
+
+        free(savemod);
+      }
+    }
+
+    /* Server setting migration. */
+    {
+      int set_count;
+
+      if (secfile_lookup_int(loading->file, &set_count, "settings.set_count")) {
+        bool gamestart_valid = FALSE;
+
+        gamestart_valid
+          = secfile_lookup_bool_default(loading->file, FALSE,
+                                        "settings.gamestart_valid");
+
+        if (!gamestart_valid) {
+          int i;
+
+          /* Older savegames saved gamestart values even when they were not valid.
+           * Silence warnings caused by them. */
+          for (i = 0; i < set_count; i++) {
+            (void) secfile_entry_lookup(loading->file, "settings.set%d.gamestart", i);
+            (void) secfile_entry_lookup(loading->file, "settings.set%d.gamesetdef", i);
+          }
+        }
+      }
+    }
+
+    {
+      int ssa_count;
+
+      ssa_count = secfile_lookup_int_default(loading->file, 0,
+                                             "savefile.server_side_agent_size");
+      if (ssa_count > 0) {
+        const char **modname;
+        const char **savemod;
+        int j;
+        const char *aw_name = "AutoWorker";
+
+        modname = secfile_lookup_str_vec(loading->file, &loading->ssa.size,
+                                         "savefile.server_side_agent_list");
+
+        savemod = fc_calloc(ssa_count, sizeof(*savemod));
+
+        for (j = 0; j < ssa_count; j++) {
+          if (!fc_strcasecmp("Autosettlers", modname[j])) {
+            savemod[j] = aw_name;
+          } else {
+            savemod[j] = modname[j];
+          }
+        }
+
+        secfile_replace_str_vec(loading->file, savemod, ssa_count,
+                                "savefile.server_side_agent_list");
+
+        free(savemod);
+      }
+    }
+
   } /* Version < 3.2.91 */
+
+  if (game_version < 3029200) {
+    /* Before version number bump to 3.2.92 */
+
+  } /* Version < 3.2.92 */
 
 #endif /* FREECIV_DEV_SAVE_COMPAT_3_3 */
 }
@@ -2940,14 +3256,14 @@ static void compat_post_load_dev(struct loaddata *loading)
     game_version = 2060000;
   }
 
-#ifdef FREECIV_DEV_SAVE_COMPAT_3_2
+#ifdef FREECIV_DEV_SAVE_COMPAT_3_3
 
-  if (game_version < 3019100) {
-    /* Before version number bump to 3.1.91 */
+  if (game_version < 3029100) {
+    /* Before version number bump to 3.2.91 */
 
-  } /* Version < 3.1.91 */
+  } /* Version < 3.2.91 */
 
-#endif /* FREECIV_DEV_SAVE_COMPAT_3_2 */
+#endif /* FREECIV_DEV_SAVE_COMPAT_3_3 */
 }
 #endif /* FREECIV_DEV_SAVE_COMPAT */
 

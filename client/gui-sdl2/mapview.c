@@ -68,7 +68,6 @@
 
 #include "mapview.h"
 
-extern SDL_Event *flush_event;
 extern SDL_Rect *info_area;
 
 int overview_start_x = 0;
@@ -147,17 +146,17 @@ void unqueue_flush(void)
 
 /**********************************************************************//**
   Called when a region is marked dirty, this function queues a flush event
-  to be handled later by SDL.  The flush may end up being done
+  to be handled later by SDL. The flush may end up being done
   by freeciv before then, in which case it will be a wasted call.
 **************************************************************************/
 void queue_flush(void)
 {
   if (!is_flush_queued) {
-    if (SDL_PushEvent(flush_event) >= 0) {
+    if (flush_event()) {
       is_flush_queued = TRUE;
     } else {
       /* We don't want to set is_flush_queued in this case, since then
-       * the flush code would simply stop working.  But this means the
+       * the flush code would simply stop working. But this means the
        * below message may be repeated many times. */
       bugreport_request(_("Failed to add events to SDL2 event buffer: %s"),
                         SDL_GetError());
@@ -289,7 +288,7 @@ void gui_flush(void)
 {
   if (C_S_RUNNING == client_state()) {
     refresh_overview();
-  }    
+  }
 }
 
 /* ===================================================================== */
@@ -396,7 +395,7 @@ void overview_size_changed(void)
 
 /**********************************************************************//**
   Typically an info box is provided to tell the player about the state
-  of their civilization.  This function is called when the label is
+  of their civilization. This function is called when the label is
   changed.
 **************************************************************************/
 void update_info_label(void)
@@ -404,7 +403,7 @@ void update_info_label(void)
   SDL_Color bg_color = {0, 0, 0, 80};
   SDL_Surface *tmp = NULL;
   char buffer[512];
-#ifdef SMALL_SCREEN
+#ifdef GUI_SDL2_SMALL_SCREEN
   SDL_Rect area = {0, 0, 0, 0};
 #else
   SDL_Rect area = {0, 3, 0, 0};
@@ -415,19 +414,15 @@ void update_info_label(void)
     return;
   }
 
-#ifdef SMALL_SCREEN
-  ptext = create_utf8_str(NULL, 0, 8);
-#else
-  ptext = create_utf8_str(NULL, 0, 10);
-#endif
+  ptext = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
 
-  /* set text settings */
+  /* Set text settings */
   ptext->style |= TTF_STYLE_BOLD;
   ptext->fgcol = *get_theme_color(COLOR_THEME_MAPVIEW_INFO_TEXT);
   ptext->bgcol = (SDL_Color) {0, 0, 0, 0};
 
   if (NULL != client.conn.playing) {
-#ifdef SMALL_SCREEN
+#ifdef GUI_SDL2_SMALL_SCREEN
     fc_snprintf(buffer, sizeof(buffer),
                 _("%s Population: %s  Year: %s  "
                   "Gold %d "),
@@ -435,7 +430,7 @@ void update_info_label(void)
                 population_to_text(civ_population(client.conn.playing)),
                 calendar_text(),
                 client.conn.playing->economic.gold);
-#else /* SMALL_SCREEN */
+#else /* GUI_SDL2_SMALL_SCREEN */
     fc_snprintf(buffer, sizeof(buffer),
                 _("%s Population: %s  Year: %s  "
                   "Gold %d Tax: %d Lux: %d Sci: %d "),
@@ -446,8 +441,9 @@ void update_info_label(void)
                 client.conn.playing->economic.tax,
                 client.conn.playing->economic.luxury,
                 client.conn.playing->economic.science);
-#endif /* SMALL_SCREEN */
-    /* convert to utf8_str and create text surface */
+#endif /* GUI_SDL2_SMALL_SCREEN */
+
+    /* Convert to utf8_str and create text surface */
     copy_chars_to_utf8_str(ptext, buffer);
     tmp = create_text_surf_from_utf8(ptext);
 
@@ -467,7 +463,7 @@ void update_info_label(void)
                 area.y + area.h - 1,
                 get_theme_color(COLOR_THEME_MAPVIEW_INFO_FRAME));
 
-    /* vertical lines */
+    /* Vertical lines */
     create_line(main_data.gui->surface,
                 area.x + area.w - 1, area.y + 1, area.x + area.w - 1,
                 area.y + area.h - 2,
@@ -476,7 +472,7 @@ void update_info_label(void)
                 area.x, area.y + 1, area.x, area.y + area.h - 2,
                 get_theme_color(COLOR_THEME_MAPVIEW_INFO_FRAME));
 
-    /* blit text to screen */
+    /* Blit text to screen */
     blit_entire_src(tmp, main_data.gui->surface, area.x + adj_size(5),
                     area.y + adj_size(2));
 
@@ -537,7 +533,7 @@ void redraw_unit_info_label(struct unit_list *punitlist)
   if (sdl2_client_flags & CF_UNITINFO_SHOWN) {
     info_window = get_unit_info_window_widget();
 
-    /* blit theme surface */
+    /* Blit theme surface */
     widget_redraw(info_window);
 
     if (punit) {
@@ -548,8 +544,9 @@ void redraw_unit_info_label(struct unit_list *punitlist)
       struct tile *ptile = unit_tile(punit);
       const char *vetname;
 
-      /* get and draw unit name (with veteran status) */
-      pstr = create_utf8_from_char(unit_name_translation(punit), adj_font(12));
+      /* Get and draw unit name (with veteran status) */
+      pstr = create_utf8_from_char_fonto(unit_name_translation(punit),
+                                         FONTO_ATTENTION);
       pstr->style |= TTF_STYLE_BOLD;
       pstr->bgcol = (SDL_Color) {0, 0, 0, 0};
       name = create_text_surf_from_utf8(pstr);
@@ -565,7 +562,7 @@ void redraw_unit_info_label(struct unit_list *punitlist)
         right = FALSE;
       }
 
-      change_ptsize_utf8(pstr, adj_font(10));
+      change_fonto_utf8(pstr, FONTO_DEFAULT);
       vetname = utype_veteran_name_translation(unit_type_get(punit),
                                                punit->veteran);
       if (vetname != NULL) {
@@ -575,7 +572,7 @@ void redraw_unit_info_label(struct unit_list *punitlist)
         pstr->fgcol = *get_theme_color(COLOR_THEME_MAPVIEW_UNITINFO_TEXT);
       }
 
-      /* get and draw other info (MP, terrain, city, etc.) */
+      /* Get and draw other info (MP, terrain, city, etc.) */
       pstr->style |= SF_CENTER;
 
       copy_chars_to_utf8_str(pstr,
@@ -598,7 +595,7 @@ void redraw_unit_info_label(struct unit_list *punitlist)
             const char *diplo_nation_plural_adjectives[DS_LAST] =
               {"" /* unused, DS_ARMISTICE */, Q_("?nation:Hostile"),
                "" /* unused, DS_CEASEFIRE */,
-               Q_("?nation:Peaceful"), Q_("?nation:Friendly"), 
+               Q_("?nation:Peaceful"), Q_("?nation:Friendly"),
                Q_("?nation:Mysterious")};
 
             if (tile_owner(ptile) == client.conn.playing) {
@@ -948,7 +945,7 @@ void redraw_unit_info_label(struct unit_list *punitlist)
 
         fc_snprintf(buf, sizeof(buf), "%s\n%s\n%s",
                     _("End of Turn"), _("Press"), _("Shift+Return"));
-        pstr = create_utf8_from_char(buf, adj_font(14));
+        pstr = create_utf8_from_char_fonto(buf, FONTO_HEADING);
         pstr->style = SF_CENTER;
         pstr->bgcol = (SDL_Color) {0, 0, 0, 0};
         buf_surf = create_text_surf_from_utf8(pstr);
@@ -958,12 +955,12 @@ void redraw_unit_info_label(struct unit_list *punitlist)
         alphablit(buf_surf, NULL, info_window->dst->surface, &area, 255);
         FREESURFACE(buf_surf);
         FREEUTF8STR(pstr);
-        /* fix the bug of child dialogues not showing up when player's turn ends */
+        /* Fix the bug of child dialogs not showing up when player's turn ends */
         flush_all();
       }
     }
 
-    /* draw buttons */
+    /* Draw buttons */
     redraw_group(info_window->private_data.adv_dlg->begin_widget_list,
                  info_window->private_data.adv_dlg->end_widget_list->prev, 0);
 
@@ -1080,7 +1077,7 @@ void update_city_descriptions(void)
 **************************************************************************/
 struct canvas *get_overview_window(void)
 {
-  return overview_canvas;  
+  return overview_canvas;
 }
 
 /**********************************************************************//**
@@ -1096,7 +1093,7 @@ void get_overview_area_dimensions(int *width, int *height)
      smaller than DEFAULT_OVERVIEW_H, increase OVERVIEW_TILE_SIZE
      by 1 until the height condition is met.
   */
-  int overview_tile_size_bak = OVERVIEW_TILE_SIZE;  
+  int overview_tile_size_bak = OVERVIEW_TILE_SIZE;
   int xfact = MAP_IS_ISOMETRIC ? 2 : 1;
   int shift = (MAP_IS_ISOMETRIC && !current_wrap_has_flag(WRAP_X)) ? -1 : 0;
 

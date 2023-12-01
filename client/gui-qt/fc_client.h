@@ -90,10 +90,10 @@ class fc_icons
 
 private:
   explicit fc_icons();
-  static fc_icons* m_instance;
+  static fc_icons *m_instance;
 
 public:
-  static fc_icons* instance();
+  static fc_icons *instance();
   static void drop();
   QIcon get_icon(const QString& id);
   QPixmap *get_pixmap(const QString& id);
@@ -196,21 +196,21 @@ class fc_client : public QMainWindow,
   QPushButton *start_button;
   QPushButton *nation_button;
 
-  QDialogButtonBox* button_box;
+  QDialogButtonBox *button_box;
 
   QSocketNotifier *server_notifier;
 
   chat_input *chat_line;
 
-  QTableWidget* lan_widget;
-  QTableWidget* wan_widget;
-  QTableWidget* info_widget;
-  QTableWidget* saves_load;
-  QTableWidget* scenarios_load;
-  QTreeWidget* start_players_tree;
+  QTableWidget *lan_widget;
+  QTableWidget *wan_widget;
+  QTableWidget *info_widget;
+  QTableWidget *saves_load;
+  QTableWidget *scenarios_load;
+  QTreeWidget *start_players_tree;
 
-  QTimer* meta_scan_timer;
-  QTimer* lan_scan_timer;
+  QTimer *meta_scan_timer;
+  QTimer *lan_scan_timer;
   QTimer *update_info_timer;
 
   QStatusBar *status_bar;
@@ -250,6 +250,7 @@ public:
                                  const char *message);
   choice_dialog *get_diplo_dialog();
   void update_sidebar_position();
+  void apply_fullscreen();
 
   mr_idle mr_idler;
   QWidget *central_wdg;
@@ -277,7 +278,10 @@ public:
   fc_sidewidget *sw_diplo;
   float map_scale;
   bool map_font_scale;
-  void gimme_place(QWidget* widget, QString str);
+  QMenu *page_submenu_AI;
+  QMenu *page_submenu_team;
+
+  void gimme_place(QWidget *widget, QString str);
   int gimme_index_of(QString str);
   void remove_repo_dlg(QString str);
   bool is_repo_dlg_open(QString str);
@@ -343,7 +347,7 @@ private:
   void read_settings();
 
   enum client_pages page;
-  QMap<QString, QWidget*> opened_repo_dlgs;
+  QMap<QString, QWidget *> opened_repo_dlgs;
   QStringList status_bar_queue;
   QString current_file;
   bool send_new_aifill_to_server;

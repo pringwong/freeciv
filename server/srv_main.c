@@ -1929,6 +1929,8 @@ void fc__noreturn server_quit(void)
     } phase_players_iterate_end;
   }
 
+  save_system_close();
+
   if (game.server.save_timer != NULL) {
     timer_destroy(game.server.save_timer);
     game.server.save_timer = NULL;
@@ -3415,7 +3417,9 @@ static void srv_ready(void)
       players_iterate(pdest) {
         if (players_on_same_team(pplayer, pdest)
             && player_number(pplayer) != player_number(pdest)) {
-          player_diplstate_get(pplayer, pdest)->type = DS_TEAM;
+          set_diplstate_type(player_diplstate_get(pplayer, pdest),
+                             player_diplstate_get(pdest, pplayer),
+                             DS_TEAM);
           give_shared_vision(pplayer, pdest);
           BV_SET(pplayer->real_embassy, player_index(pdest));
         }
@@ -3609,13 +3613,13 @@ void fc__noreturn srv_main(void)
       script_server_signal_emit("game_ended", pplayer);
     } phase_players_iterate_end;
 
-    /* Close it even between games. */
-    save_system_close();
-
     if (game.info.timeout == -1 || srvarg.exit_on_end) {
       /* For autogames or if the -e option is specified, exit the server. */
       server_quit();
     }
+
+    /* Close it even between games. */
+    save_system_close();
 
     /* Reset server */
     server_game_free();

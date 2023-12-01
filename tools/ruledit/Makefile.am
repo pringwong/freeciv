@@ -5,7 +5,7 @@ MOCCMD=@MOCCMD@
 include $(top_srcdir)/bootstrap/Makerules.mk
 
 if MINGW
-REICON = $(top_builddir)/windows/rulediticon.o
+REICON = $(top_builddir)/platforms/windows/icons/rulediticon.o
 endif
 
 bin_PROGRAMS = freeciv-ruledit
@@ -25,6 +25,7 @@ freeciv_ruledit_CXXFLAGS = $(ruledit_cxxflags)
 
 MOC_FILES = \
             meta_conversion_log.cpp \
+            meta_edit_extra.cpp \
             meta_edit_impr.cpp \
             meta_edit_terrain.cpp \
             meta_edit_utype.cpp \
@@ -33,6 +34,7 @@ MOC_FILES = \
 	    meta_req_vec_fix.cpp	\
             meta_requirers_dlg.cpp \
             meta_ruledit_qt.cpp \
+            meta_tab_achievement.cpp	\
             meta_tab_building.cpp \
             meta_tab_counters.cpp \
             meta_tab_enablers.cpp \
@@ -49,6 +51,8 @@ MOC_FILES = \
 freeciv_ruledit_SOURCES =	\
 		conversion_log.cpp \
 		conversion_log.h \
+		edit_extra.cpp	\
+		edit_extra.h	\
 		edit_impr.cpp	\
 		edit_impr.h	\
 		edit_terrain.cpp	\
@@ -57,6 +61,8 @@ freeciv_ruledit_SOURCES =	\
 		edit_utype.h	\
 		effect_edit.cpp	\
 		effect_edit.h	\
+		tab_achievement.cpp	\
+		tab_achievement.h	\
 		tab_building.cpp \
 		tab_building.h	\
 		tab_counters.cpp \

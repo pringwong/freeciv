@@ -290,6 +290,7 @@ enum cursor_type {
   CURSOR_GOTO,
   CURSOR_PATROL,
   CURSOR_PARADROP,
+  CURSOR_TELEPORT,
   CURSOR_NUKE,
   CURSOR_SELECT,
   CURSOR_INVALID,
@@ -415,6 +416,7 @@ struct sprite *get_event_sprite(const struct tileset *t, enum event_type event);
 struct sprite *tiles_lookup_sprite_tag_alt(struct tileset *t,
                                            enum log_level level,
                                            const char *tag, const char *alt,
+                                           const char *alt2,
                                            const char *what,
                                            const char *name,
                                            bool scale);
@@ -460,6 +462,7 @@ const char *tileset_summary(struct tileset *t);
 const char *tileset_description(struct tileset *t);
 char *tileset_what_ruleset(struct tileset *t);
 int tileset_topo_index(struct tileset *t);
+int tileset_svg_flag_height(struct tileset *t);
 
 #ifdef __cplusplus
 }

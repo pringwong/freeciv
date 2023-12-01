@@ -167,10 +167,10 @@ static void surf_destroy_callback(void *data)
   entire image file, which may later be broken up into individual sprites
   with crop_sprite().
 ****************************************************************************/
-struct sprite *load_gfxfile(const char *filename)
+struct sprite *load_gfxfile(const char *filename, bool svgflag)
 {
   struct sprite *spr;
-  GError *err = NULL;;
+  GError *err = NULL;
   GdkPixbuf *pb = gdk_pixbuf_new_from_file(filename, &err);
   int width;
   int height;
@@ -316,10 +316,10 @@ struct sprite *sprite_scale(struct sprite *src, int new_w, int new_h)
 /************************************************************************//**
   Method returns the bounding box of a sprite. It assumes a rectangular
   object/mask. The bounding box contains the border (pixel which have
-  unset pixel as neighbours) pixel.
+  unset pixel as neighbors) pixel.
 ****************************************************************************/
 void sprite_get_bounding_box(struct sprite * sprite, int *start_x,
-			     int *start_y, int *end_x, int *end_y)
+                             int *start_y, int *end_x, int *end_y)
 {
   unsigned char *data = cairo_image_surface_get_data(sprite->surface);
   int width = cairo_image_surface_get_width(sprite->surface);

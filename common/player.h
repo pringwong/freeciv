@@ -60,6 +60,9 @@ enum plrcolor_mode {
 #define SPECENUM_VALUE0NAME "ai"
 #define SPECENUM_VALUE1 PLRF_SCENARIO_RESERVED
 #define SPECENUM_VALUE1NAME "ScenarioReserved"
+/* TRUE if player has ever had a city. */
+#define SPECENUM_VALUE2 PLRF_FIRST_CITY
+#define SPECENUM_VALUE2NAME "FirstCity"
 #define SPECENUM_COUNT  PLRF_COUNT
 #define SPECENUM_BITVECTOR bv_plr_flags
 #include "specenum_gen.h"
@@ -203,14 +206,14 @@ enum dipl_reason {
 
 /* The following are for "pacts" */
 struct player_diplstate {
-  enum diplstate_type type; /* this player's disposition towards other */
-  enum diplstate_type max_state; /* maximum treaty level ever had */
-  int first_contact_turn; /* turn we had first contact with this player */
-  int turns_left; /* until pact (e.g., cease-fire) ends */
-  int has_reason_to_cancel; /* 0: no, 1: this turn, 2: this or next turn */
-  int contact_turns_left; /* until contact ends */
+  enum diplstate_type type;  /* This player's disposition towards other */
+  enum diplstate_type max_state; /* Maximum treaty level ever had */
+  int first_contact_turn;    /* Turn we had first contact with this player */
+  char turns_left;           /* Until pact (e.g., cease-fire) ends */
+  char has_reason_to_cancel; /* 0: no, 1: this turn, 2: this or next turn */
+  char contact_turns_left;   /* Until contact ends */
 
-  int auto_cancel_turn; /* used to avoid asymmetric turns_left */
+  int auto_cancel_turn;      /* Used to avoid asymmetric turns_left */
 };
 
 /***************************************************************************
@@ -326,10 +329,6 @@ struct player
       /* Only used in the server (./ai/ and ./server/). */
       bv_pstatus status;
 
-      bool got_first_city; /* used to give player init_buildings in first
-                            * city. Once set, never becomes unset.
-                            * (Previously 'capital'.) */
-
       struct player_tile *private_map;
 
       /* Player can see inside their borders. */
@@ -436,6 +435,8 @@ bool can_player_see_unit_at(const struct player *pplayer,
 			    const struct unit *punit,
                             const struct tile *ptile,
                             bool is_transported);
+bool can_player_see_tile(const struct player *plr,
+                         const struct tile *ptile);
 
 bool can_player_see_units_in_city(const struct player *pplayer,
 				  const struct city *pcity);
@@ -597,4 +598,4 @@ static inline bool player_is_cpuhog(const struct player *pplayer)
 }
 #endif /* __cplusplus */
 
-#endif  /* FC__PLAYER_H */
+#endif /* FC__PLAYER_H */

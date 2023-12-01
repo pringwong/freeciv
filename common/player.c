@@ -1019,6 +1019,7 @@ bool can_player_see_unit_at(const struct player *pplayer,
 {
   struct city *pcity;
   bool allied;
+  struct unit_class *pclass;
 
   /* If the player can't even see the tile... */
   if (TILE_KNOWN_SEEN != tile_get_known(ptile, pplayer)) {
@@ -1039,26 +1040,41 @@ bool can_player_see_unit_at(const struct player *pplayer,
     return FALSE;
   }
 
-  /* Units within some extras may be hidden. */
-  if (!allied) {
-    const struct unit_type *ptype = unit_type_get(punit);
-
-    extra_type_list_iterate(extra_type_list_of_unit_hiders(), pextra) {
-      if (tile_has_extra(ptile, pextra) && is_native_extra_to_utype(pextra, ptype)) {
-        return FALSE;
-      }
-    } extra_type_list_iterate_end;
+  /* Allied units are always seen.
+   * See also stealth unit hiding part in map_change_seen() */
+  if (allied) {
+    return TRUE;
   }
 
-  /* Allied or non-hiding units are always seen.
+  /* Units within some extras may be hidden. */
+  pclass = unit_class_get(punit);
+
+  extra_type_list_iterate(pclass->cache.hiding_extras, pextra) {
+    if (tile_has_extra(ptile, pextra)) {
+      return FALSE;
+    }
+  } extra_type_list_iterate_end;
+
+  /* Non-hiding units are always seen.
    * See also stealth unit hiding part in map_change_seen() */
-  if (allied || !is_hiding_unit(punit)) {
+  if (!is_hiding_unit(punit)) {
     return TRUE;
   }
 
   /* Hiding units are only seen by the V_INVIS fog layer. */
   return fc_funcs->player_tile_vision_get(ptile, pplayer,
                                           unit_type_get(punit)->vlayer);
+}
+
+/**********************************************************************//**
+  Returns TRUE iff the specified player can see the specified tile.
+**************************************************************************/
+bool can_player_see_tile(const struct player *plr,
+                         const struct tile *ptile)
+{
+  return plr != nullptr
+    && ptile != nullptr
+    && (tile_get_known(ptile, plr) == TILE_KNOWN_SEEN);
 }
 
 /*******************************************************************//**

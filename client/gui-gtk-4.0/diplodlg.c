@@ -237,7 +237,7 @@ static void popup_diplomacy_dialog(struct Treaty *ptreaty, struct player *they,
   gui_dialog_present(pdialog->dialog);
   /* We initated the meeting - Make the tab active */
   if (initiator == client_player()) {
-    /* we have to raise the diplomacy meeting tab as well as the selected
+    /* We have to raise the diplomacy meeting tab as well as the selected
      * meeting. */
     fc_assert_ret(dipl_main != NULL);
     gui_dialog_raise(dipl_main->dialog);
@@ -331,6 +331,7 @@ static GMenu *create_clause_menu(GActionGroup *group,
     const struct research *gresearch = research_get(pgiver);
     const struct research *oresearch = research_get(pother);
     GList *sorting_list = NULL;
+    bool team_embassy = team_has_embassy(pgiver->team, pother);
     int i;
 
     submenu = g_menu_new();
@@ -339,8 +340,9 @@ static GMenu *create_clause_menu(GActionGroup *group,
       Tech_type_id tech = advance_number(padvance);
 
       if (research_invention_state(gresearch, tech) == TECH_KNOWN
-          && research_invention_gettable(oresearch, tech,
-                                         game.info.tech_trade_allow_holes)
+          && (!team_embassy /* We don't know what the other could actually receive */
+              || research_invention_gettable(oresearch, tech,
+                                             game.info.tech_trade_allow_holes))
           && (research_invention_state(oresearch, tech) == TECH_UNKNOWN
               || research_invention_state(oresearch, tech)
                  == TECH_PREREQS_KNOWN)) {
@@ -592,10 +594,10 @@ static void row_callback(GtkTreeView *view, GtkTreePath *path,
   clause_list_iterate(pdialog->treaty->clauses, pclause) {
     if (i == index[0]) {
       dsend_packet_diplomacy_remove_clause_req(&client.conn,
-					       player_number(pdialog->treaty->plr1),
-					       player_number(pclause->from),
-					       pclause->type,
-					       pclause->value);
+                                               player_number(pdialog->treaty->plr1),
+                                               player_number(pclause->from),
+                                               pclause->type,
+                                               pclause->value);
       return;
     }
     i++;
@@ -635,7 +637,7 @@ static struct Diplomacy_notebook *diplomacy_main_create(void)
                           _("Cancel _all meetings"),
                           RESPONSE_CANCEL_MEETING_ALL);
 
-    /* Responces for _all_ meetings. */
+    /* Responses for _all_ meetings. */
     gui_dialog_response_set_callback(dipl_main->dialog,
                                      diplomacy_main_response);
 
@@ -793,7 +795,7 @@ static struct Diplomacy_dialog *create_diplomacy_dialog(struct Treaty *ptreaty,
   gui_dialog_add_button(pdialog->dialog, NULL,
                         _("Cancel meeting"), RESPONSE_CANCEL_MEETING);
 
-  /* Responces for one meeting. */
+  /* Responses for one meeting. */
   gui_dialog_response_set_callback(pdialog->dialog, diplomacy_response);
 
   /* Label for the new meeting. */
@@ -1018,7 +1020,7 @@ static struct Diplomacy_dialog *create_diplomacy_dialog(struct Treaty *ptreaty,
   gtk_box_append(GTK_BOX(vbox), label);
   gtk_box_append(GTK_BOX(vbox), sw);
 
-  gtk_widget_show(mainbox);
+  gtk_widget_set_visible(mainbox, TRUE);
 
   g_signal_connect(view, "row_activated", G_CALLBACK(row_callback), pdialog);
 
@@ -1054,8 +1056,8 @@ static void update_diplomacy_dialog(struct Diplomacy_dialog *pdialog)
   if (blank) {
     gtk_list_store_append(store, &it);
     gtk_list_store_set(store, &it, 0,
-		       _("--- This treaty is blank. "
-		 	 "Please add some clauses. ---"), -1);
+                       _("--- This treaty is blank. "
+                         "Please add some clauses. ---"), -1);
   }
 
   pixbuf = get_thumb_pixbuf(pdialog->treaty->accept0);

@@ -784,6 +784,34 @@ int get_target_bonus_effects(struct effect_list *plist,
 }
 
 /**********************************************************************//**
+  Returns the expected value of the effect of given type for given context,
+  calculating value weighted with probability for each individual effect
+  with given callback using arbitrary additional data passed to it.
+
+  The way of using multipliers is left on the callback.
+**************************************************************************/
+double get_effect_expected_value(const struct req_context *context,
+                                 const struct player *other_player,
+                                 enum effect_type effect_type,
+                                 eft_value_filter_cb weighter,
+                                 void *data, int n_data)
+{
+  double sum = 0.;
+
+  fc_assert_ret_val(weighter, 0.);
+  if (context == NULL) {
+    context = req_context_empty();
+  }
+
+  /* Loop over all effects of this type. */
+  effect_list_iterate(get_effects(effect_type), peffect) {
+    sum += weighter(peffect, context, other_player, data, n_data);
+  } effect_list_iterate_end;
+
+  return sum;
+}
+
+/**********************************************************************//**
   Returns the effect bonus for the whole world.
 **************************************************************************/
 int get_world_bonus(enum effect_type effect_type)
@@ -879,8 +907,8 @@ int get_city_specialist_output_bonus(const struct city *pcity,
   pcity must be supplied.
 
   FIXME: this is now used both for tile bonuses, tile-output bonuses,
-  and city-output bonuses.  Thus ptile or poutput may be NULL for
-  certain callers.  This could be changed by adding 2 new functions to
+  and city-output bonuses. Thus ptile or poutput may be NULL for
+  certain callers. This could be changed by adding 2 new functions to
   the interface but they'd be almost identical and their likely names
   would conflict with functions already in city.c.
   It's also very similar to get_tile_output_bonus(); it should be

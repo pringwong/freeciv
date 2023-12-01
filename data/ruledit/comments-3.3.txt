@@ -44,6 +44,7 @@ buildings = "\
 ;                 and README.effects for help on requirements)\n\
 ; graphic       = icon of improvement (used in city dialog)\n\
 ; graphic_alt   = alternate icon of improvement\n\
+; graphic_alt2  = second alternative icon.\n\
 ; obsolete_by   = requirements for the building to become obsolete\n\
 ; build_cost    = production shields required to build\n\
 ; upkeep        = monetary upkeep value\n\
@@ -329,6 +330,7 @@ utypes = "\
 ;                 present; especially if preferred graphic is non-standard,\n\
 ;                 this should be a standard tag.  Otherwise can use eg \"-\"\n\
 ;                 for no alternate graphic.\n\
+; graphic_alt2  = tag for second alternative graphic.\n\
 ; reqs          = requirements to build the unit (see effects.ruleset\n\
 ;                 and README.effects for help on requirements)\n\
 ; obsolete_by   = can be upgraded to and made obsolete by another unit by name\n\
@@ -346,7 +348,7 @@ utypes = "\
 ; convert_time  = number of movement points it takes to convert to\n\
 ;                 another unit type\n\
 ; class         = One of the classes listed above\n\
-; transport_cap = Number of units (ground, or air/missiles, depending on flags)\n\
+; transport_cap = Max number of units that can be transported.\n\
 ; fuel          = Number of turns unit can spend outside refuel points.\n\
 ;                 If more time passes without unit refueling over turn change,\n\
 ;                 they are lost. If this is zero, unit has no need to refuel\n\
@@ -359,8 +361,9 @@ utypes = "\
 ;                 (but \'Join City\' uses pop_cost)\n\
 ; tp_defense    = Method to decide if unit can be selected as a defender when\n\
 ;                 transported.\n\
-;                   \"Blocked\" - Can't defend when transported\n\
-;                   \"Alight\"   - Can defend if can alight or unload (current default)\n\
+;                   \"Blocked\" - Can\'t defend when transported\n\
+;                   \"Alight\"  - Can defend if can alight or unload (current default)\n\
+;                   \"Always\"  - Can defend even when transported\n\
 ; targets       = list of unit classes this unit can attack against even\n\
 ;                 if they have Unreachable unit class flag\n\
 ; embarks       = list of unit classes this unit may load into while not in\n\
@@ -468,9 +471,6 @@ utypes = "\
 ; \"NoHome\"      = this unit is built with no homecity, free of all upkeep, and\n\
 ;                 therefore will not revolt along with its city of origin should\n\
 ;                 it be incited\n\
-; \"NoVeteran\"   = this unit cannot gain veteran levels through experience\n\
-;                 (as if both base_raise_chance and work_raise_chance were zero);\n\
-;                 it can still gain veterancy through Veteran_Build, etc\n\
 ; \"CityBuster\"  = this unit has double firepower against cities\n\
 ; \"NoBuild\"     = this unit cannot be built\n\
 ; \"BadWallAttacker\" = the firepower of this unit is set to 1 if\n\
@@ -747,8 +747,7 @@ extras = "\
 ;                           (the last three require a corresponding\n\
 ;                           [resource_*] / [base_*] / [road_*] section)\n\
 ; rmcauses                = events that can remove extra type.\n\
-;                           \"CleanPollution\", \"CleanFallout\", \"Pillage\",\n\
-;                           \"Disappear\", or \"Enter\"\n\
+;                           \"Clean\", \"Pillage\", \"Disappear\", or \"Enter\"\n\
 ; infracost               = Number of infrapoints it costs to place this\n\
 ;                           extra. 0, the default, means extra cannot be placed.\n\
 ; graphic                 = tag specifying preferred graphic\n\
@@ -764,6 +763,7 @@ extras = "\
 ;                           This can be \"None\" to indicate that graphic sprite\n\
 ;                           is not needed.\n\
 ; rmact_gfx_alt           = tag for alternative graphic for unit removing extra\n\
+; rmact_gfx_alt2          = tag for second alternative graphic for unit removing extra\n\
 ; reqs                    = requirements to build the extra (see effects.ruleset\n\
 ;                           and README.effects for help on requirements)\n\
 ; rmreqs                  = requirements to remove the extra\n\
@@ -1081,14 +1081,14 @@ trade_settings = "\
 ; For each of the trade route types:\n\
 ; \"pct\"        - Trade income %. If this is 0, trade route cannot be\n\
 ;                established at all\n\
-; \"cancelling\" - What to do to previously established traderoutes when they\n\
+; \"cancelling\" - What to do to previously established trade routes when they\n\
 ;                turn illegal\n\
 ;                \"Active\"   - Keep them active (although they will only\n\
 ;                             provide nonzero income if illegal due to\n\
 ;                             trademindist rather than pct==0)\n\
 ;                \"Inactive\" - Keep them inactive\n\
 ;                \"Cancel\"   - Cancel them altogether\n\
-; \"bonus\"      - One-time bonuses granted when traderoute established\n\
+; \"bonus\"      - One-time bonuses granted when trade route established\n\
 ;                \"None\"     - No one-time bonus\n\
 ;                \"Gold\"     - Bonus to gold\n\
 ;                \"Science\"  - Bonus to research\n\
@@ -1115,7 +1115,7 @@ goods = "\
 ;                           This value is applied to both ends of bidirectional routes.\n\
 ; to_pct                  = Income for the receiving end of the trade route. Default is 100\%\n\
 ;                           This value is not used at all in case of bidirectional routes.\n\
-; onetime_pct             = Onetime bonuses when traderoute is established. Default is 100\%\n\
+; onetime_pct             = Onetime bonuses when trade route gets established. Default is 100\%\n\
 ; flags\n\
 ;   - \"Bidirectional\"     = Trade route carrying the goods does not have \"from\" and \"to\"\n\
 ;                           ends, but both ends are considered the same.\n\
@@ -1268,6 +1268,10 @@ counters = "\n\
 ;                          do not celebrates, counter is zeroed\n\
 ;                          \"Disorder\" - Increased each turn city is in disorder state. In\n\
 ;                          case riots are eliminated, value is zeroed.\n\
+;helptext                = Description about relation with requirement\n\
+;                          vectors (effects, building, units, etc.)\n\
+;                          and when counter req of this counter\n\
+;                          will be fulfilled.
 ; */ <-- avoid gettext warnings\n\
 "
 
@@ -1275,7 +1279,7 @@ counters = "\n\
 ; This section has comments documenting user (custom) flag types
 
 utype = "\
-; Names for custom unit type flags. There can be up to 50 of these.\n\
+; Names for custom unit type flags. There can be up to 51 of these.\n\
 ; name          = rule name; In some circumstances user may see this\n\
 ;                 as part of some sentences, so try to make it descriptive\n\
 ;                 and sensible.\n\

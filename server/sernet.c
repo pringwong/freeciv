@@ -149,6 +149,8 @@ static void handle_stdin_close(void)
 
 #endif /* FREECIV_HAVE_LIBREADLINE || (!FREECIV_SOCKET_ZERO_NOT_STDIN && !FREECIV_HAVE_LIBREADLINE) */
 
+static char *current_internal = NULL;
+
 #ifdef FREECIV_HAVE_LIBREADLINE
 /****************************************************************************/
 
@@ -158,7 +160,6 @@ static void handle_stdin_close(void)
 static char *history_file = NULL;
 static bool readline_handled_input = FALSE;
 static bool readline_initialized = FALSE;
-static char *current_internal = NULL;
 
 /*************************************************************************//**
   Readline callback for input.
@@ -181,9 +182,7 @@ static void handle_readline_input_callback(char *line)
   con_prompt_enter();      /* just got an 'Enter' hit */
   current_internal = local_to_internal_string_malloc(line);
   free(line); /* This is already freed if we exit() with /quit command */
-  (void) handle_stdin_input(NULL, current_internal);
-  free(current_internal); /* Since handle_stdin_input() returned,
-                           * we can be sure this was not freed in atexit. */
+  handle_stdin_input_free(NULL, current_internal);
   current_internal = NULL;
 
   readline_handled_input = TRUE;
@@ -209,12 +208,12 @@ void readline_atexit(void)
     rl_callback_handler_remove();
     readline_initialized = FALSE;
   }
+#endif /* FREECIV_HAVE_LIBREADLINE */
 
   if (current_internal != NULL) {
     free(current_internal);
     current_internal = NULL;
   }
-#endif /* FREECIV_HAVE_LIBREADLINE */
 }
 
 /*************************************************************************//**
@@ -519,7 +518,7 @@ static void incoming_client_packets(struct connection *pconn)
   - input from server operator in stdin
 
   This function also handles prompt printing, via the con_prompt_*
-  functions.  That is, other functions should not need to do so.  --dwp
+  functions. That is, other functions should not need to do so.  --dwp
 *****************************************************************************/
 enum server_events server_sniff_all_input(void)
 {
@@ -543,13 +542,13 @@ enum server_events server_sniff_all_input(void)
         int fcdl = strlen(storage_dir) + 1;
         char *fc_dir = fc_malloc(fcdl);
 
-        if (fc_dir != NULL) {
+        if (fc_dir != nullptr) {
           fc_snprintf(fc_dir, fcdl, "%s", storage_dir);
 
-          if (make_dir(fc_dir)) {
+          if (make_dir(fc_dir, DIRMODE_DEFAULT)) {
             history_file
               = fc_malloc(strlen(fc_dir) + 1 + strlen(HISTORY_FILENAME) + 1);
-            if (history_file) {
+            if (history_file != nullptr) {
               strcpy(history_file, fc_dir);
               strcat(history_file, "/");
               strcat(history_file, HISTORY_FILENAME);
@@ -557,6 +556,7 @@ enum server_events server_sniff_all_input(void)
               read_history(history_file);
             }
           }
+
           FC_FREE(fc_dir);
         }
       }
@@ -825,11 +825,11 @@ enum server_events server_sniff_all_input(void)
     }
 #ifdef FREECIV_SOCKET_ZERO_NOT_STDIN
     if (!no_input && (bufptr = fc_read_console())) {
-      char *bufptr_internal = local_to_internal_string_malloc(bufptr);
+      current_internal = local_to_internal_string_malloc(bufptr);
 
-      con_prompt_enter();     /* will need a new prompt, regardless */
-      handle_stdin_input(NULL, bufptr_internal);
-      free(bufptr_internal);
+      con_prompt_enter();     /* Will need a new prompt, regardless */
+      handle_stdin_input_free(NULL, current_internal);
+      current_internal = NULL;
     }
 #else  /* !FREECIV_SOCKET_ZERO_NOT_STDIN */
     if (!no_input && FD_ISSET(0, &readfs)) {    /* input from server operator */
@@ -842,18 +842,17 @@ enum server_events server_sniff_all_input(void)
       continue;
 #else  /* !FREECIV_HAVE_LIBREADLINE */
       ssize_t didget;
-      char *buffer = NULL; /* Must be NULL when calling getline() */
-      char *buf_internal;
+      char *buffer;
 
 #ifdef HAVE_GETLINE
       size_t len = 0;
 
+      buffer = NULL; /* Must be NULL when calling getline() */
       didget = getline(&buffer, &len, stdin);
       if (didget >= 1) {
-        buffer[didget-1] = '\0'; /* overwrite newline character */
-        didget--;
-        log_debug("Got line: \"%s\" (%ld, %ld)", buffer,
-                  (long int) didget, (long int) len);
+        buffer[--didget] = '\0'; /* Overwrite newline character */
+        log_debug("Got line: \"%s\" (" SIZE_T_PRINTF ", " SIZE_T_PRINTF ")", buffer,
+                  didget, len);
       }
 #else  /* HAVE_GETLINE */
       buffer = malloc(BUF_SIZE + 1);
@@ -862,26 +861,26 @@ enum server_events server_sniff_all_input(void)
       if (didget > 0) {
         buffer[didget] = '\0';
       } else {
-        didget = -1; /* error or end-of-file: closing stdin... */
+        didget = -1; /* Error or end-of-file: closing stdin... */
       }
 #endif /* HAVE_GETLINE */
       if (didget < 0) {
         handle_stdin_close();
       }
 
-      con_prompt_enter();  /* will need a new prompt, regardless */
+      con_prompt_enter();  /* Will need a new prompt, regardless */
 
       if (didget >= 0) {
-        buf_internal = local_to_internal_string_malloc(buffer);
-        handle_stdin_input(NULL, buf_internal);
-        free(buf_internal);
+        current_internal = local_to_internal_string_malloc(buffer);
+        handle_stdin_input_free(NULL, current_internal);
+        current_internal = NULL;
       }
       free(buffer);
 #endif /* !FREECIV_HAVE_LIBREADLINE */
     } else
 #endif /* !FREECIV_SOCKET_ZERO_NOT_STDIN */
 
-    {                             /* input from a player */
+    {                             /* Input from a player */
       for (i = 0; i < MAX_NUM_CONNECTIONS; i++) {
         struct connection *pconn = connections + i;
         int nb;

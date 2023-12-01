@@ -198,7 +198,7 @@ static void real_info_city_report_dialog_update(void)
   }
 
   fc_snprintf(cbuf, sizeof(cbuf), _("size"));
-  pstr = create_utf8_from_char(cbuf, adj_font(10));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
   pstr->style |= SF_CENTER;
   text1 = create_text_surf_from_utf8(pstr);
 
@@ -222,7 +222,7 @@ static void real_info_city_report_dialog_update(void)
   cma_icon = create_icon_from_theme(current_theme->cma_icon, 0);
 
   /* --------------- */
-  pstr = create_utf8_from_char(_("Cities Report"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("Cities Report"), FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -235,23 +235,24 @@ static void real_info_city_report_dialog_update(void)
   area = pwindow->area;
 
   /* ------------------------- */
-  /* exit button */
+  /* Exit button */
   pbuf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                           WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  pbuf->info_label = create_utf8_from_char(_("Close Dialog"), adj_font(12));
+  pbuf->info_label = create_utf8_from_char_fonto(_("Close Dialog"),
+                                                 FONTO_ATTENTION);
   pbuf->action = exit_city_report_callback;
   set_wstate(pbuf, FC_WS_NORMAL);
   pbuf->key = SDLK_ESCAPE;
 
   add_to_gui_list(ID_BUTTON, pbuf);
 
-/* FIXME: not implemented yet */
+/* FIXME: Not implemented yet */
 #if 0
   /* ------------------------- */
   pbuf = create_themeicon(current_theme->info_icon, pwindow->dst,
                           WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  pbuf->info_label = create_str16_from_char(_("Information Report"),
-                                            adj_font(12));
+  pbuf->info_label = create_utf8_from_char_fonto(_("Information Report"),
+                                                 FONTO_ATTENTION);
 /*
   pbuf->action = info_city_report_callback;
   set_wstate(pbuf, FC_WS_NORMAL);
@@ -260,8 +261,8 @@ static void real_info_city_report_dialog_update(void)
   /* -------- */
   pbuf = create_themeicon(current_theme->happy_icon, pwindow->dst,
                           WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  pbuf->info_label = create_str16_from_char(_("Happiness Report"),
-                                            adj_font(12));
+  pbuf->info_label = create_utf8_from_char_fonto(_("Happiness Report"),
+                                                 FONTO_ATTENTION);
 /*
   pbuf->action = happy_city_report_callback;
   set_wstate(pbuf, FC_WS_NORMAL);
@@ -271,8 +272,8 @@ static void real_info_city_report_dialog_update(void)
   pbuf = create_themeicon(current_theme->army_icon, pwindow->dst,
                           WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
 
-  pbuf->info_label = create_str16_from_char(_("Garrison Report"),
-                                            adj_font(12));
+  pbuf->info_label = create_utf8_from_char_fonto(_("Garrison Report"),
+                                                 FONTO_ATTENTION);
 /*
   pbuf->action = army_city_dlg_callback;
   set_wstate(pbuf, FC_WS_NORMAL);
@@ -281,8 +282,8 @@ static void real_info_city_report_dialog_update(void)
   /* -------- */
   pbuf = create_themeicon(current_theme->support_icon, pwindow->dst,
                           WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  pbuf->info_label = create_str16_from_char(_("Maintenance Report"),
-                                            adj_font(12));
+  pbuf->info_label = create_utf8_from_char_fonto(_("Maintenance Report"),
+                                                 FONTO_ATTENTION);
 /*
   pbuf->action = supported_unit_city_dlg_callback;
   set_wstate(pbuf, FC_WS_NORMAL);
@@ -294,7 +295,7 @@ static void real_info_city_report_dialog_update(void)
   last = pbuf;
   count = 0;
   city_list_iterate(client.conn.playing->cities, pcity) {
-    pstr = create_utf8_from_char(city_name_get(pcity), adj_font(12));
+    pstr = create_utf8_from_char_fonto(city_name_get(pcity), FONTO_ATTENTION);
     pstr->style |= TTF_STYLE_BOLD;
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
                             (WF_RESTORE_BACKGROUND | WF_SELECT_WITHOUT_BAR));
@@ -323,7 +324,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", city_size_get(pcity));
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
                             WF_RESTORE_BACKGROUND);
@@ -350,7 +351,7 @@ static void real_info_city_report_dialog_update(void)
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d",
                 pcity->prod[O_FOOD] - pcity->surplus[O_FOOD]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_game_color(COLOR_OVERVIEW_LAND);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -364,7 +365,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->surplus[O_FOOD]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_FOOD_SURPLUS);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -390,7 +391,7 @@ static void real_info_city_report_dialog_update(void)
       break;
     }
 
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     if (togrow < 0) {
       pstr->fgcol.r = 255;
@@ -406,7 +407,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->surplus[O_TRADE]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_TRADE);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -420,7 +421,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->waste[O_TRADE]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
                             WF_RESTORE_BACKGROUND);
@@ -433,7 +434,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->surplus[O_GOLD]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_GOLD);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -447,7 +448,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->prod[O_SCIENCE]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_SCIENCE);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -461,7 +462,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->prod[O_LUXURY]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_LUX);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -476,7 +477,7 @@ static void real_info_city_report_dialog_update(void)
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d",
                 pcity->prod[O_SHIELD] + pcity->waste[O_SHIELD]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_PROD);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -490,7 +491,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->waste[O_SHIELD]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
                             WF_RESTORE_BACKGROUND);
@@ -504,7 +505,7 @@ static void real_info_city_report_dialog_update(void)
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d",
                 pcity->prod[O_SHIELD] + pcity->waste[O_SHIELD] - pcity->surplus[O_SHIELD]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_SUPPORT);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -518,7 +519,7 @@ static void real_info_city_report_dialog_update(void)
 
     /* ----------- */
     fc_snprintf(cbuf, sizeof(cbuf), "%d", pcity->surplus[O_SHIELD]);
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYDLG_TRADE);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -562,8 +563,8 @@ static void real_info_city_report_dialog_update(void)
                   pcity->shield_stock > togrow ? _("\nfinished"): "" );
     }
 
-    /* info string */
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    /* Info string */
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
 
     togrow = city_production_turns_to_build(pcity, TRUE);
@@ -587,7 +588,7 @@ static void real_info_city_report_dialog_update(void)
     pbuf->action = popup_worklist_from_city_report_callback;
     pbuf->data.city = pcity;
 
-    pstr = create_utf8_from_char(cbuf, adj_font(10));
+    pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
     pstr->style |= SF_CENTER;
     pstr->fgcol = *get_theme_color(COLOR_THEME_CITYREP_TEXT);
     pbuf = create_iconlabel(NULL, pwindow->dst, pstr,
@@ -601,7 +602,7 @@ static void real_info_city_report_dialog_update(void)
     pbuf->data.city = pcity;
     pbuf->action = popup_buy_production_from_city_report_callback;
     if (city_can_buy(pcity)) {
-      set_wstate(pbuf, FC_WS_NORMAL);    
+      set_wstate(pbuf, FC_WS_NORMAL);
     }
 
     count += COL;
@@ -609,7 +610,8 @@ static void real_info_city_report_dialog_update(void)
 
   h = hh;
   city_rep->begin_widget_list = pbuf;
-  /* setup window width */
+
+  /* Setup window width */
   area.w = name_w + adj_size(6) + text1->w + adj_size(8) + cma_icon->w
     + (icons->big_food->w + adj_size(6)) * 10 + text2->w + adj_size(6)
     + units_icon->w + adj_size(6) + prod_w + adj_size(170);
@@ -652,35 +654,35 @@ static void real_info_city_report_dialog_update(void)
                       (main_window_width() - pwindow->size.w) / 2,
                       (main_window_height() - pwindow->size.h) / 2);
 
-  /* exit button */
+  /* Exit button */
   pbuf = pwindow->prev;
   pbuf->size.x = area.x + area.w - pbuf->size.w - 1;
   pbuf->size.y = pwindow->size.y + adj_size(2);
 
 /* FIXME: not implemented yet */
 #if 0
-  /* info button */
+  /* Info button */
   pbuf = pbuf->prev;
   pbuf->size.x = area.x + area.w - pbuf->size.w - adj_size(5);
   pbuf->size.y = area.y + area.h - pbuf->size.h - adj_size(5);
 
-  /* happy button */
+  /* Happy button */
   pbuf = pbuf->prev;
   pbuf->size.x = pbuf->next->size.x - adj_size(5) - pbuf->size.w;
   pbuf->size.y = pbuf->next->size.y;
 
-  /* army button */
+  /* Army button */
   pbuf = pbuf->prev;
   pbuf->size.x = pbuf->next->size.x - adj_size(5) - pbuf->size.w;
   pbuf->size.y = pbuf->next->size.y;
 
-  /* supported button */
+  /* Supported button */
   pbuf = pbuf->prev;
   pbuf->size.x = pbuf->next->size.x - adj_size(5) - pbuf->size.w;
   pbuf->size.y = pbuf->next->size.y;
 #endif /* 0 */
 
-  /* cities background and labels */
+  /* Cities background and labels */
   dst.x = area.x + adj_size(2);
   dst.y = area.y + 1;
   dst.w = (name_w + adj_size(6)) + (text1->w + adj_size(8)) + adj_size(5);
@@ -696,13 +698,13 @@ static void real_info_city_report_dialog_update(void)
   alphablit(text3, NULL, pwindow->theme, &dst, 255);
   FREESURFACE(text3);
 
-  /* city size background and label */
+  /* City size background and label */
   dst.x = area.x + adj_size(5) + name_w + adj_size(5 + 4);
   alphablit(text1, NULL, pwindow->theme, &dst, 255);
   ww = text1->w;
   FREESURFACE(text1);
 
-  /* cma icon */
+  /* CMA icon */
   dst.x += (ww + adj_size(9));
   dst.y = area.y + 1 + (text2->h - cma_icon->h) / 2;
   alphablit(cma_icon, NULL, pwindow->theme, &dst, 255);
@@ -710,7 +712,7 @@ static void real_info_city_report_dialog_update(void)
   FREESURFACE(cma_icon);
 
   /* -------------- */
-  /* populations food unkeep background and label */
+  /* Populations food upkeep background and label */
   dst.x += (ww + 1);
   dst.y = area.y + 1;
   w = dst.x + adj_size(2);
@@ -729,12 +731,12 @@ static void real_info_city_report_dialog_update(void)
   dst.x += adj_size(5);
   alphablit(icons->big_food, NULL, pwindow->theme, &dst, 255);
 
-  /* food surplus Icon */
+  /* Food surplus icon */
   w += (icons->big_food->w + adj_size(6)) + adj_size(10);
   dst.x = w + adj_size(3);
   alphablit(icons->big_food_surplus, NULL, pwindow->theme, &dst, 255);
 
-  /* to grow label */
+  /* To grow label */
   w += (icons->big_food_surplus->w + adj_size(6)) + adj_size(10);
   dst.x = w + adj_size(3);
   dst.y = area.y + 1;
@@ -744,7 +746,7 @@ static void real_info_city_report_dialog_update(void)
   FREESURFACE(text2);
   /* -------------- */
 
-  /* trade, corruptions, gold, science, luxury income background and label */
+  /* Trade, corruptions, gold, science, luxury income background and label */
   dst.x = w + (ww + adj_size(8));
   dst.y = area.y + 1;
   w = dst.x + adj_size(2);
@@ -783,7 +785,7 @@ static void real_info_city_report_dialog_update(void)
   alphablit(icons->big_luxury, NULL, pwindow->theme, &dst, 255);
   /* --------------------- */
 
-  /* total productions, waste, support, shields surplus background and label */
+  /* Total productions, waste, support, shields surplus background and label */
   w += (icons->big_luxury->w + adj_size(6)) + adj_size(4);
   dst.x = w;
   w += adj_size(2);
@@ -823,7 +825,6 @@ static void real_info_city_report_dialog_update(void)
 
   w += (icons->big_shield_surplus->w + adj_size(6)) + adj_size(10);
   dst.x = w;
-  w += adj_size(2);
   dst.y = area.y + 1;
   dst.w = adj_size(36) + adj_size(5) + prod_w;
   dst.h = hh + adj_size(2);
@@ -846,90 +847,91 @@ static void real_info_city_report_dialog_update(void)
 
     h += adj_size(2);
     pbuf = pbuf->prev;
+
     while (TRUE) {
 
-      /* city name */
+      /* City name */
       pbuf->size.x = start_x;
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
       pbuf->size.w = name_w;
 
-      /* city size */
+      /* City size */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(5);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* cma */
+      /* CMA */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(6);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* food cons. */
+      /* Food cons. */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(6);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* food surplus */
+      /* Food surplus */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* time to grow */
+      /* Time to grow */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* trade */
+      /* Trade */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(5);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* trade corruptions */
+      /* Trade corruptions */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* net gold income */
+      /* Net gold income */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* science income */
+      /* Science income */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* luxuries income */
+      /* Luxuries income */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* total production */
+      /* Total production */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(6);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* waste */
+      /* Waste */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* units support */
+      /* Units support */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* producrion surplus */
+      /* Production surplus */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* currently build */
-      /* icon */
+      /* Currently build */
+      /* Icon */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(10);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
 
-      /* label */
+      /* Label */
       pbuf = pbuf->prev;
       pbuf->size.x = pbuf->next->size.x + pbuf->next->size.w + adj_size(5);
       pbuf->size.y = start_y + (h - pbuf->size.h) / 2;
@@ -949,6 +951,7 @@ static void real_info_city_report_dialog_update(void)
     }
 
   }
+
   /* ----------------------------------- */
   redraw_group(city_rep->begin_widget_list, pwindow, 0);
   widget_mark_dirty(pwindow);

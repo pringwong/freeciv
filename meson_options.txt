@@ -1,12 +1,12 @@
 option('clients',
        type: 'array',
-       choices: ['gtk3.22','sdl2', 'qt', 'gtk4', 'stub'],
+       choices: ['gtk3.22','sdl2', 'qt', 'gtk4', 'stub', 'sdl3', 'gtk4x'],
        value: ['gtk3.22'],
        description: 'Clients to build')
 
 option('fcmp',
        type: 'array',
-       choices: ['gtk3','qt','cli','gtk4'],
+       choices: ['gtk3','qt','cli','gtk4', 'gtk4x'],
        value: ['gtk3'],
        description: 'Modpack installer UIs to build')
 
@@ -65,10 +65,11 @@ option('gitrev',
        value: false,
        description: 'Include git commit id to the version string')
 
-option('freeciv-web',
-       type: 'boolean',
-       value: false,
-       description: 'Make a freeciv-web server build instead of normal one')
+option('server',
+       type: 'combo',
+       choices: ['disabled', 'enabled', 'freeciv-web' ],
+       value: 'enabled',
+       description: 'What kind of server should be build, if any')
 
 option('gen-packets-args',
        type: 'array',
@@ -84,9 +85,14 @@ option('qtver',
 option('project-definition',
        type: 'string',
        value: '',
-       description: 'File with project defition')
+       description: 'File with project definition')
 
 option('min-win-ver',
        type: 'string',
        value: '',
        description: 'Minimum Windows version to support')
+
+option('svgflags',
+       type: 'boolean',
+       value: false,
+       description: 'svg flags features enabled on build level')

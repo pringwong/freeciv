@@ -42,9 +42,10 @@
 #include "handicaps.h"
 
 /* ai/default */
-#include "aitools.h"
 #include "daicity.h"
 #include "daiplayer.h"
+#include "daitools.h"
+#include "daiunit.h"
 
 #include "aiair.h"
 
@@ -73,8 +74,8 @@ static inline int regen_turns(struct unit *punit, struct tile *ptile,
 }
 
 /******************************************************************//**
-  Looks for nearest airbase for punit reachable imediatly.
-  Returns NULL if not found.  The path is stored in the path
+  Looks for nearest airbase for punit reachable immediately.
+  Returns NULL if not found. The path is stored in the path
   argument if not NULL.
   If the unit is damaged, flies to an airbase that can repair
   the unit in a minimal number of turns.
@@ -92,8 +93,9 @@ static struct tile *find_nearest_airbase(struct unit *punit,
   struct tile *best = NULL;
   int lost_hp = unit_type_get(punit)->hp - punit->hp;
   int best_regt = FC_INFINITY;
+  const struct civ_map *nmap = &(wld.map);
 
-  pft_fill_unit_parameter(&parameter, punit);
+  pft_fill_unit_parameter(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   pfm = pf_map_new(&parameter);
 
@@ -112,7 +114,7 @@ static struct tile *find_nearest_airbase(struct unit *punit,
           best = ptile;
           break;
         } else if (!best || regt < best_regt) {
-          /* regenerates faster */
+          /* Regenerates faster */
           best_regt = regt;
           best = ptile;
         }
@@ -140,8 +142,8 @@ static bool dai_should_we_air_attack_tile(struct ai_type *ait,
   struct city *acity = tile_city(ptile);
 
   /* For a virtual unit (punit->id == 0), all targets are good */
-  /* TODO: There is a danger of producing too many units that will not 
-   * attack anything.  Production should not happen if there is an idle 
+  /* TODO: There is a danger of producing too many units that will not
+   * attack anything. Production should not happen if there is an idle
    * unit of the same type nearby */
   if (acity && punit->id != 0
       && def_ai_city_data(acity, ait)->invasion.occupy == 0
@@ -163,18 +165,20 @@ static adv_want dai_evaluate_tile_for_air_attack(struct unit *punit,
                                                  struct tile *dst_tile)
 {
   struct unit *pdefender;
-  /* unit costs in shields */
+  /* Unit costs in shields */
   int balanced_cost, unit_cost, victim_cost = 0;
-  /* unit stats */
+  /* Unit stats */
   int unit_attack, victim_defense;
-  /* final answer */
+  /* Final answer */
   adv_want profit;
-  /* time spent in the air */
+  /* Time spent in the air */
   int sortie_time;
-#define PROB_MULTIPLIER 100 /* should unify with those in combat.c */
+  struct civ_map *nmap = &(wld.map);
+
+#define PROB_MULTIPLIER 100 /* Should unify with those in combat.c */
 
   if (!can_unit_attack_tile(punit, NULL, dst_tile)
-      || !(pdefender = get_defender(punit, dst_tile, NULL))) {
+      || !(pdefender = get_defender(nmap, punit, dst_tile, NULL))) {
     return 0;
   }
 
@@ -199,19 +203,20 @@ static adv_want dai_evaluate_tile_for_air_attack(struct unit *punit,
   }
 
   unit_attack = (int) (PROB_MULTIPLIER
-                       * unit_win_chance(punit, pdefender, NULL));
+                       * unit_win_chance(nmap, punit, pdefender, NULL));
 
   victim_defense = PROB_MULTIPLIER - unit_attack;
 
   balanced_cost = build_cost_balanced(unit_type_get(punit));
 
-  sortie_time = (utype_pays_mp_for_action_estimate(
-                 action_by_number(ACTION_ATTACK),
-                 unit_type_get(punit), unit_owner(punit),
-                 /* Assume that dst_tile is closer to the tile the actor
-                  * unit will attack from than its current tile. */
-                 dst_tile,
-                 dst_tile) >= MAX_MOVE_FRAGS ? 1 : 0);
+  sortie_time
+    = (utype_pays_mp_for_action_estimate(nmap,
+                                         action_by_number(ACTION_ATTACK),
+                                         unit_type_get(punit), unit_owner(punit),
+                                         /* Assume that dst_tile is closer to the tile the actor
+                                          * unit will attack from than its current tile. */
+                                         dst_tile,
+                                         dst_tile) >= MAX_MOVE_FRAGS ? 1 : 0);
 
   profit = kill_desire(victim_cost, unit_attack, unit_cost, victim_defense, 1)
     - SHIELD_WEIGHTING + 2 * TRADE_WEIGHTING;
@@ -234,7 +239,7 @@ static adv_want dai_evaluate_tile_for_air_attack(struct unit *punit,
 /******************************************************************//**
   Find something to bomb
   Air-units specific victim search
-  Returns the want for the best target.  The targets are stored in the
+  Returns the want for the best target. The targets are stored in the
   path and pptile arguments if not NULL.
   TODO: take counterattack dangers into account
   TODO: make separate handicaps for air units seeing targets
@@ -248,8 +253,9 @@ static adv_want find_something_to_bomb(struct ai_type *ait, struct unit *punit,
   struct pf_map *pfm;
   struct tile *best_tile = NULL;
   adv_want best = 0;
+  const struct civ_map *nmap = &(wld.map);
 
-  pft_fill_unit_parameter(&parameter, punit);
+  pft_fill_unit_parameter(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   pfm = pf_map_new(&parameter);
 
@@ -324,6 +330,7 @@ static struct tile *dai_find_strategic_airbase(struct ai_type *ait,
   int regen_turns_min = FC_INFINITY;
   bool defend = FALSE; /* Used only for lost_hp > 0 */
   bool refuel_start = FALSE; /* Used for not a "grave danger" start */
+  const struct civ_map *nmap = &(wld.map);
 
   /* Consider staying at the current position
    * before we generate the map, maybe we should not */
@@ -368,7 +375,8 @@ static struct tile *dai_find_strategic_airbase(struct ai_type *ait,
       refuel_start = TRUE;
     }
   }
-  pft_fill_unit_parameter(&parameter, punit);
+
+  pft_fill_unit_parameter(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   pfm = pf_map_new(&parameter);
   pf_map_move_costs_iterate(pfm, ptile, move_cost, FALSE) {
@@ -585,7 +593,8 @@ bool dai_choose_attacker_air(struct ai_type *ait, struct player *pplayer,
 
   /* military_advisor_choose_build() does something idiotic,
    * this function should not be called if there is danger... */
-  if (choice->want >= 100 && choice->type != CT_ATTACKER) {
+  if (choice->want >= DAI_WANT_MILITARY_EMERGENCY
+      && choice->type != CT_ATTACKER) {
     return FALSE;
   }
 

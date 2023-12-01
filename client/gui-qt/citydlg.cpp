@@ -147,7 +147,7 @@ void progress_bar::set_pixmap(int n)
 {
   struct sprite *sprite;
 
-  if (valid_advance_by_number(n)) {
+  if (valid_advance_by_number(n) && !is_future_tech(n)) {
     sprite = get_tech_sprite(tileset, n);
   } else {
     sprite = nullptr;
@@ -605,23 +605,23 @@ void impr_item::wheelEvent(QWheelEvent *event)
 ****************************************************************************/
 void impr_item::mouseDoubleClickEvent(QMouseEvent *event)
 {
-  hud_message_box *ask;
-  QString s;
-  char buf[256];
-  int price;
-  const int impr_id = improvement_number(impr);
-  const int city_id = dlgcity->id;
-
   if (!can_client_issue_orders()) {
     return;
   }
 
   if (event->button() == Qt::LeftButton) {
-    ask = new hud_message_box(city_dlg);
-    if (test_player_sell_building_now(client.conn.playing, dlgcity,
+    char buf[256];
+    int price;
+    const int impr_id = improvement_number(impr);
+    const int city_id = dlgcity->id;
+    hud_message_box *ask;
+
+    if (test_player_sell_building_now(client_player(), dlgcity,
                                       impr) != TR_SUCCESS) {
       return;
     }
+
+    ask = new hud_message_box(city_dlg);
 
     price = impr_sell_gold(impr);
     fc_snprintf(buf, ARRAY_SIZE(buf),
@@ -635,7 +635,7 @@ void impr_item::mouseDoubleClickEvent(QMouseEvent *event)
     connect(ask, &hud_message_box::accepted, [=]() {
       struct city *pcity = game_city_by_number(city_id);
 
-      if (!pcity) {
+      if (pcity == nullptr) {
         return;
       }
       city_sell_improvement(pcity, impr_id);
@@ -839,7 +839,7 @@ void unit_item::create_actions()
     load = NULL;
   }
 
-  if (units_can_unload(qunits)) {
+  if (units_can_unload(&(wld.map), qunits)) {
     unload = new QAction(_("Unload"), this);
     connect(unload, &QAction::triggered, this, &unit_item::unload_unit);
   } else {
@@ -1337,8 +1337,7 @@ void city_map::context_menu(QPoint point)
   QAction *con_mine = nullptr;
   QAction *con_road = nullptr;
   QAction *con_trfrm = nullptr;
-  QAction *con_pollution = nullptr;
-  QAction *con_fallout = nullptr;
+  QAction *con_clean = nullptr;
   QAction *con_clear = nullptr;
   QMenu *con_menu;
   QWidgetAction *wid_act;
@@ -1368,7 +1367,7 @@ void city_map::context_menu(QPoint point)
   ptask = worker_task_list_get(mcity->task_reqs, 0);
 
   wid_act = new QWidgetAction(this);
-  wid_act->setDefaultWidget(new QLabel(_("Autosettler activity:")));
+  wid_act->setDefaultWidget(new QLabel(_("Autoworker activity:")));
 
   con_menu = new QMenu(this);
   con_menu->addAction(wid_act);
@@ -1399,14 +1398,9 @@ void city_map::context_menu(QPoint point)
     con_road = con_menu->addAction(_("Road"));
   }
 
-  if (prev_extra_in_tile(ptile, ERM_CLEANPOLLUTION,
+  if (prev_extra_in_tile(ptile, ERM_CLEAN,
                          city_owner(mcity), NULL) != NULL) {
-    con_pollution = con_menu->addAction(_("Clean Pollution"));
-  }
-
-  if (prev_extra_in_tile(ptile, ERM_CLEANFALLOUT,
-                         city_owner(mcity), NULL) != NULL) {
-    con_fallout = con_menu->addAction(_("Clean Fallout"));
+    con_clean = con_menu->addAction(_("Clean"));
   }
 
   if (ptask != NULL) {
@@ -1440,11 +1434,8 @@ void city_map::context_menu(QPoint point)
       task.activity = ACTIVITY_CULTIVATE;
     } else if (act == con_trfrm) {
       task.activity = ACTIVITY_TRANSFORM;
-    } else if (act == con_pollution) {
-      task.activity = ACTIVITY_POLLUTION;
-      target = TRUE;
-    } else if (act == con_fallout) {
-      task.activity = ACTIVITY_FALLOUT;
+    } else if (act == con_clean) {
+      task.activity = ACTIVITY_CLEAN;
       target = TRUE;
     } else if (act == con_clear) {
       task.activity = ACTIVITY_LAST;

@@ -133,10 +133,10 @@ enum counter_target { CTGT_CITY };
 /* Not performing any activity right now */
 #define SPECENUM_VALUE0 ACTIVITY_IDLE
 #define SPECENUM_VALUE0NAME N_("Idle")
-/* Action with the result ACTRES_CLEAN_POLLUTION */
-#define SPECENUM_VALUE1 ACTIVITY_POLLUTION
-#define SPECENUM_VALUE1NAME N_("Pollution")
 /* Action with the result ACTRES_CULTIVATE */
+#define SPECENUM_VALUE1 ACTIVITY_CULTIVATE
+#define SPECENUM_VALUE1NAME N_("Cultivate")
+/* Action with the result ACTRES_MINE */
 #define SPECENUM_VALUE2 ACTIVITY_MINE
 #define SPECENUM_VALUE2NAME N_("?act:Mine")
 /* Action with the result ACTRES_IRRIGATE */
@@ -163,9 +163,9 @@ enum counter_target { CTGT_CITY };
 /* Action with the result ACTRES_FORTIFY */
 #define SPECENUM_VALUE10 ACTIVITY_FORTIFYING
 #define SPECENUM_VALUE10NAME N_("Fortifying")
-/* Action with the result ACTRES_CLEAN_FALLOUT */
-#define SPECENUM_VALUE11 ACTIVITY_FALLOUT
-#define SPECENUM_VALUE11NAME N_("Fallout")
+/* Action with the result ACTRES_CLEAN */
+#define SPECENUM_VALUE11 ACTIVITY_CLEAN
+#define SPECENUM_VALUE11NAME N_("Clean")
 /* Action with the result ACTRES_BASE */
 #define SPECENUM_VALUE12 ACTIVITY_BASE
 #define SPECENUM_VALUE12NAME N_("Base")
@@ -175,15 +175,9 @@ enum counter_target { CTGT_CITY };
 /* Action with the result ACTRES_CONVERT */
 #define SPECENUM_VALUE14 ACTIVITY_CONVERT
 #define SPECENUM_VALUE14NAME N_("Convert")
-/* Action with the result ACTRES_CULTIVATE */
-#define SPECENUM_VALUE15 ACTIVITY_CULTIVATE
-#define SPECENUM_VALUE15NAME N_("Cultivate")
 /* Action with the result ACTRES_PLANT */
-#define SPECENUM_VALUE16 ACTIVITY_PLANT
-#define SPECENUM_VALUE16NAME N_("Plant")
-/* Action with the result ACTRES_CLEAN */
-#define SPECENUM_VALUE17 ACTIVITY_CLEAN
-#define SPECENUM_VALUE17NAME N_("Clean")
+#define SPECENUM_VALUE15 ACTIVITY_PLANT
+#define SPECENUM_VALUE15NAME N_("Plant")
 /* Number of activities */
 #define SPECENUM_COUNT ACTIVITY_LAST
 #include "specenum_gen.h"
@@ -283,10 +277,11 @@ enum counter_target { CTGT_CITY };
 #define SPECENUM_VALUE44NAME "Unit Build Mine"
 #define SPECENUM_VALUE45 ACTRES_IRRIGATE
 #define SPECENUM_VALUE45NAME "Unit Build Irrigation"
-#define SPECENUM_VALUE46 ACTRES_CLEAN_POLLUTION
-#define SPECENUM_VALUE46NAME "Unit Clean Pollution"
-#define SPECENUM_VALUE47 ACTRES_CLEAN_FALLOUT
-#define SPECENUM_VALUE47NAME "Unit Clean Fallout"
+/* TODO: Rearrange action results to get rid of these */
+#define SPECENUM_VALUE46 ACTRES_UNUSED_1
+#define SPECENUM_VALUE46NAME "Unused1"
+#define SPECENUM_VALUE47 ACTRES_UNUSED_2
+#define SPECENUM_VALUE47NAME "Unused2"
 #define SPECENUM_VALUE48 ACTRES_TRANSPORT_DEBOARD
 #define SPECENUM_VALUE48NAME "Unit Transport Deboard"
 #define SPECENUM_VALUE49 ACTRES_TRANSPORT_UNLOAD
@@ -573,6 +568,8 @@ const char *ai_level_name_update_cb(const char *old);
 #define SPECENUM_VALUE2NAME "Disorder"
 #define SPECENUM_VALUE3 CITYS_CELEBRATION
 #define SPECENUM_VALUE3NAME "Celebration"
+#define SPECENUM_VALUE4 CITYS_TRANSFERRED
+#define SPECENUM_VALUE4NAME "Transferred"
 #define SPECENUM_COUNT CITYS_LAST
 #include "specenum_gen.h"
 
@@ -902,6 +899,8 @@ BV_DEFINE(bv_startpos_nations, MAX_NUM_STARTPOS_NATIONS);
 #define SPECENUM_VALUE7NAME "web"
 #define SPECENUM_VALUE8 GUI_GTK4
 #define SPECENUM_VALUE8NAME "gtk4"
+#define SPECENUM_VALUE9 GUI_GTK5
+#define SPECENUM_VALUE9NAME "gtk4x"
 #include "specenum_gen.h"
 
 /* Used in the network protocol. */
@@ -1092,14 +1091,12 @@ FC_STATIC_ASSERT(EC_COUNT < 16, extra_causes_over_limit);
 #define SPECENUM_NAME extra_rmcause
 #define SPECENUM_VALUE0 ERM_PILLAGE
 #define SPECENUM_VALUE0NAME "Pillage"
-#define SPECENUM_VALUE1 ERM_CLEANPOLLUTION
-#define SPECENUM_VALUE1NAME "CleanPollution"
-#define SPECENUM_VALUE2 ERM_CLEANFALLOUT
-#define SPECENUM_VALUE2NAME "CleanFallout"
-#define SPECENUM_VALUE3 ERM_DISAPPEARANCE
-#define SPECENUM_VALUE3NAME "Disappear"
-#define SPECENUM_VALUE4 ERM_ENTER
-#define SPECENUM_VALUE4NAME "Enter"
+#define SPECENUM_VALUE1 ERM_CLEAN
+#define SPECENUM_VALUE1NAME "Clean"
+#define SPECENUM_VALUE2 ERM_DISAPPEARANCE
+#define SPECENUM_VALUE2NAME "Disappear"
+#define SPECENUM_VALUE3 ERM_ENTER
+#define SPECENUM_VALUE3NAME "Enter"
 #define SPECENUM_COUNT ERM_COUNT
 #define SPECENUM_BITVECTOR bv_rmcauses
 #include "specenum_gen.h"
@@ -1358,6 +1355,16 @@ typedef float adv_want;
 #define SPECENUM_VALUE0NAME "Alight"
 #define SPECENUM_VALUE1 TDT_BLOCKED
 #define SPECENUM_VALUE1NAME "Blocked"
+#define SPECENUM_VALUE2 TDT_ALWAYS
+#define SPECENUM_VALUE2NAME "Always"
+#include "specenum_gen.h"
+
+/* Used in the savegames, by numeric value. */
+#define SPECENUM_NAME city_acquire_type
+#define SPECENUM_VALUE0 CACQ_CONQUEST
+#define SPECENUM_VALUE0NAME "Conquest"
+#define SPECENUM_VALUE1 CACQ_FOUNDED
+#define SPECENUM_VALUE1NAME "Founded"
 #include "specenum_gen.h"
 
 #ifdef __cplusplus

@@ -267,7 +267,7 @@ static gboolean science_diagram_right_button_up(GtkGestureClick *gesture,
 static void science_diagram_update(GtkDrawingArea *widget, cairo_t *cr,
                                    int width, int height, gpointer data)
 {
-  /* FIXME: this currently redraws everything! */
+  /* FIXME: This currently redraws everything! */
   struct canvas canvas = FC_STATIC_CANVAS_INIT;
   struct reqtree *reqtree = g_object_get_data(G_OBJECT(widget), "reqtree");
   int rtwidth, rtheight;
@@ -275,7 +275,7 @@ static void science_diagram_update(GtkDrawingArea *widget, cairo_t *cr,
   GtkAdjustment *vadjustment;
   gint hadjustment_value;
   gint vadjustment_value;
-  GtkScrolledWindow *sw;
+  GtkViewport *vp;
 
   if (!tileset_is_fully_loaded()) {
     return;
@@ -284,9 +284,9 @@ static void science_diagram_update(GtkDrawingArea *widget, cairo_t *cr,
   get_reqtree_dimensions(reqtree, &rtwidth, &rtheight);
   gtk_widget_set_size_request(GTK_WIDGET(widget), rtwidth, rtheight);
 
-  sw = GTK_SCROLLED_WINDOW(gtk_widget_get_parent(GTK_WIDGET(widget)));
-  hadjustment = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(sw));
-  vadjustment = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(sw));
+  vp = GTK_VIEWPORT(gtk_widget_get_parent(GTK_WIDGET(widget)));
+  hadjustment = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(vp));
+  vadjustment = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(vp));
 
   hadjustment_value = (gint)gtk_adjustment_get_value(hadjustment);
   vadjustment_value = (gint)gtk_adjustment_get_value(vadjustment);
@@ -350,13 +350,9 @@ static void science_diagram_data(GtkWidget *widget, bool show_all)
 ****************************************************************************/
 static void science_diagram_center(GtkWidget *diagram, Tech_type_id tech)
 {
-  GtkScrolledWindow *sw = GTK_SCROLLED_WINDOW(gtk_widget_get_parent(diagram));
+  GtkViewport *vp = GTK_VIEWPORT(gtk_widget_get_parent(diagram));
   struct reqtree *reqtree;
   int x, y, width, height;
-
-  if (!GTK_IS_SCROLLED_WINDOW(sw)) {
-    return;
-  }
 
   reqtree = g_object_get_data(G_OBJECT(diagram), "reqtree");
   get_reqtree_dimensions(reqtree, &width, &height);
@@ -364,13 +360,13 @@ static void science_diagram_center(GtkWidget *diagram, Tech_type_id tech)
     GtkAdjustment *adjust = NULL;
     gdouble value;
 
-    adjust = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(sw));
+    adjust = gtk_scrollable_get_hadjustment(GTK_SCROLLABLE(vp));
     value = (gtk_adjustment_get_lower(adjust)
       + gtk_adjustment_get_upper(adjust)
       - gtk_adjustment_get_page_size(adjust)) / width * x;
     gtk_adjustment_set_value(adjust, value);
 
-    adjust = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(sw));
+    adjust = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(vp));
     value = (gtk_adjustment_get_lower(adjust)
       + gtk_adjustment_get_upper(adjust)
       - gtk_adjustment_get_page_size(adjust)) / height * y;
@@ -828,7 +824,7 @@ enum economy_report_columns {
   ERD_COL_COUNT,
   ERD_COL_COST,
   ERD_COL_TOTAL_COST,
-  ERD_COL_EMPTY,  /*  will make an empty space for scroll bar */
+  ERD_COL_EMPTY,  /*  Will make an empty space for scroll bar */
 
   /* Not visible. */
   ERD_COL_IS_IMPROVEMENT,
@@ -877,12 +873,12 @@ economy_report_column_name(enum economy_report_columns col)
     /* TRANS: Upkeep total, count*cost. */
     return _("U Total");
   case ERD_COL_EMPTY:
-    /* empty space for scrollbar*/
+    /* Empty space for scrollbar*/
     return "   ";
   case ERD_COL_IS_IMPROVEMENT:
   case ERD_COL_CID:
   case ERD_COL_NUM:
-    break;	/* no more columns will be displayed after reaching this */
+    break;      /* No more columns will be displayed after reaching this */
   }
 
   return NULL;
@@ -1027,6 +1023,7 @@ static void economy_report_command_callback(struct gui_dialog *pdialog,
               || (ERD_RES_SELL_REDUNDANT == response))) {
         bool redundant = (ERD_RES_SELL_REDUNDANT == response);
         gint count;
+
         gtk_tree_model_get(model, &iter,
                            redundant ? ERD_COL_REDUNDANT : ERD_COL_COUNT,
                            &count, -1);
@@ -1121,6 +1118,7 @@ static void economy_report_selection_callback(GtkTreeSelection *selection,
       {
         bool can_sell = can_sell_building(selected.value.building);
         gint redundant;
+
         gtk_tree_model_get(model, &iter, ERD_COL_REDUNDANT, &redundant, -1);
 
         gui_dialog_set_response_sensitive(pdialog, ERD_RES_SELL_REDUNDANT,
@@ -1201,6 +1199,7 @@ static void economy_report_init(struct economy_report *preport)
 #endif
     } else {
       bool is_redundant = (i == ERD_COL_REDUNDANT);
+
       renderer = gtk_cell_renderer_text_new();
       if (is_redundant) {
         /* Special treatment: hide "Redundant" column for units */
@@ -1331,7 +1330,7 @@ enum units_report_columns {
   URD_COL_SHIELD,
   URD_COL_FOOD,
   URD_COL_GOLD,
-  URD_COL_EMPTY,	/* empty space for scrollbar */
+  URD_COL_EMPTY,        /* Empty space for scrollbar */
 
   /* Not visible. */
   URD_COL_TEXT_WEIGHT,
@@ -1721,11 +1720,12 @@ static void units_report_init(struct units_report *preport)
 
     if (strlen(unit_report_columns[i].title) > 0) {
       GtkWidget *header = gtk_label_new(Q_(unit_report_columns[i].title));
+
       if (unit_report_columns[i].tooltip) {
         gtk_widget_set_tooltip_text(header,
                                     Q_(unit_report_columns[i].tooltip));
       }
-      gtk_widget_show(header);
+      gtk_widget_set_visible(header, TRUE);
       col = gtk_tree_view_column_new();
       gtk_tree_view_column_set_widget(col, header);
       if (unit_report_columns[i].rightalign) {

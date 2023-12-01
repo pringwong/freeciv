@@ -25,7 +25,7 @@ void gtk_expose_now(GtkWidget *w);
 
 void intl_slist(int n, const char **s, bool *done);
 
-/* the standard GTK+ 2.0 API is braindamaged. this is slightly better! */
+/* The standard GTK+ 2.0 API is braindamaged. this is slightly better! */
 
 typedef struct
 {

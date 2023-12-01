@@ -31,6 +31,9 @@ normal_tile_height = 64
 small_tile_width   = 15
 small_tile_height  = 20
 
+; The height svg flags should be drawn to, if they are used
+svg_height = 44
+
 ; Basic tile style.
 hex_side = 16
 is_hex = TRUE
@@ -161,6 +164,7 @@ files =
   "misc/icons.spec",
   "misc/editor.spec",
   "cimpletoon/orient_units.spec",
+  "cimpletoon/units/storm/xxx.spec",
   "amplio2/nuke.spec",
   "amplio2/explosions.spec",
   "hexemplio/activities.spec",
@@ -183,7 +187,7 @@ files =
   "hexemplio/water1.spec",
   "hexemplio/water2.spec",
   "hexemplio/water3.spec",
-  ;add XYZ and Elefant units
+  ; Add XYZ and Elefant units
   "cimpletoon/units/abrams/xxx.spec",
   "cimpletoon/units/assaultgun/xxx.spec",
   "cimpletoon/units/biplane/xxx.spec",

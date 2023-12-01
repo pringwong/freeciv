@@ -182,9 +182,9 @@ void tilespec_setup_city_icons(void)
   load_city_icon_surface(spr, big_colb, "city.colb");
   load_city_icon_surface(spr, pBIG_Face, "city.red_face");
   load_city_icon_surface(spr, big_coin_corr, "city.dark_coin");
-  load_city_icon_surface(spr, big_coin_upkeep, "city.unkeep_coin");
+  load_city_icon_surface(spr, big_coin_upkeep, "city.upkeep_coin");
 
-  /* small icon */
+  /* Small icon */
   load_city_icon_surface(spr, food, "city.small_food");
   load_city_icon_surface(spr, shield, "city.small_shield");
   load_city_icon_surface(spr, trade, "city.small_trade");
@@ -217,7 +217,7 @@ void tilespec_setup_city_icons(void)
 
   /* ================================================================= */
 
-  /* force reload citizens icons */
+  /* Force reload citizens icons */
   icons->style = 999;
 }
 
@@ -323,7 +323,7 @@ void tilespec_setup_theme(void)
   load_order_theme_surface(buf, order_icon, "theme.order_empty");
   load_order_theme_surface(buf, o_autoconnect_icon, "theme.order_auto_connect");
   load_order_theme_surface(buf, o_autoexp_icon, "theme.order_auto_explorer");
-  load_order_theme_surface(buf, o_autosett_icon, "theme.order_auto_settler");
+  load_order_theme_surface(buf, o_autowork_icon, "theme.order_auto_worker");
   load_order_theme_surface(buf, o_build_city_icon, "theme.order_build_city");
   load_order_theme_surface(buf, OCutDownForest_Icon, "theme.order_cutdown_forest");
   load_order_theme_surface(buf, OPlantForest_Icon, "theme.order_plant_forest");
@@ -348,8 +348,6 @@ void tilespec_setup_theme(void)
   load_order_theme_surface(buf, o_wait_icon, "theme.order_wait");
   load_order_theme_surface(buf, o_fortress_icon, "theme.order_build_fortress");
   load_order_theme_surface(buf, o_clean_icon, "theme.order_clean");
-  load_order_theme_surface(buf, o_fallout_icon, "theme.order_clean_fallout");
-  load_order_theme_surface(buf, o_pollution_icon, "theme.order_clean_pollution");
   load_order_theme_surface(buf, o_airbase_icon, "theme.order_build_airbase");
   load_order_theme_surface(buf, o_transform_icon, "theme.order_transform");
   load_order_theme_surface(buf, OAddCity_Icon, "theme.order_add_to_city");
@@ -382,11 +380,11 @@ void setup_auxiliary_tech_icons(void)
 {
   SDL_Color bg_color = {255, 255, 255, 136};
   SDL_Surface *surf;
-  utf8_str *pstr = create_utf8_from_char(Q_("?tech:None"), adj_font(10));
+  utf8_str *pstr = create_utf8_from_char_fonto(Q_("?tech:None"), FONTO_DEFAULT);
 
   pstr->style |= (TTF_STYLE_BOLD | SF_CENTER);
 
-  /* create icons */
+  /* Create icons */
   surf = create_surf(adj_size(50), adj_size(50), SDL_SWSURFACE);
   SDL_FillRect(surf, NULL, map_rgba(surf->format, bg_color));
   create_frame(surf,
@@ -404,7 +402,7 @@ void setup_auxiliary_tech_icons(void)
 
   FREESURFACE(surf);
 
-  /* TRANS: Future Technology */ 
+  /* TRANS: Future Technology */
   copy_chars_to_utf8_str(pstr, _("FT"));
   surf = create_text_surf_from_utf8(pstr);
   blit_entire_src(surf, future_tech_icon,

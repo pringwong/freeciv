@@ -40,6 +40,7 @@
 #include "climap.h"
 #include "control.h"
 #include "mapview_common.h"
+#include "update_queue.h"
 
 /* client/gui-gtk-4.0 */
 #include "colors.h"
@@ -313,7 +314,7 @@ static bool chatline_autocomplete(GtkEditable *editable)
     return FALSE;
   }
 
-  /* Part 2: compare with player and user names. */
+  /* Part 2: Compare with player and user names. */
   num = check_player_or_user_name(p, name, MAX_MATCHES);
   if (1 == num) {
     gtk_editable_delete_text(editable, pos - prefix_len, pos);
@@ -338,6 +339,7 @@ static bool chatline_autocomplete(GtkEditable *editable)
   }
 
   g_free(chars);
+
   return TRUE;
 }
 
@@ -727,15 +729,15 @@ static void set_cursor_if_appropriate(GtkTextView *text_view, gint x, gint y)
 }
 
 /**********************************************************************//**
-  Maybe are the mouse is moving over a link.
+  Maybe mouse is moving over a link.
 **************************************************************************/
-static gboolean motion_notify_event(GtkWidget *text_view,
-                                    GdkEvent *event)
+static gboolean chat_pointer_motion(GtkEventControllerMotion *controller,
+                                    gdouble e_x, gdouble e_y, gpointer data)
 {
   gint x, y;
-  gdouble e_x, e_y;
+  GtkWidget *text_view
+    = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
 
-  gdk_event_get_position(event, &e_x, &e_y);
   gtk_text_view_window_to_buffer_coords(GTK_TEXT_VIEW(text_view),
                                         GTK_TEXT_WINDOW_WIDGET,
                                         e_x, e_y, &x, &y);
@@ -758,8 +760,10 @@ void set_message_buffer_view_link_handlers(GtkWidget *view)
                    G_CALLBACK(event_after), NULL);
   gtk_widget_add_controller(view, controller);
 
-  g_signal_connect(view, "motion-notify-event",
-		   G_CALLBACK(motion_notify_event), NULL);
+  controller = GTK_EVENT_CONTROLLER(gtk_event_controller_motion_new());
+  g_signal_connect(controller, "motion",
+                   G_CALLBACK(chat_pointer_motion), NULL);
+  gtk_widget_add_controller(view, controller);
 }
 
 /**********************************************************************//**
@@ -868,7 +872,7 @@ void apply_text_tag(const struct text_tag *ptag, GtkTextBuffer *buf,
                                        "underline", PANGO_UNDERLINE_SINGLE,
                                        NULL);
 
-      /* Type 0 is reserved for non-link tags.  So, add 1 to the
+      /* Type 0 is reserved for non-link tags. So, add 1 to the
        * type value. */
       g_object_set_data(G_OBJECT(tag), "type",
                         GINT_TO_POINTER(text_tag_link_type(ptag) + 1));
@@ -881,7 +885,7 @@ void apply_text_tag(const struct text_tag *ptag, GtkTextBuffer *buf,
 }
 
 /**********************************************************************//**
-  Appends the string to the chat output window.  The string should be
+  Appends the string to the chat output window. The string should be
   inserted on its own line, although it will have no newline.
 **************************************************************************/
 void real_output_window_append(const char *astring,
@@ -1000,7 +1004,7 @@ bool chatline_is_scrolled_to_bottom(void)
   Scrolls the pregame and in-game chat windows all the way to the bottom.
 
   Why do we do it in such a convuluted fasion rather than calling
-  chatline_scroll_to_bottom directly from toplevel_configure?
+  chatline_scroll_to_bottom() directly from toplevel_configure?
   Because the widget is not at its final size yet when the configure
   event occurs.
 **************************************************************************/
@@ -1009,6 +1013,7 @@ static gboolean chatline_scroll_callback(gpointer data)
   chatline_scroll_to_bottom(FALSE);     /* Not delayed this time! */
 
   *((guint *) data) = 0;
+
   return FALSE;         /* Remove this idle function. */
 }
 
@@ -1089,6 +1094,7 @@ static void color_set(GObject *object, const gchar *color_target,
         cairo_surface_t *surface = cairo_image_surface_create(
             CAIRO_FORMAT_RGB24, 16, 16);
         cairo_t *cr = cairo_create(surface);
+
         gdk_cairo_set_source_rgba(cr, current_color);
         cairo_paint(cr);
         cairo_destroy(cr);
@@ -1097,7 +1103,7 @@ static void color_set(GObject *object, const gchar *color_target,
       }
       image = gtk_image_new_from_pixbuf(pixbuf);
       gtk_button_set_child(button, image);
-      gtk_widget_show(image);
+      gtk_widget_set_visible(image, TRUE);
       g_object_unref(G_OBJECT(pixbuf));
     }
   }
@@ -1117,8 +1123,8 @@ static void color_selected(GtkDialog *dialog, gint res, gpointer data)
     color_set(entry, color_target, NULL, data);
   } else if (res == GTK_RESPONSE_OK) {
     /* Apply the new color. */
-    GtkColorChooser *chooser =
-      GTK_COLOR_CHOOSER(g_object_get_data(G_OBJECT(dialog), "chooser"));
+    GtkColorChooser *chooser
+      = GTK_COLOR_CHOOSER(g_object_get_data(G_OBJECT(dialog), "chooser"));
     GdkRGBA new_color;
 
     gtk_color_chooser_get_rgba(chooser, &new_color);
@@ -1156,11 +1162,11 @@ static void select_color_callback(GtkButton *button, gpointer data)
                              chooser, NULL);
   g_object_set_data(G_OBJECT(dialog), "chooser", chooser);
 
-  if (current_color != NULL) {
+  if (current_color != nullptr) {
     gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(chooser), current_color);
   }
 
-  gtk_widget_show(dialog);
+  gtk_widget_set_visible(dialog, TRUE);
   g_free(buf);
 }
 
@@ -1183,7 +1189,7 @@ static gboolean move_toolkit(GtkWidget *toolkit_view, gpointer data)
     /* N.B.: We need to hide/show the toolbar to reset the sensitivity
      * of the tool buttons. */
     if (ptoolkit->toolbar_displayed) {
-      gtk_widget_hide(ptoolkit->toolbar);
+      gtk_widget_set_visible(ptoolkit->toolbar, FALSE);
     }
     g_object_ref(ptoolkit->main_widget); /* Make sure reference count stays above 0
                                           * during the transition to new parent. */
@@ -1191,24 +1197,24 @@ static gboolean move_toolkit(GtkWidget *toolkit_view, gpointer data)
     gtk_box_append(GTK_BOX(toolkit_view), ptoolkit->main_widget);
     g_object_unref(ptoolkit->main_widget);
     if (ptoolkit->toolbar_displayed) {
-      gtk_widget_show(ptoolkit->toolbar);
+      gtk_widget_set_visible(ptoolkit->toolbar, TRUE);
     }
 
     if (!gtk_widget_get_parent(button_box)) {
       /* Attach to the toolkit button_box. */
       gtk_box_append(GTK_BOX(ptoolkit->button_box), button_box);
     }
-    gtk_widget_show(button_box);
+    gtk_widget_set_visible(button_box, TRUE);
     if (!ptoolkit->toolbar_displayed) {
-      gtk_widget_hide(ptoolkit->toolbar);
+      gtk_widget_set_visible(ptoolkit->toolbar, FALSE);
     }
 
     /* Hide all other buttons boxes. */
     for (iter = gtk_widget_get_first_child(GTK_WIDGET(ptoolkit->button_box));
-         iter != NULL;
+         iter != nullptr;
          iter = gtk_widget_get_next_sibling(iter)) {
       if (iter != button_box) {
-        gtk_widget_hide(iter);
+        gtk_widget_set_visible(iter, FALSE);
       }
     }
 
@@ -1216,7 +1222,7 @@ static gboolean move_toolkit(GtkWidget *toolkit_view, gpointer data)
     /* First time attached to a parent. */
     gtk_box_append(GTK_BOX(toolkit_view), ptoolkit->main_widget);
     gtk_box_append(GTK_BOX(ptoolkit->button_box), button_box);
-    gtk_widget_show(ptoolkit->main_widget);
+    gtk_widget_set_visible(ptoolkit->main_widget, TRUE);
   }
 
   return FALSE;
@@ -1236,7 +1242,7 @@ static gboolean set_toolbar_visibility(GtkWidget *w, gpointer data)
       gtk_toggle_button_set_active(button, TRUE);
     } else {
       /* Ensure the widget is visible. */
-      gtk_widget_show(ptoolkit->toolbar);
+      gtk_widget_set_visible(ptoolkit->toolbar, TRUE);
     }
   } else {
     if (gtk_toggle_button_get_active(button)) {
@@ -1244,7 +1250,7 @@ static gboolean set_toolbar_visibility(GtkWidget *w, gpointer data)
       gtk_toggle_button_set_active(button, FALSE);
     } else {
       /* Ensure the widget is not visible. */
-      gtk_widget_hide(ptoolkit->toolbar);
+      gtk_widget_set_visible(ptoolkit->toolbar, FALSE);
     }
   }
 
@@ -1259,14 +1265,14 @@ static void button_toggled(GtkToggleButton *button, gpointer data)
   struct inputline_toolkit *ptoolkit = (struct inputline_toolkit *) data;
 
   if (gtk_toggle_button_get_active(button)) {
-    gtk_widget_show(ptoolkit->toolbar);
+    gtk_widget_set_visible(ptoolkit->toolbar, TRUE);
     ptoolkit->toolbar_displayed = TRUE;
     if (chatline_is_scrolled_to_bottom()) {
       /* Make sure to be still at the end. */
       chatline_scroll_to_bottom(TRUE);
     }
   } else {
-    gtk_widget_hide(ptoolkit->toolbar);
+    gtk_widget_set_visible(ptoolkit->toolbar, FALSE);
     ptoolkit->toolbar_displayed = FALSE;
   }
 }

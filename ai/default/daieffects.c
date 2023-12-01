@@ -190,6 +190,8 @@ adv_want dai_effect_value(struct player *pplayer,
   case EFT_OUTPUT_WASTE_BY_DISTANCE:
   case EFT_OUTPUT_WASTE_BY_REL_DISTANCE:
   case EFT_OUTPUT_WASTE_PCT:
+  case EFT_SURPLUS_WASTE_PCT:
+  case EFT_SURPLUS_WASTE_PCT_BY_REL_DISTANCE:
   case EFT_SPECIALIST_OUTPUT:
   case EFT_ENEMY_CITIZEN_UNHAPPY_PCT:
   case EFT_IRRIGATION_PCT:
@@ -678,7 +680,7 @@ adv_want dai_effect_value(struct player *pplayer,
       }
     }
     break;
-  case EFT_TRADEROUTE_PCT:
+  case EFT_TRADE_ROUTE_PCT:
     {
       int trade = 0;
 
@@ -815,6 +817,12 @@ bool dai_can_requirement_be_met_in_city(const struct requirement *preq,
           return city_owner(pcity) == pcity->original;
         } else {
           return city_owner(pcity) != pcity->original;
+        }
+      } else if (preq->source.value.citystatus == CITYS_TRANSFERRED) {
+        if ((preq->present && pcity->acquire_t == CACQ_FOUNDED)
+            || (!preq->present && pcity->acquire_t != CACQ_FOUNDED)) {
+          /* Would change only when the AI loses the city */
+          return FALSE;
         }
       }
     }

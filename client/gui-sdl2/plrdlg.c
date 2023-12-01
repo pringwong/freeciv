@@ -362,7 +362,8 @@ void popup_players_dialog(bool raise)
 
   pplayers_dlg = fc_calloc(1, sizeof(struct small_dialog));
 
-  pstr = create_utf8_from_char(Q_("?header:Players"), adj_font(12));
+  pstr = create_utf8_from_char_fonto(Q_("?header:Players"),
+                                     FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -373,11 +374,11 @@ void popup_players_dialog(bool raise)
   add_to_gui_list(ID_WINDOW, pwindow);
   pplayers_dlg->end_widget_list = pwindow;
   /* ---------- */
-  /* exit button */
+  /* Exit button */
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                          adj_font(12));
+  buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                FONTO_ATTENTION);
   buf->action = exit_players_dlg_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_ESCAPE;
@@ -429,7 +430,7 @@ void popup_players_dialog(bool raise)
     }
     set_wstate(buf, FC_WS_NORMAL);
     add_to_gui_list(ID_CHECKBOX, buf);
-  } 
+  }
   /* ---------- */
 
   players_iterate(pplayer) {
@@ -437,7 +438,7 @@ void popup_players_dialog(bool raise)
       continue;
     }
 
-    pstr = create_utf8_str(NULL, 0, adj_font(10));
+    pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
     pstr->style |= (TTF_STYLE_BOLD|SF_CENTER);
 
     logo = get_nation_flag_surface(nation_of_player(pplayer));
@@ -455,7 +456,7 @@ void popup_players_dialog(bool raise)
     buf->info_label = pstr;
 
     if (!pplayer->is_alive) {
-      pstr = create_utf8_from_char(_("R.I.P.") , adj_font(10));
+      pstr = create_utf8_from_char_fonto(_("R.I.P."), FONTO_DEFAULT);
       pstr->style |= TTF_STYLE_BOLD;
       pstr->fgcol = *get_theme_color(COLOR_THEME_PLRDLG_TEXT);
       logo = create_text_surf_from_utf8(pstr);
@@ -501,7 +502,7 @@ void popup_players_dialog(bool raise)
   buf->size.y = pwindow->size.y + adj_size(2);
 
   n = area.y;
-  pstr = create_utf8_str(NULL, 0, adj_font(10));
+  pstr = create_utf8_str_fonto(NULL, 0, FONTO_DEFAULT);
   pstr->style |= TTF_STYLE_BOLD;
   pstr->bgcol = (SDL_Color) {0, 0, 0, 0};
 
@@ -680,7 +681,7 @@ void popup_players_nations_dialog(void)
   short_players_dlg = fc_calloc(1, sizeof(struct advanced_dialog));
 
   /* TRANS: Nations report title */
-  pstr = create_utf8_from_char(_("Nations") , adj_font(12));
+  pstr = create_utf8_from_char_fonto(_("Nations"), FONTO_ATTENTION);
   pstr->style |= TTF_STYLE_BOLD;
 
   pwindow = create_window_skeleton(NULL, pstr, 0);
@@ -694,11 +695,11 @@ void popup_players_nations_dialog(void)
   area = pwindow->area;
 
   /* ---------- */
-  /* exit button */
+  /* Exit button */
   buf = create_themeicon(current_theme->small_cancel_icon, pwindow->dst,
                          WF_WIDGET_HAS_INFO_LABEL | WF_RESTORE_BACKGROUND);
-  buf->info_label = create_utf8_from_char(_("Close Dialog (Esc)"),
-                                          adj_font(12));
+  buf->info_label = create_utf8_from_char_fonto(_("Close Dialog (Esc)"),
+                                                FONTO_ATTENTION);
   area.w = MAX(area.w, buf->size.w + adj_size(10));
   buf->action = exit_players_nations_dlg_callback;
   set_wstate(buf, FC_WS_NORMAL);
@@ -742,7 +743,7 @@ void popup_players_nations_dialog(void)
                     state);
       }
 
-      pstr = create_utf8_from_char(cbuf, adj_font(10));
+      pstr = create_utf8_from_char_fonto(cbuf, FONTO_DEFAULT);
       pstr->style |= TTF_STYLE_BOLD;
 
       logo = get_nation_flag_surface(nation_of_player(pplayer));

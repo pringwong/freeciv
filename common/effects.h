@@ -144,7 +144,8 @@ struct multiplier;
 /* Interacts with UTYF_BADWALLATTACKER */
 #define SPECENUM_VALUE48 EFT_DEFEND_BONUS
 #define SPECENUM_VALUE48NAME "Defend_Bonus"
-#define SPECENUM_VALUE49 EFT_TRADEROUTE_PCT
+#define SPECENUM_VALUE49 EFT_TRADE_ROUTE_PCT
+/* FIXME: -> "Trade_Route_Pct" */
 #define SPECENUM_VALUE49NAME "Traderoute_Pct"
 #define SPECENUM_VALUE50 EFT_GAIN_AI_LOVE
 #define SPECENUM_VALUE50NAME "Gain_AI_Love"
@@ -335,15 +336,19 @@ struct multiplier;
 #define SPECENUM_VALUE135NAME "Health_Pct"
 #define SPECENUM_VALUE136 EFT_ACTIVITY_TIME
 #define SPECENUM_VALUE136NAME "Activity_Time"
+#define SPECENUM_VALUE137 EFT_SURPLUS_WASTE_PCT
+#define SPECENUM_VALUE137NAME "Surplus_Waste_Pct"
+#define SPECENUM_VALUE138 EFT_SURPLUS_WASTE_PCT_BY_REL_DISTANCE
+#define SPECENUM_VALUE138NAME "Surplus_Waste_Pct_By_Rel_Distance"
 /* Ruleset specific effects for use from Lua scripts */
-#define SPECENUM_VALUE137 EFT_USER_EFFECT_1
-#define SPECENUM_VALUE137NAME "User_Effect_1"
-#define SPECENUM_VALUE138 EFT_USER_EFFECT_2
-#define SPECENUM_VALUE138NAME "User_Effect_2"
-#define SPECENUM_VALUE139 EFT_USER_EFFECT_3
-#define SPECENUM_VALUE139NAME "User_Effect_3"
-#define SPECENUM_VALUE140 EFT_USER_EFFECT_4
-#define SPECENUM_VALUE140NAME "User_Effect_4"
+#define SPECENUM_VALUE139 EFT_USER_EFFECT_1
+#define SPECENUM_VALUE139NAME "User_Effect_1"
+#define SPECENUM_VALUE140 EFT_USER_EFFECT_2
+#define SPECENUM_VALUE140NAME "User_Effect_2"
+#define SPECENUM_VALUE141 EFT_USER_EFFECT_3
+#define SPECENUM_VALUE141NAME "User_Effect_3"
+#define SPECENUM_VALUE142 EFT_USER_EFFECT_4
+#define SPECENUM_VALUE142NAME "User_Effect_4"
 /* Keep this last */
 #define SPECENUM_COUNT EFT_COUNT
 #include "specenum_gen.h"
@@ -380,6 +385,15 @@ struct effect {
     char *comment;
   } rulesave;
 };
+
+/* A callback type that takes an individual effect and a context for it
+ * and tells its weighted (by probability or something) value.
+ */
+typedef double
+   (*eft_value_filter_cb)(const struct effect *eft,
+                          const struct req_context *context,
+                          const struct player *other_player,
+                          void *data, int n_data);
 
 /* An effect_list is a list of effects. */
 #define SPECLIST_TAG effect
@@ -480,6 +494,12 @@ int get_target_bonus_effects(struct effect_list *plist,
                              const struct req_context *context,
                              const struct player *other_player,
                              enum effect_type effect_type);
+double get_effect_expected_value(const struct req_context *context,
+                                 const struct player *other_player,
+                                 enum effect_type effect_type,
+                                 eft_value_filter_cb weighter,
+                                 void *data, int n_data)
+fc__attribute((nonnull (4)));
 
 bool building_has_effect(const struct impr_type *pimprove,
 			 enum effect_type effect_type);

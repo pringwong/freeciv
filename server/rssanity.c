@@ -184,7 +184,7 @@ static bool sanity_check_req_individual(rs_conversion_logger logger,
                       "%s (only great wonders supported)", list_for,
                       improvement_name_translation(pimprove));
         return FALSE;
-      } else if (preq->range > REQ_RANGE_TRADEROUTE && !is_wonder(pimprove)) {
+      } else if (preq->range > REQ_RANGE_TRADE_ROUTE && !is_wonder(pimprove)) {
         ruleset_error(logger, LOG_ERROR,
                       "%s: %s-ranged requirement not supported for "
                       "%s (only wonders supported)", list_for,
@@ -1196,8 +1196,7 @@ bool sanity_check_ruleset_data(struct rscompat_info *compat)
     }
     if ((requirement_vector_size(&pextra->rmreqs) > 0)
         && !(pextra->rmcauses
-             & (ERM_ENTER | ERM_CLEANPOLLUTION
-                | ERM_CLEANFALLOUT | ERM_PILLAGE))) {
+             & (ERM_ENTER | ERM_CLEAN | ERM_PILLAGE))) {
       ruleset_error(logger, LOG_WARN,
                     "Requirements for extra removal defined but not "
                     "a valid remove cause!");
@@ -1339,7 +1338,7 @@ bool sanity_check_ruleset_data(struct rscompat_info *compat)
       } requirement_vector_iterate_end;
 
       if (compat == NULL || !compat->compat_mode
-          || compat->version >= RSFORMAT_3_2) {
+          || compat->version >= RSFORMAT_3_3) {
         /* Support for letting some of the following hard requirements be
          * implicit were retired in Freeciv 3.0. Others were retired later.
          * Make sure that the opposite of each hard action requirement
@@ -1616,13 +1615,13 @@ bool autoadjust_ruleset_data(void)
       enum action_result blocked_result = must_block[i].blocked;
       enum action_result blocker_result = must_block[i].blocker;
 
-      action_by_result_iterate (blocked, blocker_id, blocked_result) {
-        action_by_result_iterate (blocker, blocked_id, blocker_result) {
+      action_by_result_iterate(blocked, blocked_result) {
+        action_by_result_iterate(blocker, blocker_result) {
           if (!action_would_be_blocked_by(blocked, blocker)) {
             log_verbose("Autoblocking %s with %s",
                         action_rule_name(blocked),
                         action_rule_name(blocker));
-            BV_SET(blocked->blocked_by, blocker->id);
+            BV_SET(blocked->blocked_by, action_id(blocker));
           }
         } action_by_result_iterate_end;
       } action_by_result_iterate_end;

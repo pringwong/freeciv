@@ -20,6 +20,26 @@ extern "C" {
 /* common */
 #include "fc_types.h"
 
+struct req_context;
+
+/* If 'enum action_result' has currently unused values that should
+ * not be used in 'switch - cases', put those cases here. E.g.:
+ *
+ *#define ASSERT_UNUSED_ACTRES_CASES              \
+ *   case ACTRES_UNUSED_1:                        \
+ *     fc_assert_msg(FALSE, "ACTRES_UNUSED_1");   \
+ *     break;                                     \
+  *   case ACTRES_UNUSED_2:                       \
+ *     fc_assert_msg(FALSE, "ACTRES_UNUSED_2");   \
+ *     break;
+ */
+#define ASSERT_UNUSED_ACTRES_CASES            \
+  case ACTRES_UNUSED_1:                       \
+    fc_assert_msg(FALSE, "ACTRES_UNUSED_1");  \
+    break;                                    \
+  case ACTRES_UNUSED_2:                       \
+    fc_assert_msg(FALSE, "ACTRES_UNUSED_2");  \
+    break;
 
 /* When making changes to this, update also atk_helpnames at actions.c */
 #define SPECENUM_NAME action_target_kind
@@ -89,11 +109,14 @@ extern "C" {
 #define SPECENUM_COUNT ABK_COUNT
 #include "specenum_gen.h"
 
+enum dice_roll_type { DRT_NONE, DRT_DIPLCHANCE, DRT_CERTAIN };
 
 struct actres {
   enum act_tgt_compl sub_tgt_compl;
   enum action_battle_kind battle_kind;
   bool hostile;
+  enum unit_activity activity;
+  enum dice_roll_type dice;
 };
 
 void actres_init(void);
@@ -102,6 +125,16 @@ void actres_free(void);
 enum act_tgt_compl actres_target_compl_calc(enum action_result result);
 enum action_battle_kind actres_get_battle_kind(enum action_result result);
 bool actres_is_hostile(enum action_result result);
+enum unit_activity actres_activity_result(enum action_result result);
+enum dice_roll_type actres_dice_type(enum action_result result);
+
+enum fc_tristate actres_possible(enum action_result result,
+                                 const struct req_context *actor,
+                                 const struct req_context *target,
+                                 const struct extra_type *target_extra,
+                                 enum fc_tristate def,
+                                 bool omniscient,
+                                 const struct city *homecity);
 
 #ifdef __cplusplus
 }

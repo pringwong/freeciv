@@ -66,9 +66,9 @@ static bool send_tile_suppressed = FALSE;
 
 static void player_tile_init(struct tile *ptile, struct player *pplayer);
 static void player_tile_free(struct tile *ptile, struct player *pplayer);
-static void give_tile_info_from_player_to_player(struct player *pfrom,
-						 struct player *pdest,
-						 struct tile *ptile);
+static bool give_tile_info_from_player_to_player(struct player *pfrom,
+                                                 struct player *pdest,
+                                                 struct tile *ptile);
 static void shared_vision_change_seen(struct player *pplayer,
                                       struct tile *ptile,
                                       const v_radius_t change,
@@ -86,6 +86,9 @@ static inline int map_get_seen(const struct player *pplayer,
 static inline int map_get_own_seen(const struct player *pplayer,
                                    const struct tile *ptile,
                                    enum vision_layer vlayer);
+static inline bool map_is_also_seen(const struct tile *ptile,
+                                    const struct player *pplayer,
+                                    enum vision_layer vlayer);
 
 static bool is_claimable_ocean(struct tile *ptile, struct tile *source,
                                struct player *pplayer);
@@ -485,7 +488,7 @@ bool send_tile_suppression(bool now)
   the tile. If dest is NULL, sends to all clients (game.est_connections)
   which know and see tile.
 
-  Note that this function does not update the playermap.  For that call
+  Note that this function does not update the playermap. For that call
   update_tile_knowledge().
 **************************************************************************/
 void send_tile_info(struct conn_list *dest, struct tile *ptile,
@@ -517,12 +520,17 @@ void send_tile_info(struct conn_list *dest, struct tile *ptile,
 
   conn_list_iterate(dest, pconn) {
     struct player *pplayer = pconn->playing;
+    bool known;
 
     if (NULL == pplayer && !pconn->observer) {
       continue;
     }
 
-    if (!pplayer || map_is_known_and_seen(ptile, pplayer, V_MAIN)) {
+    if (pplayer != NULL) {
+      known = map_is_known(ptile, pplayer);
+    }
+
+    if (pplayer == NULL || (known && map_is_also_seen(ptile, pplayer, V_MAIN))) {
       info.known = TILE_KNOWN_SEEN;
       info.continent = tile_continent(ptile);
       owner = tile_owner(ptile);
@@ -560,9 +568,9 @@ void send_tile_info(struct conn_list *dest, struct tile *ptile,
       }
 
       send_packet_tile_info(pconn, &info);
-    } else if (pplayer && map_is_known(ptile, pplayer)) {
+    } else if (pplayer != NULL && known) {
       struct player_tile *plrtile = map_get_player_tile(ptile, pplayer);
-      struct vision_site *psite = map_get_player_site(ptile, pplayer);
+      struct vision_site *psite = map_get_playermap_site(plrtile);
 
       info.known = TILE_KNOWN_UNSEEN;
       info.continent = tile_continent(ptile);
@@ -746,10 +754,10 @@ void map_set_border_vision(struct player *pplayer,
 }
 
 /**********************************************************************//**
-  Shows the area to the player.  Unless the tile is "seen", it will remain
+  Shows the area to the player. Unless the tile is "seen", it will remain
   fogged and units will be hidden.
 
-  Callers may wish to buffer_shared_vision before calling this function.
+  Callers may wish to buffer_shared_vision() before calling this function.
 **************************************************************************/
 void map_show_tile(struct player *src_player, struct tile *ptile)
 {
@@ -801,7 +809,7 @@ void map_show_tile(struct player *src_player, struct tile *ptile)
 /**********************************************************************//**
   Hides the area to the player.
 
-  Callers may wish to buffer_shared_vision before calling this function.
+  Callers may wish to buffer_shared_vision() before calling this function.
 **************************************************************************/
 void map_hide_tile(struct player *src_player, struct tile *ptile)
 {
@@ -874,7 +882,7 @@ void map_show_all(struct player *pplayer)
 }
 
 /**********************************************************************//**
-  Return whether the player knows the tile.  Knowing a tile means you've
+  Return whether the player knows the tile. Knowing a tile means you've
   seen it once (as opposed to seeing a tile which means you can see it now).
 **************************************************************************/
 bool map_is_known(const struct tile *ptile, const struct player *pplayer)
@@ -888,6 +896,18 @@ bool map_is_known(const struct tile *ptile, const struct player *pplayer)
 }
 
 /**********************************************************************//**
+  Returns whether the layer 'vlayer' of the tile 'ptile' is seen
+  by the player 'pplayer'. Only call this when you already know
+  the tile to be known.
+**************************************************************************/
+static inline bool map_is_also_seen(const struct tile *ptile,
+                                    const struct player *pplayer,
+                                    enum vision_layer vlayer)
+{
+  return map_get_seen(pplayer, ptile, vlayer) > 0;
+}
+
+/**********************************************************************//**
   Returns whether the layer 'vlayer' of the tile 'ptile' is known and seen
   by the player 'pplayer'.
 **************************************************************************/
@@ -895,16 +915,15 @@ bool map_is_known_and_seen(const struct tile *ptile,
                            const struct player *pplayer,
                            enum vision_layer vlayer)
 {
-  return (map_is_known(ptile, pplayer)
-          && 0 < map_get_seen(pplayer, ptile, vlayer));
+  return map_is_known(ptile, pplayer) && map_is_also_seen(ptile, pplayer, vlayer);
 }
 
 /**********************************************************************//**
-  Return whether the player can see the tile.  Seeing a tile means you have
+  Return whether the player can see the tile. Seeing a tile means you have
   vision of it now (as opposed to knowing a tile which means you've seen it
-  before).  Note that a tile can be seen but not known (currently this only
+  before). Note that a tile can be seen but not known (currently this only
   happens when a city is founded with some unknown tiles in its radius); in
-  this case the tile is unknown (but map_get_seen will still return TRUE).
+  this case the tile is unknown (but map_get_seen() will still return TRUE).
 **************************************************************************/
 static inline int map_get_seen(const struct player *pplayer,
                                const struct tile *ptile,
@@ -1345,17 +1364,8 @@ struct vision_site *map_get_player_city(const struct tile *ptile,
 }
 
 /**********************************************************************//**
-  Returns site located at given tile from player map.
-**************************************************************************/
-struct vision_site *map_get_player_site(const struct tile *ptile,
-					const struct player *pplayer)
-{
-  return map_get_player_tile(ptile, pplayer)->site;
-}
-
-/**********************************************************************//**
   Players' information of tiles is tracked so that fogged area can be kept
-  consistent even when the client disconnects.  This function returns the
+  consistent even when the client disconnects. This function returns the
   player tile information for the given tile and player.
 **************************************************************************/
 struct player_tile *map_get_player_tile(const struct tile *ptile,
@@ -1450,12 +1460,16 @@ void update_player_tile_last_seen(struct player *pplayer,
 
 /**********************************************************************//**
   Give tile information from one player to one player.
+
+  @param pfrom  Who gives the information
+  @param pdest  Who receives the information
+  @param ptile  Tile to give info about
+  @return       Whether there was any new info to give
 **************************************************************************/
-static void really_give_tile_info_from_player_to_player(struct player *pfrom,
+static bool really_give_tile_info_from_player_to_player(struct player *pfrom,
                                                         struct player *pdest,
                                                         struct tile *ptile)
 {
-  struct player_tile *from_tile, *dest_tile;
   if (!map_is_known_and_seen(ptile, pdest, V_MAIN)) {
     /* I can just hear people scream as they try to comprehend this if :).
      * Let me try in words:
@@ -1465,10 +1479,12 @@ static void really_give_tile_info_from_player_to_player(struct player *pfrom,
      *     OR it is not known by pdest)
      */
     if (map_is_known_and_seen(ptile, pfrom, V_MAIN)
-	|| (map_is_known(ptile, pfrom)
-	    && (((map_get_player_tile(ptile, pfrom)->last_updated
-		 > map_get_player_tile(ptile, pdest)->last_updated))
-	        || !map_is_known(ptile, pdest)))) {
+        || (map_is_known(ptile, pfrom)
+            && (((map_get_player_tile(ptile, pfrom)->last_updated
+                  > map_get_player_tile(ptile, pdest)->last_updated))
+                || !map_is_known(ptile, pdest)))) {
+      struct player_tile *from_tile, *dest_tile;
+
       from_tile = map_get_player_tile(ptile, pfrom);
       dest_tile = map_get_player_tile(ptile, pdest);
       /* Update and send tile knowledge */
@@ -1481,37 +1497,42 @@ static void really_give_tile_info_from_player_to_player(struct player *pfrom,
       dest_tile->last_updated = from_tile->last_updated;
       send_tile_info(pdest->connections, ptile, FALSE);
 
-      /* update and send city knowledge */
-      /* remove outdated cities */
+      /* Update and send city knowledge */
+      /* Remove outdated cities */
       if (dest_tile->site) {
-	if (!from_tile->site) {
-	  /* As the city was gone on the newer from_tile
-	     it will be removed by this function */
-	  reality_check_city(pdest, ptile);
-	} else /* We have a dest_city. update */
-	  if (from_tile->site->identity
+        if (!from_tile->site) {
+          /* As the city was gone on the newer from_tile
+             it will be removed by this function */
+          reality_check_city(pdest, ptile);
+        } else { /* We have a dest_city. update */
+          if (from_tile->site->identity
               != dest_tile->site->identity) {
-	    /* As the city was gone on the newer from_tile
-	       it will be removed by this function */
-	    reality_check_city(pdest, ptile);
+            /* As the city was gone on the newer from_tile
+               it will be removed by this function */
+            reality_check_city(pdest, ptile);
           }
+        }
       }
 
       /* Set and send new city info */
       if (from_tile->site) {
-	if (!dest_tile->site) {
+        if (!dest_tile->site) {
           /* We cannot assign new vision site with change_playertile_site(),
            * since location is not yet set up for new site */
           dest_tile->site = vision_site_copy(from_tile->site);
-	}
+        }
         /* Note that we don't care if receiver knows vision source city
          * or not. */
-	send_city_info_at_tile(pdest, pdest->connections, NULL, ptile);
+        send_city_info_at_tile(pdest, pdest->connections, NULL, ptile);
       }
 
       city_map_update_tile_frozen(ptile);
+
+      return TRUE;
     }
   }
+
+  return FALSE;
 }
 
 /**********************************************************************//**
@@ -1532,18 +1553,25 @@ static void really_give_map_from_player_to_player(struct player *pfrom,
 /**********************************************************************//**
   Give tile information from player to player. Handles chains of
   shared vision so that receiver may give information forward.
+
+  @param pfrom  Who gives the information
+  @param pdest  Who receives the information
+  @param ptile  Tile to give info about
+  @return       Whether there was any new info to give
 **************************************************************************/
-static void give_tile_info_from_player_to_player(struct player *pfrom,
+static bool give_tile_info_from_player_to_player(struct player *pfrom,
                                                  struct player *pdest,
                                                  struct tile *ptile)
 {
-  really_give_tile_info_from_player_to_player(pfrom, pdest, ptile);
+  bool updt = really_give_tile_info_from_player_to_player(pfrom, pdest, ptile);
 
   players_iterate(pplayer2) {
     if (really_gives_vision(pdest, pplayer2)) {
-      really_give_tile_info_from_player_to_player(pfrom, pplayer2, ptile);
+      updt |= really_give_tile_info_from_player_to_player(pfrom, pplayer2, ptile);
     }
   } players_iterate_end;
+
+  return updt;
 }
 
 /**********************************************************************//**
@@ -1588,7 +1616,11 @@ static void create_vision_dependencies(void)
 void give_shared_vision(struct player *pfrom, struct player *pto)
 {
   bv_player save_vision[player_slot_count()];
-  if (pfrom == pto) return;
+
+  if (pfrom == pto) {
+    return;
+  }
+
   if (gives_shared_vision(pfrom, pto)) {
     log_error("Trying to give shared vision from %s to %s, "
               "but that vision is already given!",
@@ -1625,9 +1657,9 @@ void give_shared_vision(struct player *pfrom, struct player *pto)
           }
         } whole_map_iterate_end;
 
-	/* squares that are not seen, but which pfrom may have more recent
-	   knowledge of */
-	really_give_map_from_player_to_player(pplayer, pplayer2);
+        /* Squares that are not seen, but which pfrom may have more recent
+           knowledge of */
+        really_give_map_from_player_to_player(pplayer, pplayer2);
       }
     } players_iterate_end;
     unbuffer_shared_vision(pplayer);
@@ -1772,6 +1804,57 @@ static void ocean_to_land_fix_rivers(struct tile *ptile)
 }
 
 /**********************************************************************//**
+  Bounce one unit from tile on terrain change.
+**************************************************************************/
+static void terrain_change_bounce_single_unit(struct unit *punit,
+                                              struct tile *from)
+{
+  bool unit_alive = TRUE;
+
+  /* Look for a nearby safe tile */
+  adjc_iterate(&(wld.map), from, ptile2) {
+    if (can_unit_exist_at_tile(&(wld.map), punit, ptile2)
+        && !is_non_allied_unit_tile(ptile2, unit_owner(punit))
+        && !is_non_allied_city_tile(ptile2, unit_owner(punit))) {
+      log_verbose("Moved %s %s due to changing terrain at (%d,%d).",
+                  nation_rule_name(nation_of_unit(punit)),
+                  unit_rule_name(punit), TILE_XY(unit_tile(punit)));
+      notify_player(unit_owner(punit), unit_tile(punit),
+                    E_UNIT_RELOCATED, ftc_server,
+                    _("Moved your %s due to changing terrain."),
+                    unit_link(punit));
+
+      /* TODO: should a unit be able to bounce to a transport like is
+       * done below? What if the unit can't legally enter the transport,
+       * say because the transport is Unreachable and the unit doesn't
+       * have it in its embarks field or because "Transport Embark"
+       * isn't enabled? Kept like it was to preserve the old rules for
+       * now. -- Sveinung */
+      unit_alive = unit_move(punit, ptile2, 0,
+                             NULL, TRUE, FALSE, FALSE, FALSE, FALSE);
+      if (unit_alive && punit->activity == ACTIVITY_SENTRY) {
+        unit_activity_handling(punit, ACTIVITY_IDLE);
+      }
+      break;
+    }
+  } adjc_iterate_end;
+
+  if (unit_alive && unit_tile(punit) == from) {
+    /* If we get here we could not move punit. */
+
+    /* Try to bounce transported units. */
+    if (0 < get_transporter_occupancy(punit)) {
+      struct unit_list *pcargo_units;
+
+      pcargo_units = unit_transport_cargo(punit);
+      unit_list_iterate_safe(pcargo_units, pcargo) {
+        terrain_change_bounce_single_unit(pcargo, from);
+      } unit_list_iterate_safe_end;
+    }
+  }
+}
+
+/**********************************************************************//**
   Helper function for bounce_units_on_terrain_change() that checks units
   on a single tile.
 **************************************************************************/
@@ -1779,39 +1862,14 @@ static void check_units_single_tile(struct tile *ptile)
 {
   log_normal("DEBUG check_units_single_tile")
   unit_list_iterate_safe(ptile->units, punit) {
-    bool unit_alive = TRUE;
+    int id = punit->id;
 
-    if (unit_tile(punit) == ptile
-        && !unit_transported(punit)
+    /* Top-level transports only. Each handle their own cargo */
+    if (!unit_transported(punit)
         && !can_unit_exist_at_tile(&(wld.map), punit, ptile)) {
-      /* look for a nearby safe tile */
-      adjc_iterate(&(wld.map), ptile, ptile2) {
-        if (can_unit_exist_at_tile(&(wld.map), punit, ptile2)
-            && !is_non_allied_unit_tile(ptile2, unit_owner(punit))
-            && !is_non_allied_city_tile(ptile2, unit_owner(punit))) {
-          log_verbose("Moved %s %s due to changing terrain at (%d,%d).",
-                      nation_rule_name(nation_of_unit(punit)),
-                      unit_rule_name(punit), TILE_XY(unit_tile(punit)));
-          notify_player(unit_owner(punit), unit_tile(punit),
-                        E_UNIT_RELOCATED, ftc_server,
-                        _("Moved your %s due to changing terrain."),
-                        unit_link(punit));
-          /* TODO: should a unit be able to bounce to a transport like is
-           * done below? What if the unit can't legally enter the transport,
-           * say because the transport is Unreachable and the unit doesn't
-           * have it in its embarks field or because "Transport Embark"
-           * isn't enabled? Kept like it was to preserve the old rules for
-           * now. -- Sveinung */
-          unit_alive = unit_move(punit, ptile2, 0,
-                                 NULL, TRUE, FALSE, FALSE, FALSE, FALSE);
-          if (unit_alive && punit->activity == ACTIVITY_SENTRY) {
-            unit_activity_handling(punit, ACTIVITY_IDLE);
-          }
-          break;
-	}
-      } adjc_iterate_end;
-      if (unit_alive && unit_tile(punit) == ptile) {
-        /* If we get here we could not move punit. */
+      terrain_change_bounce_single_unit(punit, ptile);
+
+      if (unit_is_alive(id) && unit_tile(punit) == ptile) {
         log_verbose("Disbanded %s %s due to changing land "
                     " to sea at (%d, %d).",
                     nation_rule_name(nation_of_unit(punit)),
@@ -2309,32 +2367,42 @@ void map_claim_base(struct tile *ptile, struct extra_type *pextra,
                     struct player *powner, struct player *ploser)
 {
   struct base_type *pbase;
+  bv_player *could_see_unit = NULL;
   int units_num = 0;
-  bv_player *could_see_unit BAD_HEURISTIC_INIT(NULL);
+  int ul_size;
 
   if (!tile_has_extra(ptile, pextra)) {
     return;
   }
 
   if (pextra->eus != EUS_NORMAL) {
-    int i = 0;
+    ul_size = unit_list_size(ptile->units);
+  } else {
+    ul_size = 0;
+  }
 
-    units_num = unit_list_size(ptile->units);
+  int stored_units[ul_size + 1];
 
-    if (units_num > 0) {
-      could_see_unit = fc_malloc(sizeof(*could_see_unit) * units_num);
+  if (ul_size > 0) {
+    int i;
 
-      unit_list_iterate(ptile->units, aunit) {
-        BV_CLR_ALL(could_see_unit[i]);
-        players_iterate(aplayer) {
-          if (can_player_see_unit(aplayer, aunit)) {
-            BV_SET(could_see_unit[i], player_index(aplayer));
-          }
-        } players_iterate_end;
-        i++;
-      } unit_list_iterate_end;
-    } else {
-      could_see_unit = NULL; /* To keep compiler happy */
+    could_see_unit = fc_malloc(sizeof(*could_see_unit) * ul_size);
+
+    unit_list_iterate(ptile->units, aunit) {
+      stored_units[units_num++] = aunit->id;
+    } unit_list_iterate_end;
+
+    fc_assert(units_num == ul_size);
+
+    for (i = 0; i < units_num; i++) {
+      struct unit *aunit = game_unit_by_number(stored_units[i]);
+
+      BV_CLR_ALL(could_see_unit[i]);
+      players_iterate(aplayer) {
+        if (can_player_see_unit(aplayer, aunit)) {
+          BV_SET(could_see_unit[i], player_index(aplayer));
+        }
+      } players_iterate_end;
     }
   }
 
@@ -2388,14 +2456,11 @@ void map_claim_base(struct tile *ptile, struct extra_type *pextra,
   }
 
   if (units_num > 0) {
-    int i = 0;
+    int i;
 
-    fc_assert(pextra->eus != EUS_NORMAL);
+    for (i = 0; i < units_num; i++) {
+      struct unit *aunit = game_unit_by_number(stored_units[i]);
 
-    /* TODO: Is it really safe, after all the potential effects above
-     * function calls can have, to assume that the tile has the same units
-     * in the same order as when could_see_unit[] was first created? */
-    unit_list_iterate(ptile->units, aunit) {
       players_iterate(aplayer) {
         if (can_player_see_unit(aplayer, aunit)) {
           if (!BV_ISSET(could_see_unit[i], player_index(aplayer))) {
@@ -2407,8 +2472,7 @@ void map_claim_base(struct tile *ptile, struct extra_type *pextra,
           }
         }
       } players_iterate_end;
-      i++;
-    } unit_list_iterate_end;
+    }
 
     free(could_see_unit);
   }
@@ -2511,10 +2575,10 @@ void create_extra(struct tile *ptile, struct extra_type *pextra,
 void destroy_extra(struct tile *ptile, struct extra_type *pextra)
 {
   bv_player base_seen;
-  bool virtual = tile_virtual_check(ptile);
+  bool real = tile_map_check(&(wld.map), ptile);
 
   /* Remember what players were able to see the base. */
-  if (!virtual) {
+  if (real) {
     BV_CLR_ALL(base_seen);
     players_iterate(pplayer) {
       if (map_is_known_and_seen(ptile, pplayer, V_MAIN)) {
@@ -2523,7 +2587,7 @@ void destroy_extra(struct tile *ptile, struct extra_type *pextra)
     } players_iterate_end;
   }
 
-  if (!virtual && is_extra_caused_by(pextra, EC_BASE)) {
+  if (real && is_extra_caused_by(pextra, EC_BASE)) {
     struct base_type *pbase = extra_base_get(pextra);
     struct player *owner = extra_owner(ptile);
 
@@ -2547,7 +2611,7 @@ void destroy_extra(struct tile *ptile, struct extra_type *pextra)
 
   tile_remove_extra(ptile, pextra);
 
-  if (!virtual) {
+  if (real) {
     /* Remove base from vision of players which were able to see the base. */
     players_iterate(pplayer) {
       if (BV_ISSET(base_seen, player_index(pplayer))
@@ -2575,25 +2639,32 @@ void destroy_extra(struct tile *ptile, struct extra_type *pextra)
 
 /**********************************************************************//**
   Transfer (random parts of) player pfrom's world map to pto.
+
   @param pfrom         player that is the source of the map
   @param pto           player that receives the map
   @param prob          probability for the transfer each known tile
   @param reveal_cities if the map of all known cities should be transferred
+
+  @return              Whether there any new info was given
 **************************************************************************/
-void give_distorted_map(struct player *pfrom, struct player *pto,
+bool give_distorted_map(struct player *pfrom, struct player *pto,
                         int prob, bool reveal_cities)
 {
+  bool updt = FALSE;
+
   buffer_shared_vision(pto);
 
   whole_map_iterate(&(wld.map), ptile) {
     if (fc_rand(100) < prob) {
-      give_tile_info_from_player_to_player(pfrom, pto, ptile);
+      updt |= give_tile_info_from_player_to_player(pfrom, pto, ptile);
     } else if (reveal_cities && NULL != tile_city(ptile)) {
-      give_tile_info_from_player_to_player(pfrom, pto, ptile);
+      updt|= give_tile_info_from_player_to_player(pfrom, pto, ptile);
     }
   } whole_map_iterate_end;
 
   unbuffer_shared_vision(pto);
+
+  return updt;
 }
 
 /**********************************************************************//**

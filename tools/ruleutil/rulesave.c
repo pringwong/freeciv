@@ -438,6 +438,9 @@ static bool save_buildings_ruleset(const char *filename, const char *name)
       if (strcmp(pb->graphic_alt, "-")) {
         secfile_insert_str(sfile, pb->graphic_alt, "%s.graphic_alt", path);
       }
+      if (strcmp(pb->graphic_alt2, "-")) {
+        secfile_insert_str(sfile, pb->graphic_alt2, "%s.graphic_alt2", path);
+      }
       if (strcmp(pb->soundtag, "-")) {
         secfile_insert_str(sfile, pb->soundtag, "%s.sound", path);
       }
@@ -866,7 +869,14 @@ static bool save_effects_ruleset(const char *filename, const char *name)
 static bool save_action_ui_name(struct section_file *sfile,
                                 int act, const char *entry_name)
 {
-  const char *ui_name = action_by_number(act)->ui_name;
+  struct action *paction = action_by_number(act);
+  const char *ui_name;
+
+  if (action_is_internal(paction)) {
+    return TRUE;
+  }
+
+  ui_name = paction->ui_name;
 
   if (ui_name == NULL) {
     fc_assert(ui_name != NULL);
@@ -1181,8 +1191,10 @@ static bool save_actions_ruleset(const char *filename, const char *name)
   action_iterate(act_id) {
     struct action *act = action_by_number(act_id);
 
-    save_action_ui_name(sfile,
-                        act_id, action_ui_name_ruleset_var_name(act_id));
+    if (!action_id_is_internal(act_id)) {
+      save_action_ui_name(sfile,
+                          act_id, action_ui_name_ruleset_var_name(act_id));
+    }
     save_action_kind(sfile, act_id);
     save_action_range(sfile, act_id);
     save_action_actor_consuming_always(sfile, act_id);
@@ -1707,7 +1719,7 @@ static bool save_game_ruleset(const char *filename, const char *name)
   set_count = 0;
   for (trt = 0; trt < TRT_LAST; trt++) {
     struct trade_route_settings *set = trade_route_settings_by_type(trt);
-    const char *cancelling = traderoute_cancelling_type_name(set->cancelling);
+    const char *cancelling = trade_route_cancelling_type_name(set->cancelling);
 
     if (set->trade_pct != 100 || strcmp(cancelling, "Active")) {
       char path[256];
@@ -1721,7 +1733,7 @@ static bool save_game_ruleset(const char *filename, const char *name)
                          "%s.pct", path);
       secfile_insert_str(sfile, cancelling,
                          "%s.cancelling", path);
-      secfile_insert_str(sfile, traderoute_bonus_type_name(set->bonus_type),
+      secfile_insert_str(sfile, trade_route_bonus_type_name(set->bonus_type),
                          "%s.bonus", path);
     }
   }
@@ -1805,6 +1817,10 @@ static bool save_game_ruleset(const char *filename, const char *name)
     save_default_int(sfile, pcounter->checkpoint, 0, path, "checkpoint");
 
     secfile_insert_str(sfile, counter_behaviour_name(pcounter->type), "%s.type", path);
+    if ((NULL != pcounter->helptext)
+        && (0 < strvec_size(pcounter->helptext))) {
+      save_strvec(sfile, pcounter->helptext, "%s.helptext", path);
+    }
 
   } counters_re_iterate_end;
 
@@ -2712,9 +2728,11 @@ static bool save_terrain_ruleset(const char *filename, const char *name)
         }
       } output_type_iterate_end;
 
-      identifier[0] = pres->data.resource->id_old_save;
-      identifier[1] = '\0';
-      secfile_insert_str(sfile, identifier, "%s.identifier", path);
+      if (pres->data.resource->id_old_save != '\0') {
+        identifier[0] = pres->data.resource->id_old_save;
+        identifier[1] = '\0';
+        secfile_insert_str(sfile, identifier, "%s.identifier", path);
+      }
     }
   } extra_type_by_cause_iterate_end;
 
@@ -3200,6 +3218,9 @@ static bool save_units_ruleset(const char *filename, const char *name)
       if (strcmp("-", put->graphic_alt)) {
         secfile_insert_str(sfile, put->graphic_alt, "%s.graphic_alt", path);
       }
+      if (strcmp("-", put->graphic_alt2)) {
+        secfile_insert_str(sfile, put->graphic_alt2, "%s.graphic_alt2", path);
+      }
       if (strcmp("-", put->sound_move)) {
         secfile_insert_str(sfile, put->sound_move, "%s.sound_move", path);
       }
@@ -3352,7 +3373,7 @@ static bool save_luadata(const char *filename)
 **************************************************************************/
 bool save_ruleset(const char *path, const char *name, struct rule_data *data)
 {
-  if (make_dir(path)) {
+  if (make_dir(path, DIRMODE_DEFAULT)) {
     bool success = TRUE;
     char filename[500];
 

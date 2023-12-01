@@ -41,6 +41,7 @@
 #include "clinet.h"        /* connect_to_server() */
 #include "packhand.h"
 #include "servers.h"
+#include "update_queue.h"
 
 /* gui-sdl2 */
 #include "chatline.h"
@@ -52,7 +53,6 @@
 #include "mapview.h"
 #include "messagewin.h"
 #include "optiondlg.h"
-#include "pages.h"
 #include "themespec.h"
 #include "widget.h"
 
@@ -78,7 +78,7 @@ static void popup_new_user_passwd_dialog(const char *message);
   Provide a packet handler for packet_game_load
 **************************************************************************/
 void handle_game_load(bool load_successful, const char *filename)
-{ 
+{
   /* PORTME */
 }
 
@@ -238,7 +238,7 @@ void popup_connection_dialog(bool lan_scan)
   area = label_window->area;
 
   fc_snprintf(cbuf, sizeof(cbuf), _("Creating Server List..."));
-  pstr = create_utf8_from_char(cbuf, adj_font(16));
+  pstr = create_utf8_from_char_fonto(cbuf, FONTO_BIG);
   pstr->style = TTF_STYLE_BOLD;
   pstr->bgcol = (SDL_Color) {0, 0, 0, 0};
   new_widget = create_iconlabel(NULL, label_window->dst, pstr,
@@ -286,7 +286,7 @@ void popup_connection_dialog(bool lan_scan)
 
   if (!server_list) {
     if (lan_scan) {
-      output_window_append(ftc_client, _("No LAN servers found")); 
+      output_window_append(ftc_client, _("No LAN servers found"));
     } else {
       output_window_append(ftc_client, _("No public servers found"));
     }
@@ -309,9 +309,10 @@ void popup_connection_dialog(bool lan_scan)
   meta_server->end_widget_list = pwindow;
 
   /* Cancel button */
-  new_widget = create_themeicon_button_from_chars(current_theme->cancel_icon,
-                                                  pwindow->dst, _("Cancel"),
-                                                  adj_font(14), 0);
+  new_widget
+    = create_themeicon_button_from_chars_fonto(current_theme->cancel_icon,
+                                               pwindow->dst, _("Cancel"),
+                                               FONTO_HEADING, 0);
   new_widget->action = exit_meta_server_dlg_callback;
   set_wstate(new_widget, FC_WS_NORMAL);
   add_to_gui_list(ID_BUTTON, new_widget);
@@ -319,14 +320,14 @@ void popup_connection_dialog(bool lan_scan)
   /* Servers */
   server_list_iterate(server_list, server) {
 
-    /* TRANS: "host.example.com Port 5556 Ver: 2.6.0 Running Players 3\n
+    /* TRANS: "host.example.com Port 5556 Ver: 3.1.0 Running Players 3\n
      * [server message]" */
     fc_snprintf(cbuf, sizeof(cbuf), _("%s Port %d Ver: %s %s %s %d\n%s"),
                 server->host, server->port, server->version, _(server->state),
                 Q_("?header:Players"), server->nplayers, server->message);
 
-    new_widget = create_iconlabel_from_chars(NULL, pwindow->dst, cbuf,
-                                             adj_font(10),
+    new_widget = create_iconlabel_from_chars_fonto(NULL, pwindow->dst, cbuf,
+                                                   FONTO_DEFAULT,
                      WF_FREE_STRING|WF_DRAW_TEXT_LABEL_WITH_SPACE|WF_RESTORE_BACKGROUND);
 
     new_widget->string_utf8->style |= SF_CENTER;
@@ -553,61 +554,64 @@ void popup_join_game_dialog(void)
 
   connect_dlg = fc_calloc(1, sizeof(struct small_dialog));
 
-  /* window */
+  /* Window */
   pwindow = create_window_skeleton(NULL, NULL, 0);
   add_to_gui_list(ID_WINDOW, pwindow);
   connect_dlg->end_widget_list = pwindow;
 
   area = pwindow->area;
 
-  /* player name label */
-  plrname = create_utf8_from_char(_("Player Name :"), adj_font(10));
+  /* Player name label */
+  plrname = create_utf8_from_char_fonto(_("Player Name :"), FONTO_DEFAULT);
   plrname->fgcol = *get_theme_color(COLOR_THEME_JOINGAMEDLG_TEXT);
   buf = create_iconlabel(NULL, pwindow->dst, plrname,
           (WF_RESTORE_BACKGROUND|WF_DRAW_TEXT_LABEL_WITH_SPACE));
   add_to_gui_list(ID_LABEL, buf);
   area.h += buf->size.h + adj_size(20);
 
-  /* player name edit */
-  buf = create_edit_from_chars(NULL, pwindow->dst, user_name, adj_font(14),
-                               adj_size(210),
-                               (WF_RESTORE_BACKGROUND|WF_FREE_DATA));
+  /* Player name edit */
+  buf = create_edit_from_chars_fonto(NULL, pwindow->dst, user_name,
+                                     FONTO_HEADING,
+                                     adj_size(210),
+                                     (WF_RESTORE_BACKGROUND|WF_FREE_DATA));
   buf->action = convert_playername_callback;
   set_wstate(buf, FC_WS_NORMAL);
   add_to_gui_list(ID_PLAYER_NAME_EDIT, buf);
   area.h += buf->size.h + adj_size(5);
 
-  /* server name label */
-  srvname = create_utf8_from_char(_("Freeciv Server :"), adj_font(10));
+  /* Server name label */
+  srvname = create_utf8_from_char_fonto(_("Freeciv Server :"), FONTO_DEFAULT);
   srvname->fgcol = *get_theme_color(COLOR_THEME_JOINGAMEDLG_TEXT);
   buf = create_iconlabel(NULL, pwindow->dst, srvname,
           (WF_RESTORE_BACKGROUND|WF_DRAW_TEXT_LABEL_WITH_SPACE));
   add_to_gui_list(ID_LABEL, buf);
   area.h += buf->size.h + adj_size(5);
 
-  /* server name edit */
-  buf = create_edit_from_chars(NULL, pwindow->dst, server_host, adj_font(14),
-                               adj_size(210), WF_RESTORE_BACKGROUND);
+  /* Server name edit */
+  buf = create_edit_from_chars_fonto(NULL, pwindow->dst, server_host,
+                                     FONTO_HEADING,
+                                     adj_size(210), WF_RESTORE_BACKGROUND);
 
   buf->action = convert_servername_callback;
   set_wstate(buf, FC_WS_NORMAL);
   add_to_gui_list(ID_SERVER_NAME_EDIT, buf);
   area.h += buf->size.h + adj_size(5);
 
-  /* port label */
-  port_nr = create_utf8_from_char(_("Port :"), adj_font(10));
+  /* Port label */
+  port_nr = create_utf8_from_char_fonto(_("Port :"), FONTO_DEFAULT);
   port_nr->fgcol = *get_theme_color(COLOR_THEME_JOINGAMEDLG_TEXT);
   buf = create_iconlabel(NULL, pwindow->dst, port_nr,
           (WF_RESTORE_BACKGROUND|WF_DRAW_TEXT_LABEL_WITH_SPACE));
   add_to_gui_list(ID_LABEL, buf);
   area.h += buf->size.h + adj_size(5);
 
-  /* port edit */
+  /* Port edit */
   fc_snprintf(port_str, sizeof(port_str), "%d", server_port);
 
-  buf = create_edit_from_chars(NULL, pwindow->dst, port_str, adj_font(14),
-                               adj_size(210),
-                               WF_RESTORE_BACKGROUND);
+  buf = create_edit_from_chars_fonto(NULL, pwindow->dst, port_str,
+                                     FONTO_HEADING,
+                                     adj_size(210),
+                                     WF_RESTORE_BACKGROUND);
 
   buf->action = convert_portnr_callback;
   set_wstate(buf, FC_WS_NORMAL);
@@ -615,17 +619,19 @@ void popup_join_game_dialog(void)
   area.h += buf->size.h + adj_size(20);
 
   /* Connect button */
-  buf = create_themeicon_button_from_chars(current_theme->ok_icon, pwindow->dst,
-                                           _("Connect"), adj_font(14), 0);
+  buf = create_themeicon_button_from_chars_fonto(current_theme->ok_icon,
+                                                 pwindow->dst,
+                                                 _("Connect"),
+                                                 FONTO_HEADING, 0);
   buf->action = connect_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_RETURN;
   add_to_gui_list(ID_CONNECT_BUTTON, buf);
 
   /* Cancel button */
-  buf = create_themeicon_button_from_chars(current_theme->cancel_icon,
-                                           pwindow->dst, _("Cancel"),
-                                           adj_font(14), 0);
+  buf = create_themeicon_button_from_chars_fonto(current_theme->cancel_icon,
+                                                 pwindow->dst, _("Cancel"),
+                                                 FONTO_HEADING, 0);
   buf->action = cancel_connect_dlg_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_ESCAPE;
@@ -639,7 +645,7 @@ void popup_join_game_dialog(void)
 
   dialog_w = MAX(adj_size(40) + buf->size.w * 2, adj_size(210)) + adj_size(80);
 
-#ifdef SMALL_SCREEN
+#ifdef GUI_SDL2_SMALL_SCREEN
   dialog_h = area.h + (pwindow->size.h - pwindow->area.h);
 #else
   dialog_h = area.h + (pwindow->size.h - pwindow->area.h);
@@ -749,7 +755,7 @@ static int send_passwd_callback(struct widget *pwidget)
     widget_redraw(pwidget);
 
     widget_mark_dirty(pwidget);
-    
+
     flush_dirty();
 
     send_packet_authentication_reply(&client.conn, &reply);
@@ -793,34 +799,39 @@ static void popup_user_passwd_dialog(const char *message)
 
   area = pwindow->area;
 
-  /* text label */
-  label_str = create_utf8_from_char(message, adj_font(12));
+  /* Text label */
+  label_str = create_utf8_from_char_fonto(message, FONTO_ATTENTION);
   label_str->fgcol = *get_theme_color(COLOR_THEME_USERPASSWDDLG_TEXT);
   buf = create_iconlabel(NULL, pwindow->dst, label_str,
                           (WF_RESTORE_BACKGROUND|WF_DRAW_TEXT_LABEL_WITH_SPACE));
   add_to_gui_list(ID_LABEL, buf);
   area.h += adj_size(10) + buf->size.h + adj_size(5);
 
-  /* password edit */
-  buf = create_edit(NULL, pwindow->dst, create_utf8_str(NULL, 0, adj_font(16)),
-                     adj_size(210),
-                     (WF_PASSWD_EDIT|WF_RESTORE_BACKGROUND|WF_FREE_DATA));
+  /* Password edit */
+  buf = create_edit(NULL, pwindow->dst,
+                    create_utf8_str_fonto(NULL, 0, FONTO_BIG),
+                    adj_size(210),
+                    (WF_PASSWD_EDIT|WF_RESTORE_BACKGROUND|WF_FREE_DATA));
   buf->action = convert_passwd_callback;
   set_wstate(buf, FC_WS_NORMAL);
   add_to_gui_list(ID_EDIT, buf);
   area.h += buf->size.h + adj_size(10);
 
   /* Next button */
-  buf = create_themeicon_button_from_chars(current_theme->ok_icon, pwindow->dst,
-                                           _("Next"), adj_font(14), 0);
+  buf = create_themeicon_button_from_chars_fonto(current_theme->ok_icon,
+                                                 pwindow->dst,
+                                                 _("Next"),
+                                                 FONTO_HEADING, 0);
   buf->action = send_passwd_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_RETURN;
   add_to_gui_list(ID_BUTTON, buf);
 
   /* Cancel button */
-  buf = create_themeicon_button_from_chars(current_theme->cancel_icon, pwindow->dst,
-                                           _("Cancel"), adj_font(14), 0);
+  buf = create_themeicon_button_from_chars_fonto(current_theme->cancel_icon,
+                                                 pwindow->dst,
+                                                 _("Cancel"),
+                                                 FONTO_HEADING, 0);
   buf->action = cancel_passwd_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_ESCAPE;
@@ -851,7 +862,7 @@ static void popup_user_passwd_dialog(const char *message)
                       (main_window_width() - pwindow->size.w) / 2,
                       (main_window_height() - pwindow->size.h) / 2);
 
-  /* text label */
+  /* Text label */
   buf = connect_dlg->end_widget_list->prev;
 
   start_x = area.x + (area.w - buf->size.w) / 2;
@@ -862,7 +873,7 @@ static void popup_user_passwd_dialog(const char *message)
 
   start_y += buf->size.h + adj_size(5);
 
-  /* password edit */
+  /* Password edit */
   buf = buf->prev;
   start_x = area.x + (area.w - buf->size.w) / 2;
 
@@ -916,16 +927,17 @@ static int convert_second_passwd_callback(struct widget *pwidget)
 {
   if (PRESSED_EVENT(main_data.event)) {
     if (pwidget->string_utf8->text != NULL
-        && !strncmp(fc_password, pwidget->string_utf8->text, MAX_LEN_NAME)) {
-      set_wstate(pwidget->prev, FC_WS_NORMAL); /* next button */
+        && !fc_strncmp(fc_password, pwidget->string_utf8->text,
+                       MAX_LEN_NAME)) {
+      set_wstate(pwidget->prev, FC_WS_NORMAL); /* Next button */
       widget_redraw(pwidget->prev);
       widget_flush(pwidget->prev);
     } else {
       memset(fc_password, 0, MAX_LEN_NAME);
       fc_password[0] = '\0';
 
-      FC_FREE(pwidget->next->string_utf8->text);/* first edit */
-      FC_FREE(pwidget->string_utf8->text); /* second edit */
+      FC_FREE(pwidget->next->string_utf8->text);/* First edit */
+      FC_FREE(pwidget->string_utf8->text); /* Second edit */
 
       popup_new_user_passwd_dialog(_("Passwords don't match, enter password."));
     }
@@ -957,42 +969,46 @@ static void popup_new_user_passwd_dialog(const char *message)
 
   area = pwindow->area;
 
-  /* text label */
-  label_str = create_utf8_from_char(message, adj_font(12));
+  /* Text label */
+  label_str = create_utf8_from_char_fonto(message, FONTO_ATTENTION);
   label_str->fgcol = *get_theme_color(COLOR_THEME_USERPASSWDDLG_TEXT);
   buf = create_iconlabel(NULL, pwindow->dst, label_str,
                           (WF_RESTORE_BACKGROUND|WF_DRAW_TEXT_LABEL_WITH_SPACE));
   add_to_gui_list(ID_LABEL, buf);
   area.h += adj_size(10) + buf->size.h + adj_size(5);
 
-  /* password edit */
-  buf = create_edit(NULL, pwindow->dst, create_utf8_str(NULL, 0, adj_font(16)),
-                     adj_size(210),
-                     (WF_PASSWD_EDIT|WF_RESTORE_BACKGROUND|WF_FREE_DATA));
+  /* Password edit */
+  buf = create_edit(NULL, pwindow->dst,
+                    create_utf8_str_fonto(NULL, 0, FONTO_BIG),
+                    adj_size(210),
+                    (WF_PASSWD_EDIT|WF_RESTORE_BACKGROUND|WF_FREE_DATA));
   buf->action = convert_first_passwd_callback;
   set_wstate(buf, FC_WS_NORMAL);
   add_to_gui_list(ID_EDIT, buf);
   area.h += buf->size.h + adj_size(5);
 
-  /* second password edit */
-  buf = create_edit(NULL, pwindow->dst, create_utf8_str(NULL, 0, adj_font(16)),
-                     adj_size(210),
-                     (WF_PASSWD_EDIT|WF_RESTORE_BACKGROUND|WF_FREE_DATA));
+  /* Second password edit */
+  buf = create_edit(NULL, pwindow->dst,
+                    create_utf8_str_fonto(NULL, 0, FONTO_BIG),
+                    adj_size(210),
+                    (WF_PASSWD_EDIT|WF_RESTORE_BACKGROUND|WF_FREE_DATA));
   buf->action = convert_second_passwd_callback;
   add_to_gui_list(ID_EDIT, buf);
   area.h += buf->size.h + adj_size(10);
 
   /* Next button */
-  buf = create_themeicon_button_from_chars(current_theme->ok_icon, pwindow->dst,
-                                           _("Next"), adj_font(14), 0);
+  buf = create_themeicon_button_from_chars_fonto(current_theme->ok_icon,
+                                                 pwindow->dst,
+                                                 _("Next"),
+                                                 FONTO_HEADING, 0);
   buf->action = send_passwd_callback;
   buf->key = SDLK_RETURN;
   add_to_gui_list(ID_BUTTON, buf);
 
   /* Cancel button */
-  buf = create_themeicon_button_from_chars(current_theme->cancel_icon,
-                                           pwindow->dst, _("Cancel"),
-                                           adj_font(14), 0);
+  buf = create_themeicon_button_from_chars_fonto(current_theme->cancel_icon,
+                                                 pwindow->dst, _("Cancel"),
+                                                 FONTO_HEADING, 0);
   buf->action = cancel_passwd_callback;
   set_wstate(buf, FC_WS_NORMAL);
   buf->key = SDLK_ESCAPE;

@@ -490,7 +490,7 @@ static bool do_capture_units(struct player *pplayer,
 /**********************************************************************//**
   Occupying move after an action.
 **************************************************************************/
-static void occupy_move(struct tile *def_tile, struct unit *punit,
+static bool occupy_move(struct tile *def_tile, struct unit *punit,
                         const struct action *paction)
 {
   if (!is_non_allied_unit_tile(def_tile, unit_owner(punit))) {
@@ -498,6 +498,7 @@ static void occupy_move(struct tile *def_tile, struct unit *punit,
      * and adjust moves_left to afterward (if successful). */
     int old_moves = punit->moves_left;
     int full_moves = unit_move_rate(punit);
+    int id = punit->id;
 
     punit->moves_left = full_moves;
     /* Post attack occupy move. */
@@ -505,18 +506,26 @@ static void occupy_move(struct tile *def_tile, struct unit *punit,
                                          NULL, NULL, paction,
                                          def_tile, tile_city(def_tile),
                                          NULL, NULL)) {
-      int mcost = MAX(0, full_moves - punit->moves_left - SINGLE_MOVE);
+      if (unit_is_alive(id)) {
+        int mcost = MAX(0, full_moves - punit->moves_left - SINGLE_MOVE);
 
-      /* Move cost is bigger of attack (SINGLE_MOVE) and occupying move costs.
-       * Attack SINGLE_COST is already calculated in to old_moves. */
-      punit->moves_left = old_moves - mcost;
-      if (punit->moves_left < 0) {
-        punit->moves_left = 0;
+        /* Move cost is bigger of attack (SINGLE_MOVE) and occupying move costs.
+         * Attack SINGLE_COST is already calculated in to old_moves. */
+        punit->moves_left = old_moves - mcost;
+        if (punit->moves_left < 0) {
+          punit->moves_left = 0;
+        }
+      } else {
+        return FALSE;
       }
-    } else {
+    } else if (unit_is_alive(id)) {
       punit->moves_left = old_moves;
+    } else {
+      return FALSE;
     }
   }
+
+  return TRUE;
 }
 
 /**********************************************************************//**
@@ -530,6 +539,7 @@ static bool do_wipe_units(struct unit *punit,
                           const struct action *paction)
 {
   struct player *wiper = unit_owner(punit);
+  int wid = punit->id;
   char wiper_link[MAX_LEN_LINK];
   const char *wiper_nation = nation_plural_for_player(wiper);
   const struct unit_type *act_utype = unit_type_get(punit);
@@ -561,12 +571,12 @@ static bool do_wipe_units(struct unit *punit,
 
   } unit_list_iterate_safe_end;
 
-  occupy_move(pdesttile, punit, paction);
+  if (unit_is_alive(wid) && occupy_move(pdesttile, punit, paction)) {
+    unit_did_action(punit);
+    unit_forget_last_activity(punit);
 
-  unit_did_action(punit);
-  unit_forget_last_activity(punit);
-
-  send_unit_info(NULL, punit);
+    send_unit_info(NULL, punit);
+  }
 
   return TRUE;
 }
@@ -1157,8 +1167,6 @@ static struct player *need_war_player_hlp(const struct unit *actor,
   case ACTRES_PLANT:
   case ACTRES_PILLAGE:
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
   case ACTRES_FORTIFY:
   case ACTRES_CONVERT:
   case ACTRES_ROAD:
@@ -1181,6 +1189,8 @@ static struct player *need_war_player_hlp(const struct unit *actor,
   case ACTRES_NONE:
     /* No special help. */
     break;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   /* Look for war requirements from the action enablers. */
@@ -1421,7 +1431,8 @@ static struct ane_expl *expl_act_not_enabl(struct unit *punit,
   struct player *act_player = unit_owner(punit);
   struct player *tgt_player = NULL;
   struct ane_expl *explnat = fc_malloc(sizeof(struct ane_expl));
-  bool can_exist = can_unit_exist_at_tile(&(wld.map), punit, unit_tile(punit));
+  struct civ_map *nmap = &(wld.map);
+  bool can_exist = can_unit_exist_at_tile(nmap, punit, unit_tile(punit));
   bool on_native = is_native_tile(unit_type_get(punit), unit_tile(punit));
   int action_custom;
 
@@ -1517,7 +1528,7 @@ static struct ane_expl *expl_act_not_enabl(struct unit *punit,
       action_custom = unit_upgrade_test(punit, FALSE);
       break;
     case ACTRES_AIRLIFT:
-      action_custom = test_unit_can_airlift_to(NULL, punit, target_city);
+      action_custom = test_unit_can_airlift_to(nmap, NULL, punit, target_city);
       break;
     case ACTRES_NUKE_UNITS:
       action_custom = unit_attack_units_at_tile_result(punit, paction,
@@ -1532,7 +1543,7 @@ static struct ane_expl *expl_act_not_enabl(struct unit *punit,
       break;
     case ACTRES_CONQUER_CITY:
       if (target_city) {
-        action_custom = unit_move_to_tile_test(&(wld.map), punit,
+        action_custom = unit_move_to_tile_test(nmap, punit,
                                                punit->activity,
                                                unit_tile(punit),
                                                city_tile(target_city),
@@ -1543,7 +1554,7 @@ static struct ane_expl *expl_act_not_enabl(struct unit *punit,
       break;
     case ACTRES_TRANSPORT_EMBARK:
       if (target_unit) {
-        action_custom = unit_move_to_tile_test(&(wld.map), punit,
+        action_custom = unit_move_to_tile_test(nmap, punit,
                                                punit->activity,
                                                unit_tile(punit),
                                                unit_tile(target_unit),
@@ -1558,7 +1569,7 @@ static struct ane_expl *expl_act_not_enabl(struct unit *punit,
     case ACTRES_CONQUER_EXTRAS:
     case ACTRES_UNIT_MOVE:
       if (target_tile) {
-        action_custom = unit_move_to_tile_test(&(wld.map), punit,
+        action_custom = unit_move_to_tile_test(nmap, punit,
                                                punit->activity,
                                                unit_tile(punit),
                                                target_tile,
@@ -1569,7 +1580,7 @@ static struct ane_expl *expl_act_not_enabl(struct unit *punit,
       break;
     case ACTRES_TELEPORT:
       if (target_tile != NULL) {
-        action_custom = unit_teleport_to_tile_test(&(wld.map), punit,
+        action_custom = unit_teleport_to_tile_test(nmap, punit,
                                                    punit->activity,
                                                    unit_tile(punit),
                                                    target_tile,
@@ -1627,7 +1638,7 @@ static struct ane_expl *expl_act_not_enabl(struct unit *punit,
              && target_tile != NULL
              && map_is_known_and_seen(target_tile, act_player,
                                       V_MAIN)
-             && (!can_unit_exist_at_tile(&(wld.map), punit, target_tile)
+             && (!can_unit_exist_at_tile(nmap, punit, target_tile)
                  && (!BV_ISSET(paction->sub_results, ACT_SUB_RES_MAY_EMBARK)
                      || !unit_could_load_at(punit, target_tile)))) {
     explnat->kind = ANEK_BAD_TERRAIN_TGT;
@@ -2298,7 +2309,7 @@ void handle_unit_get_actions(struct connection *pc,
   /* Find out what can be done to the targets. */
 
   /* Set the probability for the actions. */
-  action_iterate(act) {
+  action_noninternal_iterate(act) {
     if (action_id_get_actor_kind(act) != AAK_UNIT) {
       /* Not relevant. */
       continue;
@@ -2388,11 +2399,11 @@ void handle_unit_get_actions(struct connection *pc,
                        probabilities[act] = ACTPROB_IMPOSSIBLE);
       break;
     }
-  } action_iterate_end;
+  } action_noninternal_iterate_end;
 
   /* Analyze the probabilities. Decide what targets to send and if an
    * explanation is needed. */
-  action_iterate(act) {
+  action_noninternal_iterate(act) {
     if (action_prob_possible(probabilities[act])) {
       /* An action can be done. No need to explain why no action can be
        * done. */
@@ -2446,7 +2457,7 @@ void handle_unit_get_actions(struct connection *pc,
         break;
       }
     }
-  } action_iterate_end;
+  } action_noninternal_iterate_end;
 
   /* Send possible actions and targets. */
   dsend_packet_unit_actions(pc,
@@ -3933,8 +3944,6 @@ bool unit_perform_action(struct player *pplayer,
                                                         &target_extra));
     break;
   case ACTRES_CLEAN:
-  case ACTRES_CLEAN_POLLUTION:
-  case ACTRES_CLEAN_FALLOUT:
     ACTION_PERFORM_UNIT_TILE(action_type, actor_unit, target_tile,
                              do_action_activity_targeted(actor_unit,
                                                          paction,
@@ -3972,6 +3981,8 @@ bool unit_perform_action(struct player *pplayer,
   case ACTRES_ENABLER_CHECK:
     fc_assert(paction->result != ACTRES_ENABLER_CHECK);
     return FALSE;
+
+  ASSERT_UNUSED_ACTRES_CASES;
   }
 
   /* Something must have gone wrong. */
@@ -4107,7 +4118,7 @@ static bool do_unit_change_homecity(struct unit *punit,
                   _("%s transferred control over a %s to you in %s."),
                   giver,
                   unit_tile_link(punit),
-                  city_link(pcity));;
+                  city_link(pcity));
   }
 
   return punit->homecity == pcity->id;
@@ -4156,7 +4167,7 @@ static bool city_add_unit(struct player *pplayer, struct unit *punit,
                   _("%s adds %s to your city %s."),
                   player_name(unit_owner(punit)),
                   unit_tile_link(punit),
-                  city_link(pcity));;
+                  city_link(pcity));
   }
 
   action_consequence_success(paction, pplayer, act_utype,
@@ -4320,17 +4331,7 @@ void handle_unit_change_activity(struct player *pplayer, int unit_id,
       }
 
     } else if (activity == ACTIVITY_CLEAN) {
-      activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANPOLLUTION,
-                                           pplayer, punit);
-      if (activity_target == NULL) {
-        activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANFALLOUT,
-                                             pplayer, punit);
-      }
-    } else if (activity == ACTIVITY_POLLUTION) {
-      activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANPOLLUTION,
-                                           pplayer, punit);
-    } else if (activity == ACTIVITY_FALLOUT) {
-      activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANFALLOUT,
+      activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEAN,
                                            pplayer, punit);
     } else {
       required = FALSE;
@@ -4624,6 +4625,7 @@ static bool unit_nuke(struct player *pplayer, struct unit *punit,
 {
   struct city *pcity;
   const struct unit_type *act_utype;
+  struct civ_map *nmap = &(wld.map);
 
   /* Sanity check: The actor still exists. */
   fc_assert_ret_val(pplayer, FALSE);
@@ -4636,7 +4638,7 @@ static bool unit_nuke(struct player *pplayer, struct unit *punit,
             unit_rule_name(punit),
             TILE_XY(def_tile));
 
-  if ((pcity = sdi_try_defend(pplayer, def_tile))) {
+  if ((pcity = sdi_try_defend(nmap, pplayer, def_tile))) {
     /* FIXME: Remove the hard coded reference to SDI defense. */
     notify_player(pplayer, unit_tile(punit), E_UNIT_LOST_ATT, ftc_server,
                   _("Your %s was shot down by "
@@ -4735,7 +4737,7 @@ static bool unit_do_destroy_city(struct player *act_player,
 
   /* Let the actor know. */
   notify_player(act_player, city_tile(tgt_city),
-                E_UNIT_WIN_ATT, ftc_server,
+                E_CITY_CONQUERED, ftc_server,
                 _("You destroy %s completely."),
                 city_tile_link(tgt_city));
 
@@ -4881,18 +4883,19 @@ static bool do_attack(struct unit *punit, struct tile *def_tile,
   int att_vet, def_vet;
   struct unit *pdefender;
   const struct unit_type *act_utype = unit_type_get(punit);
+  struct civ_map *nmap = &(wld.map);
   bool powerless;
 
-  if (!(pdefender = get_defender(punit, def_tile, paction))) {
+  if (!(pdefender = get_defender(nmap, punit, def_tile, paction))) {
     /* Can't fight air... */
     return FALSE;
   }
-  
+
   att_hp_start = punit->hp;
   def_hp_start = pdefender->hp;
   def_power = get_total_defense_power(punit, pdefender);
   att_power = get_total_attack_power(punit, pdefender, paction);
-  get_modified_firepower(punit, pdefender, &att_fp, &def_fp);
+  get_modified_firepower(nmap, punit, pdefender, &att_fp, &def_fp);
 
   log_debug("Start attack: %s %s against %s %s.",
             nation_rule_name(nation_of_player(pplayer)),
@@ -5136,9 +5139,9 @@ static bool do_attack(struct unit *punit, struct tile *def_tile,
     }
   }
 
-  /* If attacker wins, and occupychance > 0, it might move in.  Don't move in
+  /* If attacker wins, and occupychance > 0, it might move in. Don't move in
    * if there are enemy units in the tile (a fortress, city or air base with
-   * multiple defenders and unstacked combat). Note that this could mean 
+   * multiple defenders and unstacked combat). Note that this could mean
    * capturing (or destroying) a city. */
 
   if (pwinner == punit && fc_rand(100) < game.server.occupychance) {
@@ -5801,7 +5804,7 @@ static bool unit_do_help_build(struct player *pplayer,
 }
 
 /**********************************************************************//**
-  Handle request to establish traderoute. If pcity_dest is NULL, assumes
+  Handle request to establish trade route. If pcity_dest is NULL, assumes
   that unit is inside target city.
 
   Returns TRUE iff action could be done, FALSE if it couldn't. Even if
@@ -5823,7 +5826,7 @@ static bool do_unit_establish_trade(struct player *pplayer,
   struct city *pcity_homecity;
   struct trade_route_list *routes_out_of_dest;
   struct trade_route_list *routes_out_of_home;
-  enum traderoute_bonus_type bonus_type;
+  enum trade_route_bonus_type bonus_type;
   struct goods_type *goods;
   const char *goods_str;
   const struct unit_type *act_utype;
@@ -6341,8 +6344,8 @@ bool unit_server_side_agent_set(struct player *pplayer,
 {
   /* Check that the agent can be activated for this unit. */
   switch (agent) {
-  case SSA_AUTOSETTLER:
-    if (!can_unit_do_autosettlers(punit)) {
+  case SSA_AUTOWORKER:
+    if (!can_unit_do_autoworker(punit)) {
       return FALSE;
     }
     break;

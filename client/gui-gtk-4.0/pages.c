@@ -254,7 +254,7 @@ GtkWidget *create_main_page(void)
   gtk_widget_set_halign(frame, GTK_ALIGN_CENTER);
   gtk_grid_attach(GTK_GRID(vgrid), frame, 0, grid_row++, 1, 1);
 
-  intro_in = load_gfxfile(tileset_main_intro_filename(tileset));
+  intro_in = load_gfxfile(tileset_main_intro_filename(tileset), FALSE);
   get_sprite_dimensions(intro_in, &width, &height);
   sh = screen_height();
 
@@ -584,7 +584,6 @@ static GtkWidget *save_dialog_new(const char *title, const char *savelabel,
   GtkCellRenderer *rend;
   GtkTreeSelection *selection;
   struct save_dialog *pdialog;
-  int grids_row = 0;
 
   fc_assert_ret_val(NULL != action, NULL);
   fc_assert_ret_val(NULL != files, NULL);
@@ -622,10 +621,7 @@ static GtkWidget *save_dialog_new(const char *title, const char *savelabel,
                    G_CALLBACK(save_dialog_row_callback), pdialog);
   pdialog->tree_view = GTK_TREE_VIEW(view);
 
-  sbox = gtk_grid_new();
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(sbox),
-                                 GTK_ORIENTATION_VERTICAL);
-  gtk_grid_set_row_spacing(GTK_GRID(sbox), 2);
+  sbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
   gtk_box_append(vbox, sbox);
 
   label = g_object_new(GTK_TYPE_LABEL,
@@ -635,7 +631,7 @@ static GtkWidget *save_dialog_new(const char *title, const char *savelabel,
                        "xalign", 0.0,
                        "yalign", 0.5,
                        NULL);
-  gtk_grid_attach(GTK_GRID(sbox), label, 0, grids_row++, 1, 1);
+  gtk_box_append(GTK_BOX(sbox), label);
 
   sw = gtk_scrolled_window_new();
   gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(sw), 300);
@@ -644,7 +640,7 @@ static GtkWidget *save_dialog_new(const char *title, const char *savelabel,
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
                                  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), view);
-  gtk_grid_attach(GTK_GRID(sbox), sw, 0, grids_row++, 1, 1);
+  gtk_box_append(GTK_BOX(sbox), sw);
 
   selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
   gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
@@ -663,15 +659,11 @@ static GtkWidget *save_dialog_new(const char *title, const char *savelabel,
                    G_CALLBACK(save_dialog_entry_callback), pdialog);
   pdialog->entry = GTK_ENTRY(entry);
 
-  sbox = gtk_grid_new();
-  grids_row = 0;
+  sbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
   gtk_widget_set_margin_bottom(sbox, 12);
   gtk_widget_set_margin_end(sbox, 12);
   gtk_widget_set_margin_start(sbox, 12);
   gtk_widget_set_margin_top(sbox, 12);
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(sbox),
-                                 GTK_ORIENTATION_VERTICAL);
-  gtk_grid_set_row_spacing(GTK_GRID(sbox), 2);
 
   label = g_object_new(GTK_TYPE_LABEL,
                        "use-underline", TRUE,
@@ -680,14 +672,14 @@ static GtkWidget *save_dialog_new(const char *title, const char *savelabel,
                        "xalign", 0.0,
                        "yalign", 0.5,
                        NULL);
-  gtk_grid_attach(GTK_GRID(sbox), label, 0, grids_row++, 1, 1);
+  gtk_box_append(GTK_BOX(sbox), label);
 
-  gtk_grid_attach(GTK_GRID(sbox), entry, 0, grids_row++, 1, 1);
+  gtk_box_append(GTK_BOX(sbox), entry);
   gtk_box_append(vbox, sbox);
 
   save_dialog_update(pdialog);
   gtk_window_set_focus(GTK_WINDOW(shell), entry);
-  gtk_widget_show(GTK_WIDGET(vbox));
+  gtk_widget_set_visible(GTK_WIDGET(vbox), TRUE);
 
   return shell;
 }
@@ -888,6 +880,7 @@ static void clear_network_statusbar(void)
     txt = g_queue_pop_head(statusbar_queue);
     free(txt);
   }
+
   gtk_label_set_text(GTK_LABEL(statusbar), "");
 }
 
@@ -1073,16 +1066,16 @@ static void connect_callback(GtkWidget *w, gpointer data)
           gtk_entry_buffer_get_text(gtk_entry_get_buffer(GTK_ENTRY(network_password))));
       sz_strlcpy(reply.password,
           gtk_entry_buffer_get_text(gtk_entry_get_buffer(GTK_ENTRY(network_confirm_password))));
-      if (strncmp(reply.password, fc_password, MAX_LEN_NAME) == 0) {
-	fc_password[0] = '\0';
-	send_packet_authentication_reply(&client.conn, &reply);
+      if (!fc_strncmp(reply.password, fc_password, MAX_LEN_NAME)) {
+        fc_password[0] = '\0';
+        send_packet_authentication_reply(&client.conn, &reply);
 
-	set_connection_state(WAITING_TYPE);
+        set_connection_state(WAITING_TYPE);
       } else {
-	append_network_statusbar(_("Passwords don't match, enter password."),
+        append_network_statusbar(_("Passwords don't match, enter password."),
                                  TRUE);
 
-	set_connection_state(NEW_PASSWORD_TYPE);
+        set_connection_state(NEW_PASSWORD_TYPE);
       }
     }
     return;
@@ -1104,9 +1097,9 @@ static void connect_callback(GtkWidget *w, gpointer data)
   Connect on list item double-click.
 **************************************************************************/
 static void network_activate_callback(GtkTreeView *view,
-                      		      GtkTreePath *arg1,
-				      GtkTreeViewColumn *arg2,
-				      gpointer data)
+                                      GtkTreePath *arg1,
+                                      GtkTreeViewColumn *arg2,
+                                      gpointer data)
 {
   connect_callback(NULL, data);
 }
@@ -1208,24 +1201,20 @@ static void update_network_page(void)
 **************************************************************************/
 GtkWidget *create_network_page(void)
 {
-  GtkWidget *box, *sbox, *bbox, *hgrid, *notebook;
+  GtkWidget *box, *sbox, *bbox, *hbox, *notebook;
   GtkWidget *button, *label, *view, *sw, *table;
   GtkTreeSelection *selection;
   GtkListStore *store;
-  int box_row = 0;
-  int sbox_row = 0;
-  int grid_col = 0;
+  GtkEventController *controller;
 
-  box = gtk_grid_new();
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(box),
-                                 GTK_ORIENTATION_VERTICAL);
+  box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
   gtk_widget_set_margin_start(box, 4);
   gtk_widget_set_margin_end(box, 4);
   gtk_widget_set_margin_top(box, 4);
   gtk_widget_set_margin_bottom(box, 4);
 
   notebook = gtk_notebook_new();
-  gtk_grid_attach(GTK_GRID(box), notebook, 0, box_row++, 1, 1);
+  gtk_box_append(GTK_BOX(box), notebook);
 
   /* LAN pane. */
   lan_store = gtk_list_store_new(7, G_TYPE_STRING, /* host */
@@ -1245,8 +1234,12 @@ GtkWidget *create_network_page(void)
   selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
   lan_selection = selection;
   gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
-  g_signal_connect(view, "focus",
+
+  controller = gtk_event_controller_focus_new();
+  g_signal_connect(controller, "enter",
                    G_CALLBACK(terminate_signal_processing), NULL);
+  gtk_widget_add_controller(view, controller);
+
   g_signal_connect(view, "row-activated",
                    G_CALLBACK(network_activate_callback), NULL);
   g_signal_connect(selection, "changed",
@@ -1269,7 +1262,7 @@ GtkWidget *create_network_page(void)
   gtk_widget_set_margin_bottom(sw, 4);
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
-				 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+                                 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), view);
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), sw, label);
 
@@ -1292,8 +1285,12 @@ GtkWidget *create_network_page(void)
   selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
   meta_selection = selection;
   gtk_tree_selection_set_mode(selection, GTK_SELECTION_SINGLE);
-  g_signal_connect(view, "focus",
+
+  controller = gtk_event_controller_focus_new();
+  g_signal_connect(controller, "enter",
                    G_CALLBACK(terminate_signal_processing), NULL);
+  gtk_widget_add_controller(view, controller);
+
   g_signal_connect(view, "row-activated",
                    G_CALLBACK(network_activate_callback), NULL);
   g_signal_connect(selection, "changed",
@@ -1316,7 +1313,7 @@ GtkWidget *create_network_page(void)
   gtk_widget_set_margin_bottom(sw, 4);
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
-				 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+                                 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), view);
   if (GUI_GTK_OPTION(metaserver_tab_first)) {
     gtk_notebook_prepend_page(GTK_NOTEBOOK(notebook), sw, label);
@@ -1325,23 +1322,20 @@ GtkWidget *create_network_page(void)
   }
 
   /* Bottom part of the page, outside the inner notebook. */
-  sbox = gtk_grid_new();
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(sbox),
-                                 GTK_ORIENTATION_VERTICAL);
-  gtk_grid_attach(GTK_GRID(box), sbox, 0, box_row++, 1, 1);
+  sbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_box_append(GTK_BOX(box), sbox);
 
-  hgrid = gtk_grid_new();
-  gtk_grid_set_column_spacing(GTK_GRID(hgrid), 12);
-  gtk_widget_set_margin_bottom(hgrid, 8);
-  gtk_widget_set_margin_end(hgrid, 8);
-  gtk_widget_set_margin_start(hgrid, 8);
-  gtk_widget_set_margin_top(hgrid, 8);
-  gtk_grid_attach(GTK_GRID(sbox), hgrid, 0, sbox_row++, 1, 1);
+  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+  gtk_widget_set_margin_bottom(hbox, 8);
+  gtk_widget_set_margin_end(hbox, 8);
+  gtk_widget_set_margin_start(hbox, 8);
+  gtk_widget_set_margin_top(hbox, 8);
+  gtk_box_append(GTK_BOX(sbox), hbox);
 
   table = gtk_grid_new();
   gtk_grid_set_row_spacing(GTK_GRID(table), 2);
   gtk_grid_set_column_spacing(GTK_GRID(table), 12);
-  gtk_grid_attach(GTK_GRID(hgrid), table, grid_col++, 0, 1, 1);
+  gtk_box_append(GTK_BOX(hbox), table);
 
   network_host = gtk_entry_new();
   g_signal_connect(network_host, "activate",
@@ -1349,12 +1343,12 @@ GtkWidget *create_network_page(void)
   gtk_grid_attach(GTK_GRID(table), network_host, 1, 0, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", network_host,
-		       "label", _("_Host:"),
-		       "xalign", 0.0,
-		       "yalign", 0.5,
-		       NULL);
+                       "use-underline", TRUE,
+                       "mnemonic-widget", network_host,
+                       "label", _("_Host:"),
+                       "xalign", 0.0,
+                       "yalign", 0.5,
+                       NULL);
   network_host_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 0, 1, 1);
 
@@ -1364,12 +1358,12 @@ GtkWidget *create_network_page(void)
   gtk_grid_attach(GTK_GRID(table), network_port, 1, 1, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", network_port,
-		       "label", _("_Port:"),
-		       "xalign", 0.0,
-		       "yalign", 0.5,
-		       NULL);
+                       "use-underline", TRUE,
+                       "mnemonic-widget", network_port,
+                       "label", _("_Port:"),
+                       "xalign", 0.0,
+                       "yalign", 0.5,
+                       NULL);
   network_port_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 1, 1, 1);
 
@@ -1380,12 +1374,12 @@ GtkWidget *create_network_page(void)
   gtk_grid_attach(GTK_GRID(table), network_login, 1, 3, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", network_login,
-		       "label", _("_Login:"),
-		       "xalign", 0.0,
-		       "yalign", 0.5,
-		       NULL);
+                       "use-underline", TRUE,
+                       "mnemonic-widget", network_login,
+                       "label", _("_Login:"),
+                       "xalign", 0.0,
+                       "yalign", 0.5,
+                       NULL);
   gtk_widget_set_margin_top(label, 10);
   network_login_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 3, 1, 1);
@@ -1397,12 +1391,12 @@ GtkWidget *create_network_page(void)
   gtk_grid_attach(GTK_GRID(table), network_password, 1, 4, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", network_password,
-		       "label", _("Pass_word:"),
-		       "xalign", 0.0,
-		       "yalign", 0.5,
-		       NULL);
+                       "use-underline", TRUE,
+                       "mnemonic-widget", network_password,
+                       "label", _("Pass_word:"),
+                       "xalign", 0.0,
+                       "yalign", 0.5,
+                       NULL);
   network_password_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 4, 1, 1);
 
@@ -1413,12 +1407,12 @@ GtkWidget *create_network_page(void)
   gtk_grid_attach(GTK_GRID(table), network_confirm_password, 1, 5, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", network_confirm_password,
-		       "label", _("Conf_irm Password:"),
-		       "xalign", 0.0,
-		       "yalign", 0.5,
-		       NULL);
+                       "use-underline", TRUE,
+                       "mnemonic-widget", network_confirm_password,
+                       "label", _("Conf_irm Password:"),
+                       "xalign", 0.0,
+                       "yalign", 0.5,
+                       NULL);
   network_confirm_password_label = label;
   gtk_grid_attach(GTK_GRID(table), label, 0, 5, 1, 1);
 
@@ -1440,9 +1434,9 @@ GtkWidget *create_network_page(void)
   sw = gtk_scrolled_window_new();
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
-				 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+                                 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), view);
-  gtk_grid_attach(GTK_GRID(hgrid), sw, grid_col++, 0, 1, 1);
+  gtk_box_append(GTK_BOX(hbox), sw);
 
   bbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
   gtk_widget_set_margin_bottom(bbox, 2);
@@ -1450,7 +1444,7 @@ GtkWidget *create_network_page(void)
   gtk_widget_set_margin_start(bbox, 2);
   gtk_widget_set_margin_top(bbox, 2);
   gtk_box_set_spacing(GTK_BOX(bbox), 12);
-  gtk_grid_attach(GTK_GRID(sbox), bbox, 0, sbox_row++, 1, 1);
+  gtk_box_append(GTK_BOX(sbox), bbox);
 
   button = gtk_button_new_from_icon_name("view-refresh");
   gtk_box_append(GTK_BOX(bbox), button);
@@ -1625,7 +1619,7 @@ static void ai_skill_callback(GtkWidget *w, gpointer data)
 }
 
 /* HACK: sometimes when creating the ruleset combo the value is set without
- * the user's control.  In this case we don't want to do a /read. */
+ * the user's control. In this case we don't want to do a /read. */
 static bool no_ruleset_callback = FALSE;
 
 /**********************************************************************//**
@@ -1839,8 +1833,8 @@ static void show_conn_popup(struct player *pplayer, struct connection *pconn)
 
   /* Show popup. */
   popup = gtk_message_dialog_new(NULL, 0,
-				 GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
-				 "%s", buf);
+                                 GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
+                                 "%s", buf);
   gtk_window_set_title(GTK_WINDOW(popup), _("Player/conn info"));
   setup_dialog(popup, toplevel);
   g_signal_connect(popup, "response", G_CALLBACK(gtk_window_destroy), NULL);
@@ -2776,6 +2770,7 @@ GtkWidget *create_start_page(void)
                                     GTK_UPDATE_IF_VALID);
   if (server_optset != NULL) {
     struct option *paifill = optset_option_by_name(server_optset, "aifill");
+
     if (paifill) {
       gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin),
                                 option_int_get(paifill));
@@ -2787,8 +2782,8 @@ GtkWidget *create_start_page(void)
   gtk_grid_attach(GTK_GRID(table), spin, 1, 0, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", spin,
+                       "use-underline", TRUE,
+                       "mnemonic-widget", spin,
                        /* TRANS: Keep individual lines short */
                        "label", _("Number of _Players\n(including AI):"),
                        "xalign", 0.0,
@@ -2814,8 +2809,8 @@ GtkWidget *create_start_page(void)
   gtk_grid_attach(GTK_GRID(table), ai_lvl_combobox, 1, 1, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", ai_lvl_combobox,
+                       "use-underline", TRUE,
+                       "mnemonic-widget", ai_lvl_combobox,
                        "label", _("AI Skill _Level:"),
                        "xalign", 0.0,
                        "yalign", 0.5,
@@ -2829,8 +2824,8 @@ GtkWidget *create_start_page(void)
   gtk_grid_attach(GTK_GRID(table), ruleset_combo, 1, 2, 1, 1);
 
   label = g_object_new(GTK_TYPE_LABEL,
-		       "use-underline", TRUE,
-		       "mnemonic-widget", GTK_COMBO_BOX_TEXT(ruleset_combo),
+                       "use-underline", TRUE,
+                       "mnemonic-widget", GTK_COMBO_BOX_TEXT(ruleset_combo),
                        "label", _("Ruleset:"),
                        "xalign", 0.0,
                        "yalign", 0.5,
@@ -3079,7 +3074,7 @@ GtkWidget *create_load_page(void)
   gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(sw), 300);
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw), GTK_POLICY_AUTOMATIC,
-  				 GTK_POLICY_AUTOMATIC);
+                                 GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), view);
   gtk_grid_attach(GTK_GRID(sbox), sw, 0, sbox_row++, 1, 1);
 
@@ -3121,11 +3116,11 @@ static void scenario_list_callback(void)
 
   if (gtk_tree_selection_get_selected(scenario_selection, NULL, &it)) {
     gtk_tree_model_get(GTK_TREE_MODEL(scenario_store), &it,
-		       2, &description, -1);
+                       2, &description, -1);
     gtk_tree_model_get(GTK_TREE_MODEL(scenario_store), &it,
-		       3, &authors, -1);
+                       3, &authors, -1);
     gtk_tree_model_get(GTK_TREE_MODEL(scenario_store), &it,
-		       1, &filename, -1);
+                       1, &filename, -1);
     gtk_tree_model_get(GTK_TREE_MODEL(scenario_store), &it,
                        4, &ver, -1);
     filename = skip_to_basename(filename);
@@ -3375,7 +3370,7 @@ GtkWidget *create_scenario_page(void)
   sw = gtk_scrolled_window_new();
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw), GTK_POLICY_AUTOMATIC,
-  				 GTK_POLICY_AUTOMATIC);
+                                 GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), view);
   gtk_grid_attach(GTK_GRID(sbox), sw, 0, 0, 1, 2);
 
@@ -3390,7 +3385,7 @@ GtkWidget *create_scenario_page(void)
   sw = gtk_scrolled_window_new();
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw), TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw), GTK_POLICY_AUTOMATIC,
-  				 GTK_POLICY_AUTOMATIC);
+                                 GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), text);
 
   text = gtk_text_view_new();
@@ -3485,7 +3480,7 @@ enum client_pages get_current_client_page(void)
 }
 
 /**********************************************************************//**
-  Changes the current page.  The action is delayed.
+  Changes the current page. The action is delayed.
 **************************************************************************/
 void real_set_client_page(enum client_pages new_page)
 {
@@ -3526,14 +3521,10 @@ void real_set_client_page(enum client_pages new_page)
   case PAGE_MAIN:
   case PAGE_START:
     if (is_server_running()) {
-      if (game.info.is_new_game) {
-        gtk_widget_show(start_options_table);
-      } else {
-        gtk_widget_hide(start_options_table);
-      }
+      gtk_widget_set_visible(start_options_table, game.info.is_new_game);
       update_start_page();
     } else {
-      gtk_widget_hide(start_options_table);
+      gtk_widget_set_visible(start_options_table, FALSE);
     }
     voteinfo_gui_update();
     overview_size_changed();
@@ -3563,12 +3554,12 @@ void real_set_client_page(enum client_pages new_page)
     break;
   }
 
-  /* hide/show statusbar. */
+  /* Hide/show statusbar. */
   if (new_page == PAGE_START || new_page == PAGE_GAME) {
     clear_network_statusbar();
-    gtk_widget_hide(statusbar_frame);
+    gtk_widget_set_visible(statusbar_frame, FALSE);
   } else {
-    gtk_widget_show(statusbar_frame);
+    gtk_widget_set_visible(statusbar_frame, TRUE);
   }
 
   gtk_notebook_set_current_page(GTK_NOTEBOOK(toplevel_tabs), new_page);
@@ -3596,6 +3587,7 @@ void real_set_client_page(enum client_pages new_page)
     refresh_chat_buttons();
     center_on_something();
     mapview_thaw();
+    add_idle_callback(main_message_area_resize, NULL);
     break;
   case PAGE_NETWORK:
     update_network_lists();
@@ -3716,7 +3708,7 @@ void mapimg_client_save(const char *filename)
 }
 
 /**********************************************************************//**
-  Set the list of available rulesets.  The default ruleset should be
+  Set the list of available rulesets. The default ruleset should be
   "default", and if the user changes this then set_ruleset() should be
   called.
 **************************************************************************/
@@ -3736,7 +3728,7 @@ void set_rulesets(int num_rulesets, char **rulesets)
 
   no_ruleset_callback = TRUE;
 
-  /* HACK: server should tell us the current ruleset. */
+  /* HACK: Server should tell us the current ruleset. */
   gtk_combo_box_set_active(GTK_COMBO_BOX(ruleset_combo), def_idx);
 
   no_ruleset_callback = FALSE;

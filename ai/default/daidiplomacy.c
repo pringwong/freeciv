@@ -56,12 +56,12 @@
 #include "handicaps.h"
 
 /* ai/default */
-#include "aitools.h"
 #include "daicity.h"
 #include "daidata.h"
 #include "dailog.h"
 #include "daimilitary.h"
 #include "daiplayer.h"
+#include "daiunit.h"
 
 #include "daidiplomacy.h"
 
@@ -1368,7 +1368,7 @@ static void dai_go_to_war(struct ai_type *ait, struct player *pplayer,
       /* Ooops! */
       DIPLO_LOG(ait, LOG_DIPL, pplayer, target, "Wanted to declare war "
                 "for their war against an ally, but can no longer find "
-                "this ally!  War declaration aborted.");
+                "this ally! War declaration aborted.");
       adip->countdown = -1;
       return;
     }
@@ -1395,6 +1395,7 @@ static void dai_go_to_war(struct ai_type *ait, struct player *pplayer,
     } else {
       /* There would be Senate even during revolution. Better not to revolt for nothing */
       pplayer->government = real_gov;
+      adip->countdown = -1; /* War declaration aborted */
 
       DIPLO_LOG(ait, LOG_DEBUG, pplayer, target,
                 "Not revolting, as there would be Senate regardless.");
@@ -1408,6 +1409,8 @@ static void dai_go_to_war(struct ai_type *ait, struct player *pplayer,
     if (pplayer_can_cancel_treaty(pplayer, target) != DIPL_OK) {
       DIPLO_LOG(ait, LOG_ERROR, pplayer, target,
                 "Wanted to cancel treaty but was unable to.");
+      adip->countdown = -1; /* War declaration aborted */
+
       return;
     }
     handle_diplomacy_cancel_pact(pplayer, player_number(target), clause_type_invalid());
@@ -1610,6 +1613,7 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
           || pplayers_at_war(pplayer, aplayer)) {
         continue;
       }
+
       /* A spaceship victory is always one single player's or team's victory */
       if (aplayer->spaceship.state == SSHIP_LAUNCHED
           && adv->dipl.spacerace_leader == aplayer
@@ -1619,15 +1623,15 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
                            "yourself alone betrays your true intentions, and I "
                            "will have no more of our alliance!"),
                          player_name(pplayer));
-	handle_diplomacy_cancel_pact(pplayer, player_number(aplayer),
-				     CLAUSE_ALLIANCE);
+        handle_diplomacy_cancel_pact(pplayer, player_number(aplayer),
+                                     CLAUSE_ALLIANCE);
         if (gives_shared_vision(pplayer, aplayer)) {
           remove_shared_vision(pplayer, aplayer);
         }
         /* Never forgive this */
         pplayer->ai_common.love[player_index(aplayer)] = -MAX_AI_LOVE;
       } else if (ship->state == SSHIP_STARTED 
-		 && adip->warned_about_space == 0) {
+                 && adip->warned_about_space == 0) {
         pplayer->ai_common.love[player_index(aplayer)] -= MAX_AI_LOVE / 10;
         adip->warned_about_space = 10 + fc_rand(6);
         dai_diplo_notify(aplayer,
@@ -1717,22 +1721,24 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
   /*** Actually declare war (when we have moved units into position) ***/
 
   players_iterate(aplayer) {
-    struct ai_dip_intel *adip = dai_diplomacy_get(ait, pplayer, aplayer);
+    if (!players_on_same_team(pplayer, aplayer)) {
+      struct ai_dip_intel *adip = dai_diplomacy_get(ait, pplayer, aplayer);
 
-    if (!aplayer->is_alive) {
-      adip->countdown = -1;
-      continue;
-    }
-    if (adip->countdown > 0) {
-      adip->countdown--;
-    } else if (adip->countdown == 0) {
-      if (!WAR(pplayer, aplayer)) {
-        DIPLO_LOG(ait, LOG_DIPL2, pplayer, aplayer, "Declaring war!");
-        dai_go_to_war(ait, pplayer, aplayer, adip->war_reason);
+      if (!aplayer->is_alive) {
+        adip->countdown = -1;
+        continue;
       }
-    } else if (adip->countdown < -1) {
-      /* negative countdown less than -1 is war stubbornness */
-      adip->countdown++;
+      if (adip->countdown > 0) {
+        adip->countdown--;
+      } else if (adip->countdown == 0) {
+        if (!WAR(pplayer, aplayer)) {
+          DIPLO_LOG(ait, LOG_DIPL2, pplayer, aplayer, "Declaring war!");
+          dai_go_to_war(ait, pplayer, aplayer, adip->war_reason);
+        }
+      } else if (adip->countdown < -1) {
+        /* Negative countdown less than -1 is war stubbornness */
+        adip->countdown++;
+      }
     }
   } players_iterate_end;
 
@@ -1753,7 +1759,8 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
       if (gives_shared_vision(pplayer, aplayer)) {
         if (!pplayers_allied(pplayer, aplayer)) {
           remove_shared_vision(pplayer, aplayer);
-        } else if (!shared_vision_is_safe(pplayer, aplayer)) {
+        } else if (!players_on_same_team(pplayer, aplayer)
+                   && !shared_vision_is_safe(pplayer, aplayer)) {
           dai_diplo_notify(aplayer,
                            _("*%s (AI)* Sorry, sharing vision with you "
                              "is no longer safe."),
@@ -1841,26 +1848,27 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
                                player_name(target));
               adip->ally_patience--;
             }
-          } else {
-            if (fc_rand(5) == 1) {
-              dai_diplo_notify(aplayer,
-                               _("*%s (AI)* Dishonored one, we made a pact of "
-                                 "alliance, and yet you remain at peace with our mortal "
-                                 "enemy, %s! This is unacceptable; our alliance is no "
-                                 "more!"),
-                               player_name(pplayer),
-                               player_name(target));
-              DIPLO_LOG(ait, LOG_DIPL2, pplayer, aplayer, "breaking useless alliance");
-              /* to peace */
-              handle_diplomacy_cancel_pact(pplayer, player_number(aplayer),
-                                           CLAUSE_ALLIANCE);
-              pplayer->ai_common.love[player_index(aplayer)] =
-                MIN(pplayer->ai_common.love[player_index(aplayer)], 0);
-              if (gives_shared_vision(pplayer, aplayer)) {
-                remove_shared_vision(pplayer, aplayer);
-              }
-              fc_assert(!gives_shared_vision(pplayer, aplayer));
+          } else if (fc_rand(5) == 1
+                     && !players_on_same_team(pplayer, aplayer)) {
+            dai_diplo_notify(aplayer,
+                             _("*%s (AI)* Dishonored one, we made a pact of "
+                               "alliance, and yet you remain at peace with our mortal "
+                               "enemy, %s! This is unacceptable; our alliance is no "
+                               "more!"),
+                             player_name(pplayer),
+                             player_name(target));
+            DIPLO_LOG(ait, LOG_DIPL2, pplayer, aplayer,
+                      "breaking useless alliance");
+            /* To peace */
+            handle_diplomacy_cancel_pact(pplayer, player_number(aplayer),
+                                         CLAUSE_ALLIANCE);
+            pplayer->ai_common.love[player_index(aplayer)]
+              = MIN(pplayer->ai_common.love[player_index(aplayer)], 0);
+            if (gives_shared_vision(pplayer, aplayer)) {
+              remove_shared_vision(pplayer, aplayer);
             }
+
+            fc_assert(!gives_shared_vision(pplayer, aplayer));
           }
         }
         break;
@@ -2046,15 +2054,13 @@ void dai_incident(struct ai_type *ait, enum incident_type type,
     case ACTRES_HOMELESS:
     case ACTRES_UPGRADE_UNIT:
     case ACTRES_PARADROP:
-    case ACTRES_PARADROP_CONQUER: /* TODO: bigger incident */
+    case ACTRES_PARADROP_CONQUER: /* TODO: Bigger incident */
     case ACTRES_AIRLIFT:
     case ACTRES_HEAL_UNIT:
     case ACTRES_TRANSFORM_TERRAIN:
     case ACTRES_CULTIVATE:
     case ACTRES_PLANT:
     case ACTRES_CLEAN:
-    case ACTRES_CLEAN_POLLUTION:
-    case ACTRES_CLEAN_FALLOUT:
     case ACTRES_FORTIFY:
     case ACTRES_ROAD:
     case ACTRES_CONVERT:
@@ -2074,6 +2080,8 @@ void dai_incident(struct ai_type *ait, enum incident_type type,
       /* Various */
       dai_incident_simple(receiver, violator, victim, scope, 1);
       break;
+
+    ASSERT_UNUSED_ACTRES_CASES;
     }
     break;
   case INCIDENT_WAR:

@@ -4,7 +4,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT([Freeciv], m4_esyscmd([./fc_version | tr -d '\n']),
         [https://osdn.net/projects/freeciv/ticket/],
         [freeciv], [https://www.freeciv.org/])
-AC_PREREQ(2.65)
+AC_PREREQ(2.69)
 
 if test "x$(pwd)" = "x$(cd $srcdir && pwd)" ; then
   AC_MSG_ERROR([Attempted to configure source directory. You have to use separate build dir])
@@ -19,6 +19,11 @@ AC_CONFIG_HEADERS([gen_headers/fc_config.h gen_headers/freeciv_config.h gen_head
 AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
 AC_C_BIGENDIAN
+
+AC_SYS_LARGEFILE
+dnl AC_SYS_YEAR2038() added in autoconf-2.73
+m4_ifdef([AC_SYS_YEAR2038],
+   [AC_SYS_YEAR2038])
 
 FC_EMSCRIPTEN
 
@@ -481,24 +486,6 @@ AS_IF([test "x$enable_delta_protocol" = "xno"], [
 dnl extra arguments for the packet generator
 AC_ARG_VAR([GENERATE_PACKETS_ARGS], [Additional arguments for the packet generator])
 
-FC_WEB_OPTIONS
-
-AC_ARG_ENABLE([fcweb],
-  AS_HELP_STRING([--enable-fcweb], [build fcweb version of server [false]]),
-[case "${enableval}" in
-  yes)
-    fcweb=true ;;
-  no)
-    fcweb=false ;;
-  *)   AC_MSG_ERROR([bad value ${enableval} for --enable-fcweb]) ;;
-esac], [fcweb=false])
-
-FC_WEB_CLIENT
-
-AS_IF([test "x$fcweb" = "xtrue"],
-      AC_SUBST([SRVBIN], [freeciv-web]),
-      AC_SUBST([SRVBIN], [freeciv-server]))
-
 FC_TESTMATIC
 
 dnl no:   Do not compile client.
@@ -510,10 +497,6 @@ AC_ARG_ENABLE([client],
                  [clients to compile [auto](list for multiple)]),
 [clients=${enableval}],
 [client=auto])
-
-if test "x$fcweb" = "xtrue" && test "x$client" = "xauto" ; then
-  clients=no
-fi
 
 gui_gtk3_22=no
 gui_gtk4=no
@@ -734,27 +717,14 @@ dnl Should we build Qt5 versions of Qt programs?
 dnl This needs to be before C++ compiler check FC_WORKING_CXX, and
 dnl that in turn needs to be before FC_DEBUG that will depend on compiler
 dnl when setting compiler flags.
-AC_ARG_WITH([qt5],
-  AS_HELP_STRING([--with-qt5], [build Qt5 versions of Qt programs]),
-[case "${withval}" in
- yes) qt_default="Qt5" ;;
- *)   qt_default="Qt6" ;;
-esac])
-
-if test "x$qt_default" = "x" ; then
-  qt_default="Qt6"
-else
-  AC_MSG_WARN([--with-qt5 deprecated. Please use --with-qtver=qt5 instead])
-fi
-
 AC_ARG_WITH([qtver],
-  AS_HELP_STRING([--with-qtver], [which Qt version to build against qt5/qt6]),
+  AS_HELP_STRING([--with-qtver], [which Qt version to build against qt5/qt6/qt6x]),
 [case "${withval}" in
  qt5|Qt5) qt_ver="Qt5" ;;
  qt6|Qt6) qt_ver="Qt6" ;;
  qt6x|Qt6x) qt_ver="Qt6x" ;;
  *) AC_MSG_ERROR([bad value ${enableval} for --with-qtver]) ;;
-esac], [qt_ver="$qt_default"])
+esac], [qt_ver="Qt6"])
 
 if test "x$qt_ver" = "xQt5" ; then
   AC_DEFINE([FC_QT5_MODE], [1], [this is Qt5 based build])
@@ -802,6 +772,7 @@ FC_CXX20_CAPTURE_THIS
 _CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $WERROR_C_TEST_FLAGS"
 FC_SIZE_T_FORMAT
+FC_BUILTIN_UNREACHABLE
 CFLAGS="$_CFLAGS"
 
 dnl BeOS-specific settings
@@ -1902,6 +1873,7 @@ AC_CONFIG_FILES([Makefile
 	  data/cimpletoon/units/ROMB/Makefile
 	  data/cimpletoon/units/stationary_sam/Makefile
 	  data/cimpletoon/units/steamer/Makefile
+          data/cimpletoon/units/storm/Makefile
 	  data/cimpletoon/units/technical/Makefile
 	  data/cimpletoon/units/tiger/Makefile
 	  data/cimpletoon/units/truck/Makefile
@@ -1965,7 +1937,9 @@ AC_CONFIG_FILES([Makefile
           ai/stub/Makefile
           ai/tex/Makefile
 	  tests/Makefile
-  	  windows/Makefile
+	  platforms/Makefile
+	  platforms/windows/Makefile
+	  platforms/windows/icons/Makefile
 	  client/Makefile
 	  client/agents/Makefile
 	  client/include/Makefile
@@ -1982,6 +1956,7 @@ AC_CONFIG_FILES([Makefile
 	  server/scripting/Makefile
           tools/Makefile
           tools/fcmp/Makefile
+          tools/manual/Makefile
           tools/ruledit/Makefile
           tools/ruleutil/Makefile
           tools/shared/Makefile

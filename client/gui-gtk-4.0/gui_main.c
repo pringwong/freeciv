@@ -102,7 +102,7 @@
 
 #include "gui_main.h"
 
-const char *client_string = "gui-gtk-4.0";
+const char *client_string = GUI_NAME_FULL;
 
 GtkWidget *map_canvas;                  /* GtkDrawingArea */
 GtkWidget *map_horizontal_scrollbar;
@@ -170,8 +170,7 @@ GtkTextView *main_message_area;
 GtkTextBuffer *message_buffer = NULL;
 static GtkWidget *allied_chat_toggle_button;
 
-static enum Display_color_type display_color_type;  /* practically unused */
-static gint timer_id;                               /*       ditto        */
+static gint timer_id;                               /*       Ditto        */
 static GIOChannel *srv_channel;
 static guint srv_id;
 gint cur_x, cur_y;
@@ -244,12 +243,14 @@ static gboolean timer_callback(gpointer data)
 {
   double seconds = real_timer_callback();
 
-  if (!audio_paused && !client_focus) {
-    audio_pause();
-    audio_paused = TRUE;
-  } else if (audio_paused && client_focus) {
-    audio_resume();
-    audio_paused = FALSE;
+  if (gui_options.silent_when_not_in_focus) {
+    if (!audio_paused && !client_focus) {
+      audio_pause();
+      audio_paused = TRUE;
+    } else if (audio_paused && client_focus) {
+      audio_resume();
+      audio_paused = FALSE;
+    }
   }
 
   timer_id = g_timeout_add(seconds * 1000, timer_callback, NULL);
@@ -263,7 +264,7 @@ static gboolean timer_callback(gpointer data)
 **************************************************************************/
 static void print_usage(void)
 {
-  /* add client-specific usage information here */
+  /* Add client-specific usage information here */
   fc_fprintf(stderr,
              _("gtk4-client gui-specific options are:\n"));
 
@@ -338,12 +339,12 @@ static void toplevel_focus(GtkWidget *w, GtkDirectionType arg,
     case GTK_DIR_TAB_BACKWARD:
 
       if (!gtk_widget_get_can_focus(w)) {
-	return;
+        return;
       }
 
       if (!gtk_widget_is_focus(w)) {
-	gtk_widget_grab_focus(w);
-	return;
+        gtk_widget_grab_focus(w);
+        return;
       }
       break;
 
@@ -357,16 +358,21 @@ static void toplevel_focus(GtkWidget *w, GtkDirectionType arg,
   prevents users from accidentally missing messages when the chatline
   gets scrolled up a small amount and stops scrolling down automatically.
 **************************************************************************/
-static void main_message_area_resize(GtkWidget *widget, int width, int height,
-                                     gpointer data)
+void main_message_area_resize(void *data)
 {
-  static int old_width = 0, old_height = 0;
+  if (get_current_client_page() == PAGE_GAME) {
+    static int old_width = 0, old_height = 0;
+    int width = gtk_widget_get_width(GTK_WIDGET(main_message_area));
+    int height = gtk_widget_get_height(GTK_WIDGET(main_message_area));
 
-  if (width != old_width
-      || height != old_height) {
-    chatline_scroll_to_bottom(TRUE);
-    old_width = width;
-    old_height = height;
+    if (width != old_width
+        || height != old_height) {
+      chatline_scroll_to_bottom(TRUE);
+      old_width = width;
+      old_height = height;
+    }
+
+    add_idle_callback(main_message_area_resize, NULL);
   }
 }
 
@@ -768,7 +774,7 @@ static void tearoff_destroy(GtkWidget *w, gpointer data)
   b = g_object_get_data(G_OBJECT(w), "toggle");
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(b), FALSE);
 
-  gtk_widget_hide(w);
+  gtk_widget_set_visible(w, FALSE);
 
   move_from_container_to_container(box, old_parent, p);
 }
@@ -796,16 +802,16 @@ static void tearoff_callback(GtkWidget *b, gpointer data)
     g_object_set_data(G_OBJECT(w), "toggle", b);
 
     temp_hide = g_object_get_data(G_OBJECT(box), "hide-over-reparent");
-    if (temp_hide != NULL) {
-      gtk_widget_hide(temp_hide);
+    if (temp_hide != nullptr) {
+      gtk_widget_set_visible(temp_hide, FALSE);
     }
 
     move_from_container_to_container(box, old_parent, w);
 
-    gtk_widget_show(w);
+    gtk_widget_set_visible(w, TRUE);
 
-    if (temp_hide != NULL) {
-      gtk_widget_show(temp_hide);
+    if (temp_hide != nullptr) {
+      gtk_widget_set_visible(temp_hide, TRUE);
     }
   } else {
     if (GTK_IS_BOX(old_parent)) {
@@ -963,7 +969,7 @@ static void populate_unit_pic_table(void)
                     1, 0, 1, 1);
   }
 
-  gtk_widget_show(table);
+  gtk_widget_set_visible(table, TRUE);
 }
 
 /**********************************************************************//**
@@ -1003,13 +1009,13 @@ void reset_unit_table(void)
 
   populate_unit_pic_table();
 
-  /* We have to force a redraw of the units.  And we explicitly have
+  /* We have to force a redraw of the units. And we explicitly have
    * to force a redraw of the focus unit, which is normally only
    * redrawn when the focus changes. We also have to force the 'more'
    * arrow to go away, both by expicitly hiding it and telling it to
    * do so (this will be reset immediately afterwards if necessary,
    * but we have to make the *internal* state consistent). */
-  gtk_widget_hide(more_arrow);
+  gtk_widget_set_visible(more_arrow, FALSE);
   set_unit_icons_more_arrow(FALSE);
   if (get_num_units_in_focus() == 1) {
     set_unit_icon(-1, head_of_units_in_focus());
@@ -1035,7 +1041,8 @@ static void setup_canvas_color_for_state(GtkStateFlags state)
 /**********************************************************************//**
   Callback that just returns TRUE.
 **************************************************************************/
-bool terminate_signal_processing(void)
+gboolean terminate_signal_processing(GtkEventControllerFocus *controller,
+                                     gpointer data)
 {
   return TRUE;
 }
@@ -1066,12 +1073,11 @@ static void setup_widgets(void)
 {
   GtkWidget *page, *hgrid, *hgrid2, *label;
   GtkWidget *frame, *table, *table2, *paned, *sw, *text;
-  GtkWidget *button, *view, *vgrid, *vbox, *right_vbox = NULL;
+  GtkWidget *button, *view, *mainbox, *vbox, *right_vbox = NULL;
   int i;
   GtkWidget *notebook, *statusbar;
   GtkWidget *dtach_lowbox = NULL;
   struct sprite *spr;
-  int grid_row = 0;
   int right_row = 0;
   int top_row = 0;
   int grid_col = 0;
@@ -1087,14 +1093,11 @@ static void setup_widgets(void)
   toplevel_tabs = notebook;
   gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook), FALSE);
   gtk_notebook_set_show_border(GTK_NOTEBOOK(notebook), FALSE);
-  vgrid = gtk_grid_new();
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(vgrid),
-                                 GTK_ORIENTATION_VERTICAL);
-  gtk_grid_set_row_spacing(GTK_GRID(vgrid), 4);
-  gtk_window_set_child(GTK_WINDOW(toplevel), vgrid);
-  gtk_grid_attach(GTK_GRID(vgrid), notebook, 0, grid_row++, 1, 1);
+  mainbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+  gtk_window_set_child(GTK_WINDOW(toplevel), mainbox);
+  gtk_box_append(GTK_BOX(mainbox), notebook);
   statusbar = create_statusbar();
-  gtk_grid_attach(GTK_GRID(vgrid), statusbar, 0, grid_row++, 1, 1);
+  gtk_box_append(GTK_BOX(mainbox), statusbar);
 
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook),
       create_main_page(), NULL);
@@ -1233,12 +1236,9 @@ static void setup_widgets(void)
 
   main_frame_civ_name = frame;
 
-  vgrid = gtk_grid_new();
-  grid_row = 0;
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(vgrid),
-                                 GTK_ORIENTATION_VERTICAL);
-  gtk_frame_set_child(GTK_FRAME(frame), vgrid);
-  gtk_widget_set_hexpand(vgrid, TRUE);
+  mainbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_frame_set_child(GTK_FRAME(frame), mainbox);
+  gtk_widget_set_hexpand(mainbox, TRUE);
 
   label = gtk_label_new(NULL);
   gtk_widget_set_halign(label, GTK_ALIGN_START);
@@ -1252,7 +1252,7 @@ static void setup_widgets(void)
   g_signal_connect(mc_controller, "pressed",
                    G_CALLBACK(show_info_popup), frame);
   gtk_widget_add_controller(label, mc_controller);
-  gtk_grid_attach(GTK_GRID(vgrid), label, 0, grid_row++, 1, 1);
+  gtk_box_append(GTK_BOX(mainbox), label);
   main_label_info = label;
 
   /* Production status */
@@ -1276,6 +1276,12 @@ static void setup_widgets(void)
     controller = GTK_EVENT_CONTROLLER(gtk_gesture_click_new());
     g_signal_connect(controller, "pressed",
                      G_CALLBACK(taxrates_callback), NULL);
+    gtk_widget_add_controller(econ_label[i], controller);
+    mc_gesture = gtk_gesture_click_new();
+    gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(mc_gesture), 3);
+    controller = GTK_EVENT_CONTROLLER(mc_gesture);
+    g_signal_connect(controller, "pressed",
+		     G_CALLBACK(reverse_taxrates_callback), NULL);
     gtk_widget_add_controller(econ_label[i], controller);
     gtk_grid_attach(GTK_GRID(table2), econ_label[i], i, 0, 1, 1);
   }
@@ -1428,14 +1434,10 @@ static void setup_widgets(void)
 
   map_widget = gtk_grid_new();
 
-  vgrid = gtk_grid_new();
-  grid_row = 0;
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(vgrid),
-                                 GTK_ORIENTATION_VERTICAL);
-  gtk_grid_attach(GTK_GRID(vgrid), map_widget, 0, grid_row++, 1, 1);
+  mainbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+  gtk_box_append(GTK_BOX(mainbox), map_widget);
 
-  gtk_grid_attach(GTK_GRID(vgrid), editgui_get_editbar()->widget,
-                  0, grid_row++, 1, 1);
+  gtk_box_append(GTK_BOX(mainbox), editgui_get_editbar()->widget);
   ebar = editgui_get_editbar()->widget;
   gtk_widget_set_margin_bottom(ebar, 4);
   gtk_widget_set_margin_end(ebar, 4);
@@ -1443,7 +1445,7 @@ static void setup_widgets(void)
   gtk_widget_set_margin_top(ebar, 4);
 
   label = gtk_label_new(Q_("?noun:View"));
-  gtk_notebook_append_page(GTK_NOTEBOOK(top_notebook), vgrid, label);
+  gtk_notebook_append_page(GTK_NOTEBOOK(top_notebook), mainbox, label);
 
   frame = gtk_frame_new(NULL);
   gtk_grid_attach(GTK_GRID(map_widget), frame, 0, 0, 1, 1);
@@ -1529,21 +1531,18 @@ static void setup_widgets(void)
     gtk_paned_set_end_child(GTK_PANED(paned), dtach_lowbox);
     avbox = detached_widget_fill(dtach_lowbox);
 
-    vgrid = gtk_grid_new();
-    grid_row = 0;
-    gtk_orientable_set_orientation(GTK_ORIENTABLE(vgrid),
-                                   GTK_ORIENTATION_VERTICAL);
+    mainbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     if (!GUI_GTK_OPTION(small_display_layout)) {
-      gtk_grid_attach(GTK_GRID(vgrid), ingame_votebar, 0, grid_row++, 1, 1);
+      gtk_box_append(GTK_BOX(mainbox), ingame_votebar);
     }
-    gtk_box_append(GTK_BOX(avbox), vgrid);
+    gtk_box_append(GTK_BOX(avbox), mainbox);
 
     if (GUI_GTK_OPTION(small_display_layout)) {
       hpaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
     } else {
       hpaned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
     }
-    gtk_grid_attach(GTK_GRID(vgrid), hpaned, 0, grid_row++, 1, 1);
+    gtk_box_append(GTK_BOX(mainbox), hpaned);
     gtk_widget_set_margin_bottom(hpaned, 4);
     gtk_widget_set_margin_end(hpaned, 4);
     gtk_widget_set_margin_start(hpaned, 4);
@@ -1564,21 +1563,18 @@ static void setup_widgets(void)
     }
   }
 
-  vgrid = gtk_grid_new();
-  grid_row = 0;
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(vgrid),
-                                 GTK_ORIENTATION_VERTICAL);
+  mainbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 
   sw = gtk_scrolled_window_new();
   gtk_scrolled_window_set_has_frame(GTK_SCROLLED_WINDOW(sw),
-				    TRUE);
+                                    TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
                                  GTK_POLICY_AUTOMATIC,
-  				 GTK_POLICY_ALWAYS);
-  gtk_grid_attach(GTK_GRID(vgrid), sw, 0, grid_row++, 1, 1);
+                                 GTK_POLICY_ALWAYS);
+  gtk_box_append(GTK_BOX(mainbox), sw);
 
   label = gtk_label_new(_("Chat"));
-  gtk_notebook_append_page(GTK_NOTEBOOK(bottom_notebook), vgrid, label);
+  gtk_notebook_append_page(GTK_NOTEBOOK(bottom_notebook), mainbox, label);
 
   text = gtk_text_view_new_with_buffer(message_buffer);
   gtk_widget_set_hexpand(text, TRUE);
@@ -1586,8 +1582,6 @@ static void setup_widgets(void)
   set_message_buffer_view_link_handlers(text);
   gtk_text_view_set_editable(GTK_TEXT_VIEW(text), FALSE);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), text);
-  g_signal_connect(text, "resize",
-                   G_CALLBACK(main_message_area_resize), NULL);
 
   gtk_widget_set_name(text, "chatline");
 
@@ -1602,9 +1596,9 @@ static void setup_widgets(void)
 
   chat_welcome_message(TRUE);
 
-  /* the chat line */
+  /* The chat line */
   view = inputline_toolkit_view_new();
-  gtk_grid_attach(GTK_GRID(vgrid), view, 0, grid_row++, 1, 1);
+  gtk_box_append(GTK_BOX(mainbox), view);
   gtk_widget_set_margin_bottom(view, 3);
   gtk_widget_set_margin_end(view, 3);
   gtk_widget_set_margin_start(view, 3);
@@ -1626,7 +1620,8 @@ static void setup_widgets(void)
 
   /* Other things to take care of */
 
-  gtk_widget_show(gtk_window_get_child(GTK_WINDOW(toplevel)));
+  gtk_widget_set_visible(gtk_window_get_child(GTK_WINDOW(toplevel)),
+                         TRUE);
 
   if (GUI_GTK_OPTION(enable_tabs)) {
     meswin_dialog_popup(FALSE);
@@ -1636,8 +1631,8 @@ static void setup_widgets(void)
   gtk_notebook_set_current_page(GTK_NOTEBOOK(bottom_notebook), 0);
 
   if (!GUI_GTK_OPTION(map_scrollbars)) {
-    gtk_widget_hide(map_horizontal_scrollbar);
-    gtk_widget_hide(map_vertical_scrollbar);
+    gtk_widget_set_visible(map_horizontal_scrollbar, FALSE);
+    gtk_widget_set_visible(map_vertical_scrollbar, FALSE);
   }
 }
 
@@ -1920,14 +1915,6 @@ int ui_main(int argc, char **argv)
   g_application_run(G_APPLICATION(fc_app), 0, NULL);
   gui_up = FALSE;
 
-  /* We have extra ref for unit_info_box that has protected
-   * it from getting destroyed when editinfobox_refresh()
-   * moves widgets around. Free that extra ref here. */
-  g_object_unref(unit_info_box);
-  if (empty_unit_paintable != NULL) {
-    g_object_unref(empty_unit_paintable);
-  }
-
   destroy_server_scans();
   free_mapcanvas_and_overview();
   spaceship_dialog_done();
@@ -1938,6 +1925,15 @@ int ui_main(int argc, char **argv)
   diplomacy_dialog_done();
   cma_fe_done();
   free_unit_table();
+
+  /* We have extra ref for unit_info_box that has protected
+   * it from getting destroyed when editinfobox_refresh()
+   * moves widgets around. Free that extra ref here. */
+  g_object_unref(unit_info_box);
+  if (empty_unit_paintable != NULL) {
+    g_object_unref(empty_unit_paintable);
+  }
+
   editgui_free();
   gtk_window_destroy(GTK_WINDOW(toplevel));
   message_buffer = NULL; /* Result of destruction of everything */
@@ -1954,6 +1950,7 @@ static void activate_gui(GtkApplication *app, gpointer data)
   PangoFontDescription *toplevel_font_name;
   guint sig;
   GtkEventController *controller;
+  char window_name[1024];
 
   toplevel = gtk_application_window_new(app);
   if (vmode.width > 0 && vmode.height > 0) {
@@ -2004,7 +2001,8 @@ static void activate_gui(GtkApplication *app, gpointer data)
     gtk_window_fullscreen(GTK_WINDOW(toplevel));
   }
 
-  gtk_window_set_title(GTK_WINDOW(toplevel), _("Freeciv"));
+  fc_snprintf(window_name, sizeof(window_name), _("Freeciv (%s)"), GUI_NAME_SHORT);
+  gtk_window_set_title(GTK_WINDOW(toplevel), window_name);
 
   g_signal_connect(toplevel, "close-request",
                    G_CALLBACK(quit_dialog_callback), NULL);
@@ -2015,11 +2013,9 @@ static void activate_gui(GtkApplication *app, gpointer data)
                                        0, 0, 0, 0);
   g_signal_connect(toplevel, "move-focus", G_CALLBACK(toplevel_focus), NULL);
 
-  display_color_type = get_visual();
-
   options_iterate(client_optset, poption) {
     if (OT_FONT == option_type(poption)) {
-      /* Force to call the appropriated callback. */
+      /* Force to call the appropriate callback. */
       option_changed(poption);
     }
   } options_iterate_end;
@@ -2043,7 +2039,7 @@ static void activate_gui(GtkApplication *app, gpointer data)
   tileset_init(tileset);
   tileset_load_tiles(tileset);
 
-  /* keep the icon of the executable on Windows (see PR#36491) */
+  /* Keep the icon of the executable on Windows (see PR#36491) */
 #ifndef FREECIV_MSWINDOWS
   {
     /* Only call this after tileset_load_tiles is called. */
@@ -2065,12 +2061,12 @@ static void activate_gui(GtkApplication *app, gpointer data)
 
   tileset_use_preferred_theme(tileset);
 
-  gtk_widget_show(toplevel);
+  gtk_widget_set_visible(toplevel, TRUE);
 
-  /* assumes toplevel showing */
+  /* Assumes toplevel showing */
   set_client_state(C_S_DISCONNECTED);
 
-  /* assumes client_state is set */
+  /* Assumes client_state is set */
   timer_id = g_timeout_add(TIMER_INTERVAL, timer_callback, NULL);
 }
 
@@ -2156,15 +2152,15 @@ void set_unit_icons_more_arrow(bool onoff)
 {
   static bool showing = FALSE;
 
-  if (!more_arrow) {
+  if (more_arrow == nullptr) {
     return;
   }
 
   if (onoff && !showing) {
-    gtk_widget_show(more_arrow);
+    gtk_widget_set_visible(more_arrow, TRUE);
     showing = TRUE;
   } else if (!onoff && showing) {
-    gtk_widget_hide(more_arrow);
+    gtk_widget_set_visible(more_arrow, FALSE);
     showing = FALSE;
   }
 }
@@ -2282,7 +2278,7 @@ static gboolean get_net_input(GIOChannel *source, GIOCondition condition,
   Set socket writability state
 **************************************************************************/
 static void set_wait_for_writable_socket(struct connection *pc,
-					 bool socket_writable)
+                                         bool socket_writable)
 {
   static bool previous_state = FALSE;
 
@@ -2368,10 +2364,10 @@ void popup_quit_dialog(void)
 
   if (!dialog) {
     dialog = gtk_message_dialog_new(NULL,
-	0,
-	GTK_MESSAGE_WARNING,
-	GTK_BUTTONS_YES_NO,
-	_("Are you sure you want to quit?"));
+                                    0,
+                                    GTK_MESSAGE_WARNING,
+                                    GTK_BUTTONS_YES_NO,
+                                    _("Are you sure you want to quit?"));
     setup_dialog(dialog, toplevel);
 
     g_signal_connect(dialog, "response",
@@ -2399,7 +2395,7 @@ struct callback {
 };
 
 /**********************************************************************//**
-  A wrapper for the callback called through add_idle_callback.
+  A wrapper for the callback called through add_idle_callback().
 **************************************************************************/
 static gboolean idle_callback_wrapper(gpointer data)
 {
@@ -2412,7 +2408,7 @@ static gboolean idle_callback_wrapper(gpointer data)
 }
 
 /**********************************************************************//**
-  Enqueue a callback to be called during an idle moment.  The 'callback'
+  Enqueue a callback to be called during an idle moment. The 'callback'
   function should be called sometimes soon, and passed the 'data' pointer
   as its data.
 **************************************************************************/
@@ -2439,6 +2435,18 @@ static void allied_chat_only_callback(struct option *poption)
 
   gtk_check_button_set_active(GTK_CHECK_BUTTON(button),
                               option_bool_get(poption));
+}
+
+/**********************************************************************//**
+  Option callback for the 'fullscreen' gtk-gui option.
+**************************************************************************/
+void fullscreen_opt_refresh(struct option *poption)
+{
+  if (GUI_GTK_OPTION(fullscreen)) {
+    gtk_window_fullscreen(GTK_WINDOW(toplevel));
+  } else {
+    gtk_window_unfullscreen(GTK_WINDOW(toplevel));
+  }
 }
 
 /**********************************************************************//**
@@ -2476,22 +2484,24 @@ static void apply_reqtree_text_font(struct option *poption)
 
 /**********************************************************************//**
   Extra initializers for client options. Here we make set the callback
-  for the specific gui-gtk-3.22 options.
+  for the specific gui-gtk-4.0 options.
 **************************************************************************/
 void options_extra_init(void)
 {
-
   struct option *poption;
 
 #define option_var_set_callback(var, callback)                              \
-  if ((poption = optset_option_by_name(client_optset, GUI_GTK_OPTION_STR(var)))) { \
+  if ((poption = optset_option_by_name(client_optset,                       \
+                                       GUI_GTK_OPTION_STR(var)))) {         \
     option_set_changed_callback(poption, callback);                         \
   } else {                                                                  \
-    log_error("Didn't find option %s!", GUI_GTK_OPTION_STR(var));      \
+    log_error("Didn't find option %s!", GUI_GTK_OPTION_STR(var));           \
   }
 
   option_var_set_callback(allied_chat_only,
                           allied_chat_only_callback);
+  option_var_set_callback(fullscreen,
+                          fullscreen_opt_refresh);
 
   option_var_set_callback(font_city_names,
                           apply_city_names_font);
@@ -2511,14 +2521,14 @@ void refresh_chat_buttons(void)
   GtkWidget *button;
 
   button = allied_chat_toggle_button;
-  fc_assert_ret(button != NULL);
+  fc_assert_ret(button != nullptr);
   fc_assert_ret(GTK_IS_CHECK_BUTTON(button));
 
   /* Hide the "Allies Only" button for local games. */
   if (is_server_running()) {
-    gtk_widget_hide(button);
+    gtk_widget_set_visible(button, FALSE);
   } else {
-    gtk_widget_show(button);
+    gtk_widget_set_visible(button, TRUE);
     gtk_check_button_set_active(GTK_CHECK_BUTTON(button),
                                 GUI_GTK_OPTION(allied_chat_only));
   }

@@ -2082,7 +2082,7 @@ static struct setting settings[] = {
           N_("Allow researching multiple technologies"),
           N_("Allows switching to any technology without wasting old "
              "research. Bulbs are never transferred to new technology. "
-             "Techpenalty options are inefective after enabling that "
+             "Techpenalty options are ineffective after enabling that "
              "option."), NULL, NULL,
           GAME_DEFAULT_MULTIRESEARCH)
 
@@ -2349,7 +2349,7 @@ static struct setting settings[] = {
   GEN_ENUM("trade_revenue_style", game.info.trade_revenue_style,
           SSET_RULES, SSET_ECONOMICS, SSET_RARE, ALLOW_NONE, ALLOW_BASIC,
           N_("Trade revenue style"),
-          N_("The formula for the trade a city receives from a traderoute. "
+          N_("The formula for the trade a city receives from a trade route. "
              "CLASSIC revenues are given by the sum of the two city sizes "
              "plus the distance between them, with multipliers for overseas "
              "and international routes. "
@@ -4832,53 +4832,69 @@ void settings_game_save(struct section_file *file, const char *section)
          /* It must be same at loading time as it was saving time, even if
           * freeciv's default has changed. */
         || !setting_is_free_to_change(pset, errbuf, sizeof(errbuf))) {
+      bool gamestart = game.server.settings_gamestart_valid;
+
       secfile_insert_str(file, setting_name(pset),
                          "%s.set%d.name", section, set_count);
       switch (setting_type(pset)) {
       case SST_BOOL:
         secfile_insert_bool(file, *pset->boolean.pvalue,
                             "%s.set%d.value", section, set_count);
-        secfile_insert_bool(file, pset->boolean.game_value,
-                            "%s.set%d.gamestart", section, set_count);
+        if (gamestart) {
+          secfile_insert_bool(file, pset->boolean.game_value,
+                              "%s.set%d.gamestart", section, set_count);
+        }
         break;
       case SST_INT:
         secfile_insert_int(file, *pset->integer.pvalue,
                            "%s.set%d.value", section, set_count);
-        secfile_insert_int(file, pset->integer.game_value,
-                           "%s.set%d.gamestart", section, set_count);
+        if (gamestart) {
+          secfile_insert_int(file, pset->integer.game_value,
+                             "%s.set%d.gamestart", section, set_count);
+        }
         break;
       case SST_STRING:
         secfile_insert_str(file, pset->string.value,
                            "%s.set%d.value", section, set_count);
-        secfile_insert_str(file, pset->string.game_value,
-                           "%s.set%d.gamestart", section, set_count);
+        if (gamestart) {
+          secfile_insert_str(file, pset->string.game_value,
+                             "%s.set%d.gamestart", section, set_count);
+        }
         break;
       case SST_ENUM:
         secfile_insert_enum_data(file, read_enum_value(pset), FALSE,
                                  setting_enum_secfile_str, &info,
                                  "%s.set%d.value", section, set_count);
-        secfile_insert_enum_data(file, pset->enumerator.game_value, FALSE,
-                                 setting_enum_secfile_str, &info,
-                                 "%s.set%d.gamestart", section, set_count);
+        if (gamestart) {
+          secfile_insert_enum_data(file, pset->enumerator.game_value, FALSE,
+                                   setting_enum_secfile_str, &info,
+                                   "%s.set%d.gamestart", section, set_count);
+        }
         break;
       case SST_BITWISE:
         secfile_insert_enum_data(file, *pset->bitwise.pvalue, TRUE,
                                  setting_bitwise_secfile_str, &info,
                                  "%s.set%d.value", section, set_count);
-        secfile_insert_enum_data(file, pset->bitwise.game_value, TRUE,
-                                 setting_bitwise_secfile_str, &info,
-                                 "%s.set%d.gamestart", section, set_count);
+        if (gamestart) {
+          secfile_insert_enum_data(file, pset->bitwise.game_value, TRUE,
+                                   setting_bitwise_secfile_str, &info,
+                                   "%s.set%d.gamestart", section, set_count);
+        }
         break;
       case SST_COUNT:
         fc_assert(setting_type(pset) != SST_COUNT);
         secfile_insert_str(file, "Unknown setting type",
                            "%s.set%d.value", section, set_count);
-        secfile_insert_str(file, "Unknown setting type",
-                           "%s.set%d.gamestart", section, set_count);
+        if (gamestart) {
+          secfile_insert_str(file, "Unknown setting type",
+                             "%s.set%d.gamestart", section, set_count);
+        }
         break;
       }
-      secfile_insert_str(file, setting_default_level_name(pset->game_setdef),
-                         "%s.set%d.gamesetdef", section, set_count);
+      if (gamestart) {
+        secfile_insert_str(file, setting_default_level_name(pset->game_setdef),
+                           "%s.set%d.gamesetdef", section, set_count);
+      }
       set_count++;
     }
   } settings_iterate_end;

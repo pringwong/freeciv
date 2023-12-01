@@ -27,16 +27,13 @@ if ! test -f "${EMSDK_ROOT}/emsdk_env.sh" ; then
 fi
 
 # Sometimes emsdk environment setup script requires
-# cwd to be it's own directory.
+# cwd to be its own directory.
 cd "${EMSDK_ROOT}" || exit 1
 if ! . "./emsdk_env.sh" ; then
   echo "Sourcing \"${EMSDK_ROOT}/emsdk_env.sh\" failed!" >&2
   exit 1
 fi
 cd "${BUILD_ROOT}" || exit 1
-
-# Add more emsdk directories to PATH
-export PATH="${EMSDK_ROOT}/upstream/emscripten:$PATH"
 
 sed -e "s,<EMSDK_ROOT>,${EMSDK_ROOT}," \
     "${PLATFORM_ROOT}/setups/cross-ems.tmpl" > cross.txt
