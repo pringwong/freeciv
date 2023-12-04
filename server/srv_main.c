@@ -507,13 +507,24 @@ bool check_for_game_over(void)
           }
           pplayer->is_winner = TRUE;
         } player_list_iterate_end;
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+
+        if (game.server.end_victory) {
+          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                      /* TRANS: There can be several winners listed */
+                      _("Game ended in Allied victory to %s."), astr_str(&str));
+          log_normal(_("Game ended in Allied victory to %s."), astr_str(&str));
+          astr_free(&str);
+          player_list_destroy(winner_list);
+          return TRUE;
+        }
+
+        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
                     /* TRANS: There can be several winners listed */
-                    _("Allied victory to %s."), astr_str(&str));
-        log_normal(_("Allied victory to %s."), astr_str(&str));
+                    _("Game continue in Allied victory %s."), astr_str(&str));
+        log_normal(_("Game continue in Allied victory %s."), astr_str(&str));
         astr_free(&str);
         player_list_destroy(winner_list);
-        return TRUE;
+        return FALSE;
       }
     }
 
@@ -535,9 +546,17 @@ bool check_for_game_over(void)
       } players_iterate_end;
 
       if (found) {
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in conquest victory for %s."), player_name(victor));
-        log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+        if (game.server.end_victory) {
+          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                      _("Game ended in conquest victory for %s."), player_name(victor));
+          log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+          victor->is_winner = TRUE;
+          return TRUE;
+        }
+
+        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+                    _("Game continue in conquest victory for %s."), player_name(victor));
+        log_normal(_("Game continue in conquest victory for %s."), player_name(victor));
         victor->is_winner = TRUE;
         return TRUE;
       }
@@ -566,14 +585,23 @@ bool check_for_game_over(void)
 
     if (best != NULL && best_value >= game.info.culture_vic_points
         && best_value > second_value * (100 + game.info.culture_vic_lead) / 100) {
-      notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                  _("Game ended in cultural domination victory for %s."),
+      if (game.server.end_victory) {
+        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                    _("Game ended in cultural domination victory for %s."),
+                    player_name(best));
+        log_normal(_("Game ended in cultural domination victory for %s."),
                   player_name(best));
-      log_normal(_("Game ended in cultural domination victory for %s."),
+        best->is_winner = TRUE;
+        return TRUE;
+      }
+      notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+                  _("Game continue in cultural domination victory for %s."),
+                  player_name(best));
+      log_normal(_("Game continue in cultural domination victory for %s."),
                  player_name(best));
       best->is_winner = TRUE;
 
-      return TRUE;
+      return FALSE;
     }
   }
 
@@ -646,9 +674,19 @@ bool check_for_game_over(void)
           pteammate->is_winner = TRUE;
         } player_list_iterate_end;
       } else {
-        notify_conn(NULL, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in victory for %s."), player_name(pplayer));
-        pplayer->is_winner = TRUE;
+        if (game.server.end_victory) {
+          notify_conn(NULL, NULL, E_GAME_END, ftc_server,
+                      _("Game ended in victory for %s."), player_name(pplayer));
+          log_normal(_("Game ended in victory for %s."),
+                    player_name(pplayer));
+          pplayer->is_winner = TRUE;
+        } else {
+          notify_conn(NULL, NULL, E_CHAT_MSG, ftc_server,
+                      _("Game continue in victory for %s."), player_name(pplayer));
+          log_normal(_("Game continue in victory for %s."),
+                    player_name(pplayer));
+          pplayer->is_winner = TRUE;
+        }
       }
       return TRUE;
     }
@@ -731,6 +769,19 @@ static void do_reveal_effects(void)
        * needed. */
       map_show_all(pplayer);
     }
+  } phase_players_iterate_end;
+}
+
+/**********************************************************************//**
+  Calculate metrics for game initialized.
+**************************************************************************/
+static void initialize_metrics(void)
+{
+  phase_players_iterate(pplayer) {
+    city_list_iterate(pplayer->cities, pcity) {
+      city_refresh_from_main_map(pcity, NULL);
+      city_tile_weight_score_calculation(pcity);
+    } city_list_iterate_end;
   } phase_players_iterate_end;
 }
 
@@ -3547,6 +3598,14 @@ void fc__noreturn srv_main(void)
       /* For autogames or if the -e option is specified, exit the server. */
       server_quit();
     }
+
+    /*
+    * calculate metrics for game ended
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_ended", pplayer);
+    } phase_players_iterate_end;
 
     /* Close it even between games. */
     save_system_close();

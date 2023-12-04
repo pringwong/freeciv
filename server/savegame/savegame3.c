@@ -5104,6 +5104,8 @@ static bool sg_load_player_city(struct loaddata *loading, struct player *plr,
     secfile_lookup_int_default(loading->file, 0, "%s.rapture", citystr);
   pcity->steal =
     secfile_lookup_int_default(loading->file, 0, "%s.steal", citystr);
+  pcity->anarchy =
+    secfile_lookup_int_default(loading->file, 0, "%s.anarchy", citystr);
 
   sg_warn_ret_val(secfile_lookup_int(loading->file, &pcity->turn_founded,
                                      "%s.turn_founded", citystr),

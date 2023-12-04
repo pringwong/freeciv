@@ -25,6 +25,7 @@
 #include "log.h"
 #include "mem.h"
 #include "support.h"
+#include "algo.h"
 
 /* common */
 #include "ai.h"
@@ -71,7 +72,6 @@ struct tile_cache {
   int output[O_LAST];
 };
 
-static inline void city_tile_cache_update(struct city *pcity);
 static inline int city_tile_cache_get_output(const struct city *pcity,
                                              int city_tile_index,
                                              enum output_type_id o);
@@ -2380,7 +2380,7 @@ static inline void set_city_bonuses(struct city *pcity)
 
   TODO: use the cached values elsewhere in the code!
 **************************************************************************/
-static inline void city_tile_cache_update(struct city *pcity)
+void city_tile_cache_update(struct city *pcity)
 {
   bool is_celebrating = base_city_celebrating(pcity);
   int radius_sq = city_map_radius_sq_get(pcity);
@@ -2402,6 +2402,38 @@ static inline void city_tile_cache_update(struct city *pcity)
         = city_tile_output(pcity, ptile, is_celebrating, o);
     } output_type_iterate_end;
   } city_tile_iterate_index_end;
+}
+
+/**********************************************************************//**
+  This function use the cache of the tile outputs to calculate the city 
+  resource indicator and total tiles resource indicator.
+**************************************************************************/
+void city_tile_weight_score_calculation(struct city *pcity)
+{
+  int radius_sq = city_map_radius_sq_get(pcity);
+  int tiles_cnt = city_map_tiles(radius_sq);
+  int food_score, shield_score, trade_score;
+  float city_resource_indic = 0.0;
+  float total_tiles_resource_indic = 0.0;
+  float score_array[tiles_cnt];
+  city_tile_iterate_index(radius_sq, pcity->tile, ptile, city_tile_index) {
+    food_score = (pcity->tile_cache[city_tile_index]).output[O_FOOD];
+    shield_score = (pcity->tile_cache[city_tile_index]).output[O_SHIELD];
+    trade_score = (pcity->tile_cache[city_tile_index]).output[O_TRADE];
+    score_array[city_tile_index] = food_score * TRI_FOOD_WEIGHT + shield_score * TRI_SHIELD_WEIGHT + trade_score * TRI_TRADE_WEIGHT;
+    total_tiles_resource_indic += score_array[city_tile_index];
+    log_normal("base j=%d, score=%f", city_tile_index, score_array[city_tile_index])
+  } city_tile_iterate_index_end;
+
+  quick_sort(score_array, 0, tiles_cnt-1);
+
+  for (int j=0; j<CRI_TOP_N; j++){
+    log_normal("top n j=%d, score=%f", j, score_array[j])
+    city_resource_indic += score_array[j];
+  }
+
+  pcity->total_tiles_resource_indic = total_tiles_resource_indic;
+  pcity->city_resource_indic = city_resource_indic;
 }
 
 /**********************************************************************//**

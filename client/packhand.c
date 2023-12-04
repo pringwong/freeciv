@@ -903,7 +903,8 @@ void handle_city_info(const struct packet_city_info *packet)
   }
   pcity->client.city_image = packet->city_image;
   pcity->steal = packet->steal;
-
+  pcity->anarchy = packet->anarchy;
+  
   pcity->client.happy = city_happy(pcity);
   pcity->client.unhappy = city_unhappy(pcity);
 

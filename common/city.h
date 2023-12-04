@@ -90,6 +90,12 @@ enum production_class_type {
 /* The tile index of the city center */
 #define CITY_MAP_CENTER_TILE_INDEX      0
 
+/* The top n of tiles for calculating tiles resource indicators or city resource indicators */
+#define CRI_TOP_N      6
+#define TRI_FOOD_WEIGHT       0.4
+#define TRI_SHIELD_WEIGHT       0.4
+#define TRI_TRADE_WEIGHT       0.2
+
 /* Maximum diameter of the workable city area. */
 #define CITY_MAP_MAX_SIZE (CITY_MAP_MAX_RADIUS * 2 + 1)
 
@@ -119,7 +125,7 @@ bool city_tile_index_to_xy(int *city_map_x, int *city_map_y,
                            int city_tile_index, int city_radius_sq);
 int city_tile_xy_to_index(int city_map_x, int city_map_y,
                           int city_radius_sq);
-
+void city_tile_cache_update(struct city *pcity);
 int rs_max_city_radius_sq(void);
 int city_map_radius_sq_get(const struct city *pcity);
 void city_map_radius_sq_set(struct city *pcity, int radius_sq);
@@ -367,6 +373,8 @@ struct city {
   int food_stock;
   int shield_stock;
   int pollution;                /* not saved */
+  float total_tiles_resource_indic;              /* Total tiles resource indicators (tri) */
+  float city_resource_indic;                    /* City resource indicators of sum of tri of top n tiles */
   int illness_trade;            /* not saved; illness due to trade; it is
                                    calculated within the server and send to
                                    the clients as the clients do not have all
@@ -780,7 +788,7 @@ void city_remove_improvement(struct city *pcity,
 
 /* city update functions */
 void city_refresh_from_main_map(struct city *pcity, bool *workers_map);
-
+void city_tile_weight_score_calculation(struct city *pcity);
 int city_waste(const struct city *pcity, Output_type_id otype, int total,
                int *breakdown);
 Specialist_type_id best_specialist(Output_type_id otype,

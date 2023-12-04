@@ -2912,6 +2912,13 @@ static struct setting settings[] = {
           NULL, endturn_callback, NULL,
           GAME_MIN_END_TURN, GAME_MAX_END_TURN, GAME_DEFAULT_END_TURN)
 
+  GEN_BOOL("endvictory", game.server.end_victory,
+           SSET_META, SSET_SOCIOLOGY, SSET_VITAL,
+           ALLOW_NONE, ALLOW_BASIC,
+           N_("Whether game will end when victory"),
+           N_("If enabled, the game will end when victory."),
+           NULL, NULL, GAME_DEFAULT_END_VICTORY)
+
   GEN_BITWISE("revealmap", game.server.revealmap, SSET_GAME_INIT,
               SSET_MILITARY, SSET_SITUATIONAL, ALLOW_NONE, ALLOW_BASIC,
               N_("Reveal the map"),

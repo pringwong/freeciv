@@ -1146,6 +1146,7 @@ endif
 
 common_lib = library('freeciv',
   'utility/astring.c',
+  'utility/algo.c',
   'utility/bitvector.c',
   'utility/bugs.c',
   'utility/capability.c',

@@ -53,7 +53,8 @@ int api_methods_city_map_sq_radius(lua_State *L, City *pcity);
 int api_methods_city_size_get(lua_State *L, City *pcity);
 Tile *api_methods_city_tile_get(lua_State *L, City *pcity);
 int api_methods_city_inspire_partisans(lua_State *L, City *self, Player *inspirer);
-
+float api_methods_city_cri_get(lua_State *L, City *self);
+float api_methods_city_tri_get(lua_State *L, City *self);
 int api_methods_city_culture_get(lua_State *L, City *pcity);
 
 bool api_methods_is_city_happy(lua_State *L, City *pcity);

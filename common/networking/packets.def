@@ -773,7 +773,8 @@ PACKET_CITY_INFO = 31; sc, lsend, is-game-info, force, cancel(PACKET_CITY_SHORT_
   SINT8 city_image;
 
   UINT16 steal;
-
+  UINT8 anarchy;
+  
   WORKLIST worklist;
 
   BV_IMPRS improvements;

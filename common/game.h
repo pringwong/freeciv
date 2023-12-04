@@ -586,6 +586,7 @@ static inline bool is_ruleset_compat_mode(void)
 #define GAME_DEFAULT_TURNBLOCK       TRUE
 
 #define GAME_DEFAULT_AUTO_AI_TOGGLE  FALSE
+#define GAME_DEFAULT_END_VICTORY  TRUE
 
 #define GAME_DEFAULT_TIMEOUT         0
 #define GAME_DEFAULT_FIRST_TIMEOUT   -1

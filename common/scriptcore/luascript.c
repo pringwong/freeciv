@@ -530,6 +530,12 @@ void luascript_push_args(struct fc_lua *fcl, int nargs,
           lua_pushstring(fcl->state, arg);
         }
         break;
+      case API_TYPE_FLOAT:
+        {
+          lua_Number arg = va_arg(args, lua_Number);
+          lua_pushnumber(fcl->state, arg);
+        }
+        break;
       default:
         {
           const char *name;
