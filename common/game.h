@@ -220,6 +220,7 @@ struct civ_game {
       char save_name[MAX_LEN_NAME];
       char orig_game_version[MAX_LEN_NAME];
       bool scorelog;
+      bool end_victory;
       enum scorelog_level scoreloglevel;
       char scorefile[MAX_LEN_PATH];
       int scoreturn;    /* Next make_history_report() */
