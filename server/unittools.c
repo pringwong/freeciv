@@ -1013,8 +1013,6 @@ static void update_unit_activity(struct unit *punit)
       if (tile_apply_activity(ptile, activity, punit->activity_target)){
         if (is_human(pplayer)){
           if (pcity != NULL){
-            log_normal("finished activity: %d", activity)
-            struct terrain *pterrain = ptile->terrain;
             city_refresh_from_main_map(pcity, NULL);
             city_tile_weight_score_calculation(pcity);
             script_server_signal_emit("action_finished_worker_build", pcity);
