@@ -688,7 +688,7 @@ bool check_for_game_over(void)
           pplayer->is_winner = TRUE;
         }
       }
-      return TRUE;
+      return FALSE;
     }
 
     /* Print notice(s) of imminent arrival. These are not infallible
