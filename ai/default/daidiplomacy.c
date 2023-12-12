@@ -629,7 +629,6 @@ static int dai_goldequiv_clause(struct ai_type *ait,
 void dai_treaty_evaluate(struct ai_type *ait, struct player *pplayer,
                          struct player *aplayer, struct Treaty *ptreaty)
 {
-  log_normal("route to dai_treaty_evaluate")
   int total_balance = 0;
   bool only_gifts = TRUE;
   enum diplstate_type ds_after =
@@ -770,7 +769,6 @@ void dai_treaty_accepted(struct ai_type *ait, struct player *pplayer,
 
   /* Evaluate clauses */
   clause_list_iterate(ptreaty->clauses, pclause) {
-    log_normal("clauses .... ")
     int balance =
       dai_goldequiv_clause(ait, pplayer, aplayer, pclause, TRUE, ds_after);
 
@@ -1564,7 +1562,6 @@ static void war_countdown(struct ai_type *ait, struct player *pplayer,
 **********************************************************************/
 void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
 {
-  log_normal("route to dai_diplomacy_actions")
   struct ai_plr *ai = dai_plr_data_get(ait, pplayer, NULL);
   bool need_targets = TRUE;
   struct player *target = NULL;

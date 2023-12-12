@@ -34,7 +34,9 @@
     "cm.h": "c",
     "city.h": "c",
     "victory.h": "c",
-    "typeinfo": "c"
+    "typeinfo": "c",
+    "hiredis.h": "c",
+    "unittools.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",

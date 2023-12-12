@@ -463,7 +463,6 @@ static bool get_packet(struct connection *pconn,
 *****************************************************************************/
 static void incoming_client_packets(struct connection *pconn)
 {
-  log_normal("incoming_client_packets")
   struct packet_to_handle packet;
 #if PROCESSING_TIME_STATISTICS
   struct timer *request_time = NULL;

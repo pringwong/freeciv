@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <hiredis/hiredis.h> 
 
 /* utility */
 #include "astring.h"
@@ -3272,6 +3273,42 @@ void handle_unit_do_action(struct player *pplayer,
                              action_type, ACT_REQ_PLAYER);
 }
 
+void redis_ops()
+{
+  // Create a RedisClient
+  redisContext* c = redisConnect("127.0.0.1", 6379); 
+
+  if ( c->err) 
+  { 
+      redisFree(c); 
+      printf("Connect to redisServer faile\n"); 
+      return ; 
+  }
+
+  const char* command1 = "set test abc"; 
+  redisReply* r = (redisReply*)redisCommand(c, command1); 
+
+  if( NULL == r) 
+  { 
+      printf("Execut command1 failure\n"); 
+      redisFree(c); 
+      return; 
+  } 
+  if( !(r->type == REDIS_REPLY_STATUS && strcasecmp(r->str,"OK")==0)) 
+  { 
+      printf("Failed to execute command[%s]\n",command1);
+      freeReplyObject(r); 
+      redisFree(c);
+      return; 
+  }
+  freeReplyObject(r); 
+  printf("Succeed to execute command[%s]\n", command1); 
+
+  redisFree(c); 
+
+  return ;
+}
+
 /**********************************************************************//**
   Handle unit action
 
@@ -3284,6 +3321,9 @@ void unit_do_action(struct player *pplayer,
                     const char *name,
                     const action_id action_type)
 {
+  log_normal("debug unit_do_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d, sub_tgt_id: %d", pplayer->name, actor_id, action_type, target_id, sub_tgt_id);
+  
+  redis_ops();
   unit_perform_action(pplayer, actor_id, target_id,
                       sub_tgt_id, name, action_type, ACT_REQ_PLAYER);
 }
@@ -3305,6 +3345,7 @@ bool unit_perform_action(struct player *pplayer,
                          const action_id action_type,
                          const enum action_requester requester)
 {
+  log_normal("debug unit_perform_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d", pplayer->name, actor_id, action_type, target_id);
 
   struct action *paction;
   int sub_tgt_id;

@@ -83,6 +83,7 @@
 #include "handicaps.h"
 
 #include "unittools.h"
+#include <hiredis/hiredis.h> 
 
 
 /* Tools for controlling the client vision of every unit when a unit

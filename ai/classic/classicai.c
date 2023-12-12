@@ -487,7 +487,6 @@ static void cai_treaty_evaluate(struct player *pplayer, struct player *aplayer,
                                 struct Treaty *ptreaty)
 {
   struct ai_type *deftype = classic_ai_get_self();
-  log_normal("route to cai_treaty_evaluate")
   dai_treaty_evaluate(deftype, pplayer, aplayer, ptreaty);
 }
 

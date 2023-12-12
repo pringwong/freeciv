@@ -62,7 +62,6 @@
 static void call_treaty_evaluate(struct player *pplayer, struct player *aplayer,
                                  struct Treaty *ptreaty)
 {
-  log_normal("route to call_treaty_evaluate")
   if (is_ai(pplayer)) {
     CALL_PLR_AI_FUNC(treaty_evaluate, pplayer, pplayer, aplayer, ptreaty);
   }
@@ -148,7 +147,6 @@ void set_diplstate_type(struct player_diplstate *state1,
 void handle_diplomacy_accept_treaty_req(struct player *pplayer,
 					int counterpart)
 {
-  log_normal("route to handle_diplomacy_accept_treaty_req")
   struct Treaty *ptreaty;
   bool *player_accept, *other_accept;
   enum dipl_reason diplcheck;
@@ -798,7 +796,6 @@ void handle_diplomacy_create_clause_req(struct player *pplayer,
 	give_citymap_from_player_to_player(pcity, pplayer, pother);
       }
     }
-    log_normal("bef dlsend_packet_diplomacy_create_clause")
 
     dlsend_packet_diplomacy_create_clause(pplayer->connections,
 					  player_number(pother), giver, type,
@@ -806,13 +803,10 @@ void handle_diplomacy_create_clause_req(struct player *pplayer,
     dlsend_packet_diplomacy_create_clause(pother->connections,
 					  player_number(pplayer), giver, type,
 					  value);
-    log_normal("bef call_treaty_evaluate")
     call_treaty_evaluate(pplayer, pother, ptreaty);
     call_treaty_evaluate(pother, pplayer, ptreaty);
-    log_normal("aft call_treaty_evaluate")
 
   }
-  log_normal("end handle_diplomacy_create_clause_req")
 
 }
 

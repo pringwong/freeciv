@@ -242,7 +242,6 @@ void climate_change(bool warming, int effect)
 **************************************************************************/
 bool upgrade_city_extras(struct city *pcity, struct extra_type **gained)
 {
-  log_normal("DEBUG upgrade_city_extras")
 
   struct tile *ptile = pcity->tile;
   struct player *pplayer = city_owner(pcity);
@@ -2509,7 +2508,6 @@ void vision_clear_sight(struct vision *vision)
 void create_extra(struct tile *ptile, struct extra_type *pextra,
                   struct player *pplayer)
 {
-  log_normal("DEBUG create_extra")
   bool extras_removed = FALSE;
 
   extra_type_iterate(old_extra) {
