@@ -670,22 +670,11 @@ bool check_for_game_over(void)
           pteammate->is_winner = TRUE;
         } player_list_iterate_end;
       } else {
-        if (game.server.end_victory) {
-          notify_conn(NULL, NULL, E_GAME_END, ftc_server,
-                      _("Game ended in victory for %s."), player_name(pplayer));
-          log_normal(_("Game ended in victory for %s."),
-                    player_name(pplayer));
-          pplayer->is_winner = TRUE;
-        } else {
-          notify_conn(NULL, NULL, E_CHAT_MSG, ftc_server,
-                      _("Game continue in victory for %s."), player_name(pplayer));
-          log_normal(_("Game continue in victory for %s."),
-                    player_name(pplayer));
-          pplayer->is_winner = TRUE;
-        }
+        notify_conn(NULL, NULL, E_GAME_END, ftc_server,
+                    _("Game ended in victory for %s."), player_name(pplayer));
+        pplayer->is_winner = TRUE;
       }
-
-      return TRUE && game.server.end_victory;
+      return TRUE;
     }
 
     /* Print notice(s) of imminent arrival. These are not infallible
@@ -3617,6 +3606,14 @@ void fc__noreturn srv_main(void)
       /* For autogames or if the -e option is specified, exit the server. */
       server_quit();
     }
+
+    /*
+    * calculate metrics for game ended
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_ended", pplayer);
+    } phase_players_iterate_end;
 
     /* Close it even between games. */
     save_system_close();

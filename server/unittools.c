@@ -1019,15 +1019,7 @@ static void update_unit_activity(struct unit *punit)
 
       /* The function below could change the terrain. Therefore, we have to
        * check the terrain (which will also do a sanity check for the tile). */
-      if (tile_apply_activity(ptile, activity, punit->activity_target)){
-        if (is_human(pplayer)){
-          if (pcity != NULL){
-            city_refresh_from_main_map(pcity, NULL);
-            city_tile_weight_score_calculation(pcity);
-            script_server_signal_emit("action_finished_worker_build", pcity);
-          }
-        }
-      }
+      tile_apply_activity(ptile, activity, punit->activity_target);
       check_terrain_change(ptile, old);
       unit_activity_done = TRUE;
     }
@@ -1059,6 +1051,13 @@ static void update_unit_activity(struct unit *punit)
                                   punit, ptile, punit->activity_target)) {
       set_unit_activity(punit, ACTIVITY_FORTIFIED);
       unit_activity_done = TRUE;
+      if (is_human(pplayer)){
+        if (pcity != NULL){
+          city_refresh_from_main_map(pcity, NULL);
+          city_tile_weight_score_calculation(pcity);
+          script_server_signal_emit("action_finished_worker_build", pcity);
+        }
+      }
     }
   }
 

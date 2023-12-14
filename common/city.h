@@ -124,7 +124,6 @@ bool city_tile_index_to_xy(int *city_map_x, int *city_map_y,
                            int city_tile_index, int city_radius_sq);
 int city_tile_xy_to_index(int city_map_x, int city_map_y,
                           int city_radius_sq);
-void city_tile_cache_update(struct city *pcity);
 
 int rs_max_city_radius_sq(void);
 int city_map_radius_sq_get(const struct city *pcity);
@@ -788,7 +787,6 @@ void city_remove_improvement(struct city *pcity,
 
 /* city update functions */
 void city_refresh_from_main_map(struct city *pcity, bool *workers_map);
-void city_tile_weight_score_calculation(struct city *pcity);
 
 int city_waste(const struct city *pcity, Output_type_id otype, int total,
                int *breakdown);
