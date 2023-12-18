@@ -1015,8 +1015,6 @@ void dai_auto_settler_run(struct ai_type *ait, const struct civ_map *nmap,
                           struct player *pplayer,
                           struct unit *punit, struct settlermap *state)
 {
-  /*log_normal("debug dai_auto_settler_run") */
-
   adv_want best_impr = 0; /* Value of best terrain improvement we can do */
   enum unit_activity best_act;
   struct extra_type *best_target;
@@ -1254,8 +1252,6 @@ static enum cb_error_level dai_do_build_city(struct ai_type *ait,
                                              struct player *pplayer,
                                              struct unit *punit)
 {
-  /*log_normal("debug dai_do_build_city, player: %s, unit: %d", pplayer->name, punit->id)*/
-
   struct tile *ptile = unit_tile(punit);
   struct city *pcity;
 

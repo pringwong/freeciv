@@ -1813,7 +1813,7 @@ AC_CONFIG_COMMANDS([fc_default-5],[[if test x`uname -s` = xBeOS ; then
      fi
    fi]],[[]])
 
-CFLAGS="$EXTRA_DEBUG_CFLAGS $CFLAGS -lhiredis"
+CFLAGS="$EXTRA_DEBUG_CFLAGS $CFLAGS -lhiredis -ljansson"
 CXXFLAGS="$EXTRA_DEBUG_CXXFLAGS $CXXFLAGS"
 LDFLAGS="$EXTRA_DEBUG_LDFLAGS $LDFLAGS"
 

@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/pring/freeciv-workspace/freeciv/ai/default",
-      "program": "/home/pring/freeciv-workspace/freeciv/ai/default/build/Debug/outDebug",
+      "cwd": "/home/pring/freeciv-workspace/freeciv/server",
+      "program": "/home/pring/freeciv-workspace/freeciv/server/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

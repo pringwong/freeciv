@@ -381,6 +381,14 @@ void ai_timer_player_stop(const struct player *pplayer);
     }                                                                   \
   } while (FALSE)
 
+#define CALL_PLR_AI_REQ_FUNC(_func, _player, ...)                           \
+  struct player *_plr_ = _player; /* _player expanded just once */    \
+  if (_plr_ && _plr_->ai && _plr_->ai->funcs._func) {                 \
+    ai_timer_player_start(_plr_);                                     \
+    _plr_->ai->funcs._func( __VA_ARGS__ );                            \
+    ai_timer_player_stop(_plr_);                                      \
+  }
+
 #define CALL_FUNC_EACH_AI(_func, ...)           \
   do {                                          \
     ai_type_iterate(_ait_) {                    \

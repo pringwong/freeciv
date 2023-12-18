@@ -1644,6 +1644,18 @@ void handle_unit_info(const struct packet_unit_info *packet)
 }
 
 /**********************************************************************//**
+  Packet AI human agent responses.
+**************************************************************************/
+void handle_ai_player_action_response(const struct packet_ai_player_action_response *packet)
+{
+  
+  log_normal("-------------------started handle_ai_player_action_response--------------------");
+  log_normal("packet: {actor_id:%d,action_type:%d}", packet->actor_id, packet->action_type);
+  // call ai
+  log_normal("-------------------finished handle_ai_player_action_response--------------------");
+}
+
+/**********************************************************************//**
   Request that the player makes a decision for the specified unit unless
   it may be an automatic decision. In that case check if one of the auto
   actions are enabled.

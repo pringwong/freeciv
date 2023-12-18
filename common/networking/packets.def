@@ -2449,3 +2449,13 @@ PACKET_WEB_RULESET_UNIT_ADDITION = 260; sc, lsend, handle-via-fields, no-handle
 
   BV_ACTIONS utype_actions;
 end
+
+/*************** AI assistant packets ****************/
+PACKET_AI_PLAYER_ACTION_REQUEST = 261; cs
+  PLAYER playerno;
+end
+
+PACKET_AI_PLAYER_ACTION_RESPONSE = 262; sc, lsend
+  UNIT actor_id;
+  ACTION_ID action_type;
+end

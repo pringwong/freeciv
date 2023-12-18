@@ -16,3 +16,4 @@
 /configure
 /freeciv-CI.log
 build/
+.vscode/

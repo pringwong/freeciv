@@ -18,7 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <hiredis/hiredis.h> 
+// #include <hiredis/hiredis.h> 
+// #include <jansson.h>
 
 /* utility */
 #include "astring.h"
@@ -182,6 +183,7 @@ non_allied_not_listed_at(const struct player *pplayer,
 **************************************************************************/
 void handle_unit_type_upgrade(struct player *pplayer, Unit_type_id uti)
 {
+  log_normal("---------- handle_unit_type_upgrade -------------")
   const struct unit_type *to_unittype;
   struct unit_type *from_unittype = utype_by_number(uti);
   int number_of_upgraded_units = 0;
@@ -3269,45 +3271,45 @@ void handle_unit_do_action(struct player *pplayer,
                            const char *name,
                            const action_id action_type)
 {
+  log_normal("------------ handle_unit_do_action ----------------")
   (void) unit_perform_action(pplayer, actor_id, target_id, sub_tgt_id, name,
                              action_type, ACT_REQ_PLAYER);
 }
 
-void redis_ops()
+/*
+void remove_spaces(char* s) {
+    char* d = s;
+    do {
+        while (*d == ' ') {
+            ++d;
+        }
+    } while (*s++ = *d++);
+}
+
+void insert_redis(char *value)
 {
-  // Create a RedisClient
-  redisContext* c = redisConnect("127.0.0.1", 6379); 
-
-  if ( c->err) 
-  { 
-      redisFree(c); 
-      printf("Connect to redisServer faile\n"); 
-      return ; 
-  }
-
-  const char* command1 = "set test abc"; 
-  redisReply* r = (redisReply*)redisCommand(c, command1); 
+  char command[100] = "set unit ";
+  remove_spaces(value);
+  strcat(command, value);
+  redisReply* r = (redisReply*)redisCommand(redisClient, command);
 
   if( NULL == r) 
   { 
-      printf("Execut command1 failure\n"); 
-      redisFree(c); 
+      printf("Execut command failure\n"); 
       return; 
-  } 
-  if( !(r->type == REDIS_REPLY_STATUS && strcasecmp(r->str,"OK")==0)) 
+  }
+  if( !(r->type == REDIS_REPLY_STATUS && strcasecmp(r->str, "OK") == 0)) 
   { 
-      printf("Failed to execute command[%s]\n",command1);
+      printf("Failed to execute command[%s]\n",command);
       freeReplyObject(r); 
-      redisFree(c);
       return; 
   }
   freeReplyObject(r); 
-  printf("Succeed to execute command[%s]\n", command1); 
-
-  redisFree(c); 
+  printf("Succeed to execute command[%s]\n", command); 
 
   return ;
 }
+*/
 
 /**********************************************************************//**
   Handle unit action
@@ -3321,11 +3323,19 @@ void unit_do_action(struct player *pplayer,
                     const char *name,
                     const action_id action_type)
 {
-  log_normal("debug unit_do_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d, sub_tgt_id: %d", pplayer->name, actor_id, action_type, target_id, sub_tgt_id);
-  
-  redis_ops();
-  unit_perform_action(pplayer, actor_id, target_id,
-                      sub_tgt_id, name, action_type, ACT_REQ_PLAYER);
+  /*
+  json_t* obj = json_object();
+  json_object_set_new(obj, "player", json_string(pplayer->name));
+  json_object_set_new(obj, "actor_id", json_integer(actor_id));
+  json_object_set_new(obj, "action_type", json_integer(action_type));
+  char* js_str = json_dumps(obj, 0);
+  */
+  // insert_redis(js_str);
+  if (is_ai(pplayer)){
+    log_normal("debug unit_do_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d, sub_tgt_id: %d", pplayer->name, actor_id, action_type, target_id, sub_tgt_id);
+    unit_perform_action(pplayer, actor_id, target_id,
+                        sub_tgt_id, name, action_type, ACT_REQ_PLAYER);
+  }
 }
 
 /**********************************************************************//**
@@ -3345,8 +3355,23 @@ bool unit_perform_action(struct player *pplayer,
                          const action_id action_type,
                          const enum action_requester requester)
 {
-  log_normal("debug unit_perform_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d", pplayer->name, actor_id, action_type, target_id);
+  if (is_human(pplayer) && game.server.agent_mode){
+    log_normal("debug agent mode unit_perform_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d", pplayer->name, actor_id, action_type, target_id);
+    // reg action source, if is packet request, then break
+    // send action packet
+    struct packet_ai_player_action_response packet;
+    packet.actor_id = actor_id;
+    packet.action_type = action_type;
 
+    conn_list_iterate(game.est_connections, pconn) {
+      struct player *aplayer = conn_get_player(pconn);
+        if (aplayer == pplayer) {
+          send_packet_ai_player_action_response(pconn, &packet);
+        }
+    } conn_list_iterate_end;
+
+    return FALSE;
+  }
   struct action *paction;
   int sub_tgt_id;
   struct unit *actor_unit = player_unit_by_number(pplayer, actor_id);
@@ -6610,11 +6635,30 @@ static bool unit_activity_targeted_internal(struct unit *punit,
 }
 
 /**********************************************************************//**
+  Receives AI human agent requests.
+**************************************************************************/
+void handle_ai_player_action_request(struct player *pplayer,
+                                     const struct packet_ai_player_action_request *packet)
+{
+  
+  log_normal("-------------------started handle_ai_player_action_request--------------------");
+  log_normal("packet: {playerno:%d,name:%s}", packet->playerno, pplayer->name);
+
+  // copy player
+  CALL_PLR_AI_REQ_FUNC(first_activities, pplayer, pplayer);
+
+  // call ai
+  log_normal("-------------------finished handle_ai_player_action_request--------------------");
+
+}
+
+/**********************************************************************//**
   Receives route packages.
 **************************************************************************/
 void handle_unit_orders(struct player *pplayer,
                         const struct packet_unit_orders *packet)
 {
+  log_normal("------------------------handle_unit_orders---------------------------")
   int length = packet->length;
   struct unit *punit = player_unit_by_number(pplayer, packet->unit_id);
   struct tile *src_tile = index_to_tile(&(wld.map), packet->src_tile);

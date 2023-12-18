@@ -4324,6 +4324,7 @@ static inline bool player_is_watching(struct unit *punit, const bool fresh)
 **************************************************************************/
 bool execute_orders(struct unit *punit, const bool fresh)
 {
+  log_normal("----------------execute_orders------------------------")
   struct act_prob prob;
   bool performed;
   const char *name;

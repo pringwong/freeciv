@@ -36,7 +36,14 @@
     "victory.h": "c",
     "typeinfo": "c",
     "hiredis.h": "c",
-    "unittools.h": "c"
+    "unittools.h": "c",
+    "optional": "c",
+    "istream": "c",
+    "array": "c",
+    "functional": "c",
+    "json.hpp": "c",
+    "document.h": "c",
+    "jansson.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",

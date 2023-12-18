@@ -640,7 +640,6 @@ check_researches(const char *file, const char *function, int line)
     SANITY_CHECK(A_UNSET == presearch->tech_goal
                  || (A_NONE != presearch->tech_goal
                      && valid_advance_by_number(presearch->tech_goal)));
-    log_normal("presearch->techs_researched, recalculate_techs_researched: %d, %d", presearch->techs_researched, recalculate_techs_researched(presearch))
     SANITY_CHECK(presearch->techs_researched
                  == recalculate_techs_researched(presearch));
   } researches_iterate_end;

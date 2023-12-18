@@ -365,7 +365,6 @@ static int dai_goldequiv_clause(struct ai_type *ait,
   case CLAUSE_PEACE:
   case CLAUSE_CEASEFIRE:
     /* Don't do anything in away mode */
-    log_normal("CLAUSE_CEASEFIRE")
 
     if (has_handicap(pplayer, H_AWAY)) {
       dai_diplo_notify(aplayer, _("*%s (AI)* In away mode AI can't sign such a treaty."),

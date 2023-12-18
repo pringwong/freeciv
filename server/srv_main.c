@@ -61,6 +61,7 @@
 #include "registry.h"
 #include "support.h"
 #include "timing.h"
+// #include <hiredis/hiredis.h> 
 
 /* common/aicore */
 #include "citymap.h"
@@ -196,6 +197,9 @@ static bool has_been_srv_init = FALSE;
 static struct timer *eot_timer = NULL;
 
 static struct timer *between_turns = NULL;
+
+ // Create a RedisClient
+redisContext* redisClient = NULL;
 
 /**********************************************************************//**
   Initialize the game seed. This may safely be called multiple times.
@@ -1252,8 +1256,6 @@ static void begin_turn(bool is_new_turn)
 **************************************************************************/
 static void begin_phase(bool is_new_phase)
 {
-  log_debug("Begin phase");
-
   log_normal("--------------------- BEGIN PHASE -------------------")
 
   conn_list_do_buffer(game.est_connections);
@@ -3550,6 +3552,14 @@ void fc__noreturn srv_main(void)
 {
   srv_prepare();
 
+  // redisClient = redisConnect("127.0.0.1", 6379);
+
+  // if ( redisClient->err) 
+  // { 
+  //     redisFree(redisClient); 
+  //     printf("Connect to redisServer faile\n"); 
+  // }
+
   /* Run server loop */
   do {
     set_server_state(S_S_INITIAL);
@@ -3628,8 +3638,11 @@ void fc__noreturn srv_main(void)
     game.info.is_new_game = TRUE;
   } while (TRUE);
 
+  // redisFree(redisClient);
+
   /* Technically, we won't ever get here. We exit via server_quit(). */
   fc_assert(FALSE);
+
 }
 
 /**********************************************************************//**
