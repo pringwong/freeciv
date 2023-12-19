@@ -1680,6 +1680,7 @@ static void sg_load_game(struct loaddata *loading)
 
   game.info.turn
     = secfile_lookup_int_default(loading->file, 0, "game.turn");
+
   sg_failure_ret(secfile_lookup_int(loading->file, &game.info.year,
                                     "game.year"), "%s", secfile_error());
   game.info.year_0_hack

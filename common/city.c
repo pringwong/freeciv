@@ -42,10 +42,12 @@
 #include "traderoutes.h"
 #include "unit.h"
 
+
 /* aicore */
 #include "cm.h"
 
 #include "city.h"
+
 
 /* Define this to add in extra (very slow) assertions for the city code. */
 #undef CITY_DEBUGGING
@@ -2378,7 +2380,7 @@ static inline void set_city_bonuses(struct city *pcity)
   as workers are moved around, but does change when buildings are built,
   etc.
 
-  TODO: use the cached values elsewhere in the code!
+  The cached values elsewhere in the code for minigame!
 **************************************************************************/
 void city_tile_cache_update(struct city *pcity)
 {

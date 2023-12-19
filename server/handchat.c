@@ -85,6 +85,8 @@ static void send_chat_msg(struct connection *pconn,
                           const struct ft_color color,
                           const char *format, ...)
 {
+  log_normal("send_chat_msg")
+
   struct packet_chat_msg packet;
   va_list args;
 
@@ -319,6 +321,7 @@ static void chat_msg_to_all(struct connection *sender, char *msg)
 **************************************************************************/
 void handle_chat_msg_req(struct connection *pconn, const char *message)
 {
+  log_normal("handle_chat_msg_req")
   char real_message[MAX_LEN_MSG], *cp;
   bool double_colon;
 

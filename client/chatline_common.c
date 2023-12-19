@@ -176,7 +176,7 @@ void output_window_event(const char *plain_text,
 **************************************************************************/
 void chat_welcome_message(bool gui_has_copying_mitem)
 {
-  output_window_append(ftc_any, _("Freeciv is free software and you are "
+  output_window_append(ftc_any, _("Freeciv is epic software and you are "
                                   "welcome to distribute copies of it "
                                   "under certain conditions;"));
   if (gui_has_copying_mitem) {

@@ -61,6 +61,7 @@
 #include "registry.h"
 #include "support.h"
 #include "timing.h"
+// #include <hiredis/hiredis.h> 
 
 /* common/aicore */
 #include "citymap.h"
@@ -547,17 +548,9 @@ bool check_for_game_over(void)
       } players_iterate_end;
 
       if (found) {
-        if (game.server.end_victory) {
-          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                      _("Game ended in conquest victory for %s."), player_name(victor));
-          log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
-          victor->is_winner = TRUE;
-          return TRUE;
-        }
-
-        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
-                    _("Game continue in conquest victory for %s."), player_name(victor));
-        log_normal(_("Game continue in conquest victory for %s."), player_name(victor));
+        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                    _("Game ended in conquest victory for %s."), player_name(victor));
+        log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
         victor->is_winner = TRUE;
         return TRUE;
       }
@@ -586,23 +579,14 @@ bool check_for_game_over(void)
 
     if (best != NULL && best_value >= game.info.culture_vic_points
         && best_value > second_value * (100 + game.info.culture_vic_lead) / 100) {
-      if (game.server.end_victory) {
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in cultural domination victory for %s."),
-                    player_name(best));
-        log_normal(_("Game ended in cultural domination victory for %s."),
+      notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                  _("Game ended in cultural domination victory for %s."),
                   player_name(best));
-        best->is_winner = TRUE;
-        return TRUE;
-      }
-      notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
-                  _("Game continue in cultural domination victory for %s."),
-                  player_name(best));
-      log_normal(_("Game continue in cultural domination victory for %s."),
+      log_normal(_("Game ended in cultural domination victory for %s."),
                  player_name(best));
       best->is_winner = TRUE;
 
-      return FALSE;
+      return TRUE;
     }
   }
 
@@ -1162,6 +1146,8 @@ static void begin_turn(bool is_new_turn)
 {
   log_debug("Begin turn");
 
+  log_normal("---------------- BEGIN TURN --------------------")
+
   event_cache_remove_old();
 
   /* Reset this each turn. */
@@ -1267,7 +1253,7 @@ static void begin_turn(bool is_new_turn)
 **************************************************************************/
 static void begin_phase(bool is_new_phase)
 {
-  log_debug("Begin phase");
+  log_normal("--------------------- BEGIN PHASE -------------------")
 
   conn_list_do_buffer(game.est_connections);
 
@@ -1444,7 +1430,7 @@ static void begin_phase(bool is_new_phase)
 **************************************************************************/
 static void end_phase(void)
 {
-  log_debug("Endphase");
+  log_normal("----------------------- END_PHASE ----------------------------");
 
   /*
    * This empties the client Messages window; put this before
@@ -1561,7 +1547,6 @@ static void end_phase(void)
     pplayer->server.bulbs_last_turn = 0;
 
     update_city_activities(pplayer);
-
     update_national_activities(pplayer, old_gold);
 
     city_refresh_queue_processing();
@@ -1611,6 +1596,7 @@ static void end_phase(void)
 static void end_turn(void)
 {
   log_debug("Endturn");
+  log_normal("--------------------- End turn --------------------------------");
 
   /* Hack: because observer players never get an end-phase packet we send
    * one here. */
@@ -2905,6 +2891,7 @@ static void srv_running(void)
   game.info.is_new_game = FALSE;
 
   log_verbose("srv_running() mostly redundant send_server_settings()");
+
   send_server_settings(NULL);
 
   timer_start(eot_timer);
@@ -2926,6 +2913,7 @@ static void srv_running(void)
   lsend_packet_freeze_client(game.est_connections);
 
   fc_assert(S_S_RUNNING == server_state());
+
   while (S_S_RUNNING == server_state()) {
     /* The beginning of a turn.
      *
@@ -2945,6 +2933,7 @@ static void srv_running(void)
     for (; game.info.phase < game.server.num_phases; game.info.phase++) {
       log_debug("Starting phase %d/%d.", game.info.phase,
                 game.server.num_phases);
+
       begin_phase(is_new_turn);
       if (need_send_pending_events) {
         /* When loading a savegame, we need to send loaded events, after
@@ -3575,6 +3564,14 @@ void fc__noreturn srv_main(void)
 {
   srv_prepare();
 
+  // redisClient = redisConnect("127.0.0.1", 6379);
+
+  // if ( redisClient->err) 
+  // { 
+  //     redisFree(redisClient); 
+  //     printf("Connect to redisServer faile\n"); 
+  // }
+
   /* Run server loop */
   do {
     set_server_state(S_S_INITIAL);
@@ -3598,6 +3595,14 @@ void fc__noreturn srv_main(void)
        * is ready to start (usually set within start_game()). */
     }
 
+    /*
+    * calculate metrics for game started
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_started", pplayer);
+    } phase_players_iterate_end;
+
     if (S_S_RUNNING > server_state()) {
       /* If restarting for lack of players, the state is S_S_OVER,
        * so don't try to start the game. */
@@ -3611,10 +3616,26 @@ void fc__noreturn srv_main(void)
       server_sniff_all_input();
     }
 
+    /*
+    * calculate metrics for game ended
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_ended", pplayer);
+    } phase_players_iterate_end;
+
     if (game.info.timeout == -1 || srvarg.exit_on_end) {
       /* For autogames or if the -e option is specified, exit the server. */
       server_quit();
     }
+
+    /*
+    * calculate metrics for game ended
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_ended", pplayer);
+    } phase_players_iterate_end;
 
     /*
     * calculate metrics for game ended
@@ -3637,8 +3658,11 @@ void fc__noreturn srv_main(void)
     game.info.is_new_game = TRUE;
   } while (TRUE);
 
+  // redisFree(redisClient);
+
   /* Technically, we won't ever get here. We exit via server_quit(). */
   fc_assert(FALSE);
+
 }
 
 /**********************************************************************//**

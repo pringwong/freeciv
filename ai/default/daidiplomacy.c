@@ -320,6 +320,7 @@ static int dai_goldequiv_clause(struct ai_type *ait,
 
   switch (pclause->type) {
   case CLAUSE_ADVANCE:
+    log_normal("CLAUSE_ADVANCE")
     if (give) {
       worth -= compute_tech_sell_price(ait, pplayer, aplayer, pclause->value,
                                        &is_dangerous);
@@ -354,6 +355,7 @@ static int dai_goldequiv_clause(struct ai_type *ait,
           worth /= 2;
         }
       }
+
     }
     DIPLO_LOG(ait, LOG_DIPL, pplayer, aplayer, "%s clause worth %d",
               advance_rule_name(advance_by_number(pclause->value)), worth);
@@ -363,6 +365,7 @@ static int dai_goldequiv_clause(struct ai_type *ait,
   case CLAUSE_PEACE:
   case CLAUSE_CEASEFIRE:
     /* Don't do anything in away mode */
+
     if (has_handicap(pplayer, H_AWAY)) {
       dai_diplo_notify(aplayer, _("*%s (AI)* In away mode AI can't sign such a treaty."),
                        player_name(pplayer));
@@ -464,6 +467,8 @@ static int dai_goldequiv_clause(struct ai_type *ait,
   break;
 
   case CLAUSE_GOLD:
+    log_normal("CLAUSE_GOLD")
+
     if (give) {
       worth -= pclause->value;
     } else {
@@ -515,6 +520,8 @@ static int dai_goldequiv_clause(struct ai_type *ait,
     break;
 
   case CLAUSE_CITY: {
+    log_normal("CLAUSE_CITY")
+
     struct city *offer = city_list_find_number(pclause->from->cities,
                                                pclause->value);
 
@@ -568,6 +575,7 @@ static int dai_goldequiv_clause(struct ai_type *ait,
     break;
 
   case CLAUSE_EMBASSY:
+    log_normal("CLAUSE_EMBASSY")
     if (give) {
       if (ds_after == DS_ALLIANCE) {
         worth = 0;
@@ -631,7 +639,7 @@ void dai_treaty_evaluate(struct ai_type *ait, struct player *pplayer,
       ds_after = pact_clause_to_diplstate_type(pclause->type);
     }
     if (pclause->type == CLAUSE_CITY && pclause->from == pplayer) {
-	given_cities++;
+	    given_cities++;
     }    
   } clause_list_iterate_end;
   
@@ -740,6 +748,7 @@ static void dai_treaty_react(struct ai_type *ait,
 void dai_treaty_accepted(struct ai_type *ait, struct player *pplayer,
                          struct player *aplayer, struct Treaty *ptreaty)
 {
+  log_normal("route to dai_treaty_accepted")
   bool close_here;
   struct ai_plr *ai;
   int total_balance = 0;

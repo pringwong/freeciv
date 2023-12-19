@@ -487,7 +487,6 @@ static void cai_treaty_evaluate(struct player *pplayer, struct player *aplayer,
                                 struct Treaty *ptreaty)
 {
   struct ai_type *deftype = classic_ai_get_self();
-
   dai_treaty_evaluate(deftype, pplayer, aplayer, ptreaty);
 }
 
@@ -584,6 +583,7 @@ static void cai_consider_wonder_city(struct city *pcity, bool *result)
 **************************************************************************/
 bool fc_ai_classic_setup(struct ai_type *ai)
 {
+  log_normal("route to fc_ai_classic_setup")
   struct dai_private_data *private;
 
   classic_ai_set_self(ai);

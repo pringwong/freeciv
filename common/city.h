@@ -89,6 +89,11 @@ enum production_class_type {
 #define CITY_MAP_CENTER_RADIUS_SQ      -1
 /* The tile index of the city center */
 #define CITY_MAP_CENTER_TILE_INDEX      0
+/* The top n of tiles for calculating tiles resource indicators or city resource indicators */
+#define CRI_TOP_N      6
+#define TRI_FOOD_WEIGHT       0.4
+#define TRI_SHIELD_WEIGHT       0.4
+#define TRI_TRADE_WEIGHT       0.2
 
 /* The top n of tiles for calculating tiles resource indicators or city resource indicators */
 #define CRI_TOP_N      6
@@ -877,11 +882,13 @@ bool is_free_worked(const struct city *pcity, const struct tile *ptile);
 void *city_ai_data(const struct city *pcity, const struct ai_type *ai);
 void city_set_ai_data(struct city *pcity, const struct ai_type *ai,
                       void *data);
+void city_tile_weight_score_calculation(struct city *pcity);
 
 void city_rally_point_clear(struct city *pcity);
 void city_rally_point_receive(const struct packet_city_rally_point *packet,
                               struct city *pcity)
   fc__attribute((nonnull (1)));
+  
 
 #ifdef __cplusplus
 }

@@ -922,7 +922,7 @@ static void update_unit_activity(struct unit *punit)
   };
 
   unit_restore_movepoints(pplayer, punit);
-
+  
   switch (activity) {
   case ACTIVITY_EXPLORE:
     /* Not accumulating activity - will be handled more like movement
@@ -996,6 +996,13 @@ static void update_unit_activity(struct unit *punit)
           >= tile_activity_time(ACTIVITY_GEN_ROAD, ptile, punit->activity_target)) {
         create_extra(ptile, punit->activity_target, unit_owner(punit));
         unit_activity_done = TRUE;
+        if (is_human(pplayer)){
+          if (pcity != NULL){
+            city_refresh_from_main_map(pcity, NULL);
+            city_tile_weight_score_calculation(pcity);
+            script_server_signal_emit("action_finished_worker_build", pcity);
+          }
+        }
       }
     }
     break;
@@ -4324,6 +4331,7 @@ static inline bool player_is_watching(struct unit *punit, const bool fresh)
 **************************************************************************/
 bool execute_orders(struct unit *punit, const bool fresh)
 {
+  log_normal("----------------execute_orders------------------------")
   struct act_prob prob;
   bool performed;
   const char *name;

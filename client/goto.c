@@ -1364,6 +1364,7 @@ bool is_valid_goto_draw_line(struct tile *dest_tile)
 ****************************************************************************/
 void request_orders_cleared(struct unit *punit)
 {
+  log_normal("------------------request_orders_cleared--------------------")
   struct packet_unit_orders p;
 
   if (!can_client_issue_orders()) {
@@ -1478,11 +1479,13 @@ static void send_path_orders(struct unit *punit, struct pf_path *path,
                              enum unit_orders orders,
                              struct unit_order *final_order)
 {
+  log_normal("------------------send_path_orders---------------------------")
   struct packet_unit_orders p;
 
   if (path->length == 1 && final_order == NULL) {
     return; /* No path at all, no need to spam the server. */
   }
+  log_normal("------------------memset---------------------------")
 
   memset(&p, 0, sizeof(p));
   p.unit_id = punit->id;
@@ -1493,12 +1496,28 @@ static void send_path_orders(struct unit *punit, struct pf_path *path,
   log_goto_packet("Orders for unit %d:", punit->id);
   log_goto_packet("  Repeat: %d. Vigilant: %d.",
                   p.repeat, p.vigilant);
+  log_normal("------------------make_path_orders---------------------------")
 
   make_path_orders(punit, path, orders, final_order,
                    p.orders, &p.length, &p.dest_tile);
 
   request_unit_ssa_set(punit, SSA_NONE);
+  log_normal("------------------request_unit_ssa_set---------------------------")
+
   send_packet_unit_orders(&client.conn, &p);
+
+  log_normal("------------------after  send_packet_unit_orders---------------------------")
+
+  /*
+  struct player *pplayer = punit->owner;
+  struct packet_ai_player_action_request pp;
+  
+  pp.playerno = player_number(pplayer);
+  send_packet_ai_player_action_request(&client.conn, &pp);
+  */
+
+  log_normal("------------------after  ai player action---------------------------")
+
 }
 
 /************************************************************************//**
@@ -1532,6 +1551,7 @@ static void send_rally_path_orders(struct city *pcity, struct unit *punit,
 void send_goto_path(struct unit *punit, struct pf_path *path,
 		    struct unit_order *final_order)
 {
+  log_normal("---------send_goto_path-------------------")
   send_path_orders(punit, path, FALSE, FALSE, ORDER_MOVE, final_order);
 }
 
@@ -1552,6 +1572,7 @@ static void send_rally_path(struct city *pcity, struct unit *punit,
 ****************************************************************************/
 bool send_goto_tile(struct unit *punit, struct tile *ptile)
 {
+  log_normal("----------send_goto_tile---------------")
   struct pf_parameter parameter;
   struct pf_map *pfm;
   struct pf_path *path;
@@ -1622,6 +1643,8 @@ bool send_rally_tile(struct city *pcity, struct tile *ptile, bool persistent)
 ****************************************************************************/
 bool send_attack_tile(struct unit *punit, struct tile *ptile)
 {
+  log_normal("---------send_attack_tile-------------------")
+
   struct pf_parameter parameter;
   struct pf_map *pfm;
   struct pf_path *path;
@@ -1648,6 +1671,8 @@ bool send_attack_tile(struct unit *punit, struct tile *ptile)
 ****************************************************************************/
 void send_patrol_route(void)
 {
+  log_normal("---------send_patrol_route-------------------")
+
   fc_assert_ret(goto_is_active());
   goto_map_unit_iterate(goto_maps, goto_map, punit) {
     int i;
@@ -1715,6 +1740,7 @@ static bool order_recursive_roads(struct tile *ptile, struct extra_type *pextra,
 void send_connect_route(enum unit_activity activity,
                         struct extra_type *tgt)
 {
+  log_normal("----------------send_connect_route-----------------")
   fc_assert_ret(goto_is_active());
   goto_map_unit_iterate(goto_maps, goto_map, punit) {
     int i;
@@ -1870,6 +1896,7 @@ static bool order_demands_direction(enum unit_orders order, action_id act_id)
 ****************************************************************************/
 void send_goto_route(void)
 {
+  log_normal("-----------------send_goto_route-----------------")
   fc_assert_ret(goto_is_active());
   goto_map_unit_iterate(goto_maps, goto_map, punit) {
     int i;

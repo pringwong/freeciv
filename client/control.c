@@ -1520,6 +1520,7 @@ void request_unit_airlift(struct unit *punit, struct city *pcity)
 **************************************************************************/
 void request_unit_return(struct unit *punit)
 {
+  log_normal("--------------request_unit_return---------------------")
   struct pf_path *path;
 
   if ((path = path_to_nearest_allied_city(punit))) {
@@ -1805,6 +1806,7 @@ void request_unit_build_city(struct unit *punit)
 void request_unit_non_action_move(struct unit *punit,
                                   struct tile *dest_tile)
 {
+  log_normal("-----------------------request_unit_non_action_move-----------------------------")
   struct packet_unit_orders p;
   int dir;
 
@@ -1847,6 +1849,7 @@ void request_unit_non_action_move(struct unit *punit,
 **************************************************************************/
 void request_move_unit_direction(struct unit *punit, int dir)
 {
+  log_normal("------------------------------request_move_unit_direction------------------------------")
   struct packet_unit_orders p;
   struct tile *dest_tile;
 
@@ -2873,6 +2876,7 @@ static void do_unit_act_sel_vs(struct tile *ptile)
 **************************************************************************/
 void do_map_click(struct tile *ptile, enum quickselect_type qtype)
 {
+  log_normal("-----------------do_map_click---------------")
   struct city *pcity = tile_city(ptile);
   struct unit_list *punits = get_units_in_focus();
   bool maybe_goto = FALSE;
@@ -3088,6 +3092,7 @@ static struct unit *quickselect(struct tile *ptile,
 **************************************************************************/
 void do_unit_goto(struct tile *ptile)
 {
+  log_normal("-------------do_unit_goto------------------")
   fc_assert_ret(hover_state == HOVER_GOTO
                 || hover_state == HOVER_GOTO_SEL_TGT);
   fc_assert_ret(goto_is_active());
@@ -3370,6 +3375,7 @@ void key_unit_action_select(void)
 **************************************************************************/
 void key_unit_action_select_tgt(void)
 {
+  log_normal("================key_unit_action_select_tgt===================")
   struct unit_list *punits = get_units_in_focus();
 
   if (hover_state == HOVER_ACT_SEL_TGT) {

@@ -158,7 +158,6 @@ static bool check_city_migrations_player(const struct player *pplayer);
 bool city_refresh(struct city *pcity)
 {
   bool retval;
-
   pcity->server.needs_refresh = FALSE;
 
   retval = city_map_update_radius_sq(pcity);
@@ -180,6 +179,8 @@ bool city_refresh(struct city *pcity)
 **************************************************************************/
 void city_refresh_for_player(struct player *pplayer)
 {
+  log_normal("city_refresh_for_player")
+
   conn_list_do_buffer(pplayer->connections);
   city_list_iterate(pplayer->cities, pcity) {
     if (city_refresh(pcity)) {
@@ -217,6 +218,7 @@ void city_refresh_queue_processing(void)
 
   city_list_iterate(city_refresh_queue, pcity) {
     if (pcity->server.needs_refresh) {
+      log_normal("--------------> city_refresh")
       if (city_refresh(pcity)) {
         auto_arrange_workers(pcity);
       }

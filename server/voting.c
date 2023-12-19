@@ -419,6 +419,7 @@ bool vote_would_pass_immediately(const struct connection *caller,
 **************************************************************************/
 static void check_vote(struct vote *pvote)
 {
+  log_normal("check_vote")
   int num_cast = 0, num_voters = 0;
   bool resolve = FALSE, passed = FALSE;
   struct connection *pconn = NULL;

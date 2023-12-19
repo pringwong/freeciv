@@ -486,6 +486,7 @@ void upgrade_canvas_clipboard(void)
 **************************************************************************/
 void release_goto_button(int canvas_x, int canvas_y)
 {
+  log_normal("================release_goto_button=================")
   struct tile *ptile = canvas_pos_to_tile(canvas_x, canvas_y);
 
   if (keyboardless_goto_active
@@ -570,6 +571,7 @@ void scroll_mapview(enum direction8 gui_dir)
 void action_button_pressed(int canvas_x, int canvas_y,
                            enum quickselect_type qtype)
 {
+  log_normal("------------------action_button_pressed--------------------")
   struct tile *ptile = canvas_pos_to_tile(canvas_x, canvas_y);
 
   if (can_client_change_view() && ptile) {

@@ -3795,6 +3795,7 @@ static bool detach_command(struct connection *caller, char *str, bool check)
 bool load_command(struct connection *caller, const char *filename, bool check,
                   bool cmdline_load)
 {
+  log_normal("load_command")
   struct timer *loadtimer, *uloadtimer;
   struct section_file *file;
   char arg[MAX_LEN_PATH];

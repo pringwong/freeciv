@@ -3174,7 +3174,7 @@ void handle_player_phase_done(struct player *pplayer,
   }
 
   pplayer->phase_done = TRUE;
-
+  log_normal("DEBUG handle_player_phase_done")
   check_for_full_turn_done();
 
   send_player_all_c(pplayer, nullptr);

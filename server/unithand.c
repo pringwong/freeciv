@@ -187,6 +187,7 @@ non_allied_not_listed_at(const struct player *pplayer,
 **************************************************************************/
 void handle_unit_type_upgrade(struct player *pplayer, Unit_type_id uti)
 {
+  log_normal("---------- handle_unit_type_upgrade -------------")
   const struct unit_type *to_unittype;
   struct unit_type *from_unittype = utype_by_number(uti);
   int number_of_upgraded_units = 0;
@@ -214,7 +215,6 @@ void handle_unit_type_upgrade(struct player *pplayer, Unit_type_id uti)
   unit_list_iterate(pplayer->units, punit) {
     if (unit_type_get(punit) == from_unittype) {
       struct city *pcity = tile_city(unit_tile(punit));
-
       if (is_action_enabled_unit_on_city(paction->id, punit, pcity)
           && unit_perform_action(pplayer, punit->id, pcity->id, 0, "",
                                  paction->id, ACT_REQ_SS_AGENT)) {
@@ -3275,9 +3275,45 @@ void handle_unit_do_action(struct player *pplayer,
                            const char *name,
                            const action_id action_type)
 {
+  log_normal("------------ handle_unit_do_action ----------------")
   (void) unit_perform_action(pplayer, actor_id, target_id, sub_tgt_id, name,
                              action_type, ACT_REQ_PLAYER);
 }
+
+/*
+void remove_spaces(char* s) {
+    char* d = s;
+    do {
+        while (*d == ' ') {
+            ++d;
+        }
+    } while (*s++ = *d++);
+}
+
+void insert_redis(char *value)
+{
+  char command[100] = "set unit ";
+  remove_spaces(value);
+  strcat(command, value);
+  redisReply* r = (redisReply*)redisCommand(redisClient, command);
+
+  if( NULL == r) 
+  { 
+      printf("Execut command failure\n"); 
+      return; 
+  }
+  if( !(r->type == REDIS_REPLY_STATUS && strcasecmp(r->str, "OK") == 0)) 
+  { 
+      printf("Failed to execute command[%s]\n",command);
+      freeReplyObject(r); 
+      return; 
+  }
+  freeReplyObject(r); 
+  printf("Succeed to execute command[%s]\n", command); 
+
+  return ;
+}
+*/
 
 /**********************************************************************//**
   Handle unit action
@@ -3291,8 +3327,19 @@ void unit_do_action(struct player *pplayer,
                     const char *name,
                     const action_id action_type)
 {
-  unit_perform_action(pplayer, actor_id, target_id,
-                      sub_tgt_id, name, action_type, ACT_REQ_PLAYER);
+  /*
+  json_t* obj = json_object();
+  json_object_set_new(obj, "player", json_string(pplayer->name));
+  json_object_set_new(obj, "actor_id", json_integer(actor_id));
+  json_object_set_new(obj, "action_type", json_integer(action_type));
+  char* js_str = json_dumps(obj, 0);
+  */
+  // insert_redis(js_str);
+  if (is_ai(pplayer)){
+    log_normal("debug unit_do_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d, sub_tgt_id: %d", pplayer->name, actor_id, action_type, target_id, sub_tgt_id);
+    unit_perform_action(pplayer, actor_id, target_id,
+                        sub_tgt_id, name, action_type, ACT_REQ_PLAYER);
+  }
 }
 
 /**********************************************************************//**
@@ -3312,6 +3359,23 @@ bool unit_perform_action(struct player *pplayer,
                          const action_id action_type,
                          const enum action_requester requester)
 {
+  if (is_human(pplayer) && game.server.agent_mode){
+    log_normal("debug agent mode unit_perform_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d", pplayer->name, actor_id, action_type, target_id);
+    // reg action source, if is packet request, then break
+    // send action packet
+    struct packet_ai_player_action_response packet;
+    packet.actor_id = actor_id;
+    packet.action_type = action_type;
+
+    conn_list_iterate(game.est_connections, pconn) {
+      struct player *aplayer = conn_get_player(pconn);
+        if (aplayer == pplayer) {
+          send_packet_ai_player_action_response(pconn, &packet);
+        }
+    } conn_list_iterate_end;
+
+    return FALSE;
+  }
   struct action *paction;
   int sub_tgt_id;
   struct unit *actor_unit = player_unit_by_number(pplayer, actor_id);
@@ -4332,7 +4396,6 @@ static void handle_unit_change_activity_real(struct player *pplayer,
                                              struct extra_type *activity_target)
 {
   struct unit *punit = player_unit_by_number(pplayer, unit_id);
-
   if (NULL == punit) {
     /* Probably died or bribed. */
     log_verbose("handle_unit_change_activity() invalid unit %d", unit_id);
@@ -6598,15 +6661,6 @@ bool unit_activity_handling_targeted(struct unit *punit,
     unit_activity_targeted_internal(punit, new_activity, new_target);
   }
 
-  struct city *pcity = game_city_by_number(punit->homecity);
-
-  if (pcity != NULL){
-    log_normal("start new activity: %d", new_activity)
-    city_refresh_from_main_map(pcity, NULL);
-    city_tile_weight_score_calculation(pcity);
-    script_server_signal_emit("action_started_worker_build", pcity);
-  }
-
   return TRUE;
 }
 
@@ -6656,11 +6710,42 @@ static bool unit_activity_targeted_internal(struct unit *punit,
 }
 
 /**********************************************************************//**
+  Receives AI human agent requests.
+**************************************************************************/
+void handle_ai_player_action_request(struct player *pplayer,
+                                     const struct packet_ai_player_action_request *packet)
+{
+  
+  log_normal("-------------------started handle_ai_player_action_request--------------------");
+  log_normal("packet: {playerno:%d,name:%s}", packet->playerno, pplayer->name);
+
+  // start phase action
+  CALL_PLR_AI_REQ_FUNC(first_activities, pplayer, pplayer);
+
+  // call ai
+  log_normal("-------------------finished handle_ai_player_action_request--------------------");
+
+  // return status
+  struct packet_ai_player_action_response resp;
+  resp.actor_id = 101;
+  resp.action_type = 128;
+
+  conn_list_iterate(game.est_connections, pconn) {
+    struct player *aplayer = conn_get_player(pconn);
+      if (aplayer == pplayer) {
+        send_packet_ai_player_action_response(pconn, &resp);
+      }
+  } conn_list_iterate_end;
+
+}
+
+/**********************************************************************//**
   Receives route packages.
 **************************************************************************/
 void handle_unit_orders(struct player *pplayer,
                         const struct packet_unit_orders *packet)
 {
+  log_normal("------------------------handle_unit_orders---------------------------")
   int length = packet->length;
   struct unit *punit = player_unit_by_number(pplayer, packet->unit_id);
   struct tile *src_tile = index_to_tile(&(wld.map), packet->src_tile);
@@ -6755,7 +6840,6 @@ void handle_unit_orders(struct player *pplayer,
               packet->orders[i].sub_target);
   }
 #endif /* FREECIV_DEBUG */
-
   if (!is_player_phase(unit_owner(punit), game.info.phase)
       || execute_orders(punit, TRUE)) {
     /* Looks like the unit survived. */

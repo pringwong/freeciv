@@ -724,8 +724,8 @@ bool tile_apply_activity(struct tile *ptile, Activity_type_id act,
     return FALSE;
   }
 
-  fc_assert(FALSE);
-
+  fc_assert(FALSE); 
+  
   return FALSE;
 }
 

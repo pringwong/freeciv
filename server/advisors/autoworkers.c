@@ -1269,6 +1269,8 @@ void adv_unit_new_task(struct unit *punit, enum adv_unit_task task,
     return;
   }
 
+  log_normal("debug advisor task: %d", task);
+
   punit->server.adv->task = task;
 
   CALL_PLR_AI_FUNC(unit_task, unit_owner(punit), punit, task, ptile);

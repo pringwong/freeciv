@@ -1051,6 +1051,7 @@ BUILD_CITY:
         return;
       }
       if (same_pos(unit_tile(punit), ptile)) {
+        /*log_normal("debug build city, player:%s, unit: %d", pplayer->name, punit->id)*/
         enum cb_error_level elevel = dai_do_build_city(ait, pplayer, punit);
 
         if (elevel != CBE_OK) {
@@ -1132,6 +1133,8 @@ BUILD_CITY:
         }
       }
       /* Go make a city! */
+      /*log_normal("debug adv_unit_new_task: %s, unit_id: %d", pplayer->name, punit->id)*/
+
       adv_unit_new_task(punit, AUT_BUILD_CITY, result->tile);
       if (result->best_other.tile && result->best_other.tdc->sum >= 0) {
         /* Reserve best other tile (if there is one). It is the tile where the
@@ -1266,6 +1269,7 @@ static enum cb_error_level dai_do_build_city(struct ai_type *ait,
               player_name(pplayer), TILE_XY(ptile));
     return CBE_RECOVERABLE;
   }
+
   unit_do_action(pplayer, punit->id, ptile->index,
                  0, city_name_suggestion(pplayer, ptile),
                  ACTION_FOUND_CITY);

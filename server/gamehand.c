@@ -906,6 +906,7 @@ void send_year_to_clients(void)
 ****************************************************************************/
 void send_game_info(struct conn_list *dest)
 {
+
   struct packet_timeout_info tinfo;
 
   if (!dest) {
