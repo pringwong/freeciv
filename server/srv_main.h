@@ -20,7 +20,6 @@
 /* common */
 #include "fc_types.h"
 #include "game.h"
-#include <hiredis/hiredis.h> 
 
 struct conn_list;
 
