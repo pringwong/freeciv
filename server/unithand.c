@@ -19,6 +19,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* dependencies/lua */
+#include "lua.h" /* lua_Integer */
+
 /* utility */
 #include "astring.h"
 #include "fcintl.h"
@@ -44,6 +47,9 @@
 #include "traderoutes.h"
 #include "unit.h"
 #include "unitlist.h"
+
+/* common/aicore */
+#include "pf_tools.h"
 
 /* common/scriptcore */
 #include "luascript_types.h"
@@ -4178,14 +4184,15 @@ static bool city_add_unit(struct player *pplayer, struct unit *punit,
 
   send_city_info(NULL, pcity);
 
-  script_server_signal_emit("city_size_change", pcity, amount, "unit_added");
+  script_server_signal_emit("city_size_change", pcity,
+                            (lua_Integer)amount, "unit_added");
 
   return TRUE;
 }
 
 /**********************************************************************//**
   This function assumes a certain level of consistency checking: There
-  is no city under punit->(x,y), and that location is a valid one on
+  is no city under punit->(x, y), and that location is a valid one on
   which to build a city. It should only be called after a call to a
   function like test_unit_add_or_build_city, which does the checking.
 
@@ -4236,6 +4243,84 @@ static bool city_build(struct player *pplayer, struct unit *punit,
                              ptile, tile_link(ptile));
 
   return TRUE;
+}
+
+/**********************************************************************//**
+  This function handles GOTO path requests from the client.
+**************************************************************************/
+void handle_web_goto_path_req(struct player *pplayer, int unit_id, int goal)
+{
+  struct unit *punit = player_unit_by_number(pplayer, unit_id);
+  struct tile *ptile = index_to_tile(&(wld.map), goal);
+  struct pf_parameter parameter;
+  struct pf_map *pfm;
+  struct pf_path *path;
+  struct tile *old_tile;
+  int i = 0;
+  struct packet_web_goto_path p;
+
+  if (punit == nullptr) {
+    /* Meanwhile unit has died on the server side? */
+    log_warn("handle_unit_move(): invalid unit %d", unit_id);
+    return;
+  }
+
+  if (ptile == nullptr) {
+    /* Shouldn't happen */
+    log_error("handle_unit_move(): invalid %s (%d) tile (%d, %d)",
+              unit_rule_name(punit),
+              unit_id,
+              TILE_XY(ptile));
+    return;
+  }
+
+  if (!is_player_phase(unit_owner(punit), game.info.phase)) {
+    /* Client is out of sync, ignore */
+    log_verbose("handle_unit_move(): invalid %s (%d) %s != phase %d",
+                unit_rule_name(punit),
+                unit_id,
+                nation_rule_name(nation_of_unit(punit)),
+                game.info.phase);
+    return;
+  }
+
+  p.unit_id = punit->id;
+  p.dest = tile_index(ptile);
+
+  /* Use path-finding to find a goto path. */
+  pft_fill_unit_parameter(&parameter, &(wld.map), punit);
+  pfm = pf_map_new(&parameter);
+  path = pf_map_path(pfm, ptile);
+  pf_map_destroy(pfm);
+
+  if (path != nullptr) {
+    int total_mc = 0;
+
+    p.length = path->length - 1;
+
+    old_tile = path->positions[0].tile;
+
+    for (i = 0; i < path->length - 1; i++) {
+      struct tile *new_tile = path->positions[i + 1].tile;
+      int dir;
+
+      total_mc += path->positions[1].total_MC;
+      if (same_pos(new_tile, old_tile)) {
+        dir = -1;
+      } else {
+        dir = get_direction_for_step(&(wld.map), old_tile, new_tile);
+      }
+      old_tile = new_tile;
+      p.dir[i] = dir;
+
+    }
+    pf_path_destroy(path);
+    p.turns = total_mc / unit_move_rate(punit);
+    send_packet_web_goto_path(pplayer->current_conn, &p);
+
+  } else {
+    return;
+  }
 }
 
 /**********************************************************************//**
@@ -6511,6 +6596,15 @@ bool unit_activity_handling_targeted(struct unit *punit,
   } else if (can_unit_do_activity_targeted(punit, new_activity, *new_target)) {
     free_unit_orders(punit);
     unit_activity_targeted_internal(punit, new_activity, new_target);
+  }
+
+  struct city *pcity = game_city_by_number(punit->homecity);
+
+  if (pcity != NULL){
+    log_normal("start new activity: %d", new_activity)
+    city_refresh_from_main_map(pcity, NULL);
+    city_tile_weight_score_calculation(pcity);
+    script_server_signal_emit("action_started_worker_build", pcity);
   }
 
   return TRUE;

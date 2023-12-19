@@ -857,6 +857,10 @@ static void wrap_action(const struct setting *pset)
 ****************************************************************************/
 static void metamessage_action(const struct setting *pset)
 {
+  if (is_longturn() && S_S_RUNNING == server_state()) {
+    return;
+  }
+
   /* Set the metaserver message based on the new meta server user message.
    * An empty user metaserver message results in an automatic meta message.
    * A non empty user meta message results in the user meta message. */
@@ -2911,6 +2915,13 @@ static struct setting settings[] = {
           N_("The game will end at the end of the given turn."),
           NULL, endturn_callback, NULL,
           GAME_MIN_END_TURN, GAME_MAX_END_TURN, GAME_DEFAULT_END_TURN)
+
+  GEN_BOOL("endvictory", game.server.end_victory,
+           SSET_META, SSET_SOCIOLOGY, SSET_VITAL,
+           ALLOW_NONE, ALLOW_BASIC,
+           N_("Whether game will end when victory"),
+           N_("If enabled, the game will end when victory."),
+           NULL, NULL, GAME_DEFAULT_END_VICTORY)
 
   GEN_BITWISE("revealmap", game.server.revealmap, SSET_GAME_INIT,
               SSET_MILITARY, SSET_SITUATIONAL, ALLOW_NONE, ALLOW_BASIC,

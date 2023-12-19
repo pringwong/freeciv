@@ -5,7 +5,7 @@ c_compiler = meson.get_compiler('c')
 
 b_root = meson.project_build_root()
 
-if get_option('ruledit') or \
+if get_option('tools').contains('ruledit') or \
    get_option('clients').contains('qt') or \
    get_option('fcmp').contains('qt')
   add_languages('cpp', native: false)
@@ -1146,6 +1146,7 @@ endif
 
 common_lib = library('freeciv',
   'utility/astring.c',
+  'utility/algo.c',
   'utility/bitvector.c',
   'utility/bugs.c',
   'utility/capability.c',
@@ -4086,7 +4087,7 @@ executable('freeciv-ruleup',
   install: true
   )
 
-if get_option('ruledit')
+if get_option('tools').contains('ruledit')
 
 if not qt_dep.found()
   if qtver == 'qt6' or qtver == 'qt6x'
@@ -4179,6 +4180,8 @@ custom_target('mi_ruledit',
 
 endif
 
+if get_option('tools').contains('manual')
+
 executable('freeciv-manual',
   'tools/manual/fc_manual.c',
   'client/helpdata.c',
@@ -4188,6 +4191,8 @@ executable('freeciv-manual',
   dependencies: [m_dep, net_dep, readline_dep, gettext_dep, mw_extra_dep],
   install: true
   )
+
+endif
 
 install_data(
   'data/default/default.lua',
@@ -4214,7 +4219,8 @@ rulesets = [
   'sandbox',
   'civ1',
   'civ2',
-  'stub'
+  'stub',
+  'webperimental'
   ]
 
 ruleset_files = [
@@ -4242,6 +4248,8 @@ install_data(
   'data/sandbox.modpack',
   'data/civ1.modpack',
   'data/civ2.modpack',
+  'data/webperimental.serv',
+  'data/webperimental.modpack',
   install_dir : join_paths(get_option('datadir'), 'freeciv')
   )
 
@@ -4273,6 +4281,11 @@ install_data(
   'data/alien/README.alien',
   'data/alien/nation_effects.ruleset',
   install_dir : join_paths(get_option('datadir'), 'freeciv/alien')
+  )
+
+install_data(
+  'data/webperimental/README.webperimental',
+  install_dir : join_paths(get_option('datadir'), 'freeciv/webperimental')
   )
 
 install_data(

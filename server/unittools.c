@@ -885,6 +885,7 @@ static void update_unit_activity(struct unit *punit)
   bool unit_activity_done = FALSE;
   enum unit_activity activity = punit->activity;
   struct tile *ptile = unit_tile(punit);
+  struct city *pcity = game_city_by_number(punit->homecity);
   const struct unit_type *act_utype = unit_type_get(punit);
 
   switch (activity) {
@@ -1009,7 +1010,16 @@ static void update_unit_activity(struct unit *punit)
 
       /* The function below could change the terrain. Therefore, we have to
        * check the terrain (which will also do a sanity check for the tile). */
-      tile_apply_activity(ptile, activity, punit->activity_target);
+      if (tile_apply_activity(ptile, activity, punit->activity_target)){
+        if (is_human(pplayer)){
+          if (pcity != NULL){
+            city_refresh_from_main_map(pcity, NULL);
+            city_tile_weight_score_calculation(pcity);
+            script_server_signal_emit("action_finished_worker_build", pcity);
+          }
+        }
+      }
+
       check_terrain_change(ptile, old);
       unit_activity_done = TRUE;
     }
@@ -1041,6 +1051,13 @@ static void update_unit_activity(struct unit *punit)
                                   punit, ptile, punit->activity_target)) {
       set_unit_activity(punit, ACTIVITY_FORTIFIED);
       unit_activity_done = TRUE;
+      if (is_human(pplayer)){
+        if (pcity != NULL){
+          city_refresh_from_main_map(pcity, NULL);
+          city_tile_weight_score_calculation(pcity);
+          script_server_signal_emit("action_finished_worker_build", pcity);
+        }
+      }
     }
   }
 

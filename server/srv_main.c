@@ -284,6 +284,7 @@ void srv_init(void)
   srvarg.auth_enabled = FALSE;
   srvarg.auth_allow_guests = FALSE;
   srvarg.auth_allow_newusers = FALSE;
+  srvarg.server_password_enabled = FALSE;
 
   /* Mark as initialized */
   has_been_srv_init = TRUE;
@@ -507,13 +508,24 @@ bool check_for_game_over(void)
           }
           pplayer->is_winner = TRUE;
         } player_list_iterate_end;
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+
+        if (game.server.end_victory) {
+          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                      /* TRANS: There can be several winners listed */
+                      _("Game ended in Allied victory to %s."), astr_str(&str));
+          log_normal(_("Game ended in Allied victory to %s."), astr_str(&str));
+          astr_free(&str);
+          player_list_destroy(winner_list);
+          return TRUE;
+        }
+
+        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
                     /* TRANS: There can be several winners listed */
-                    _("Allied victory to %s."), astr_str(&str));
-        log_normal(_("Allied victory to %s."), astr_str(&str));
+                    _("Game continue in Allied victory %s."), astr_str(&str));
+        log_normal(_("Game continue in Allied victory %s."), astr_str(&str));
         astr_free(&str);
         player_list_destroy(winner_list);
-        return TRUE;
+        return FALSE;
       }
     }
 
@@ -535,9 +547,17 @@ bool check_for_game_over(void)
       } players_iterate_end;
 
       if (found) {
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in conquest victory for %s."), player_name(victor));
-        log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+        if (game.server.end_victory) {
+          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                      _("Game ended in conquest victory for %s."), player_name(victor));
+          log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+          victor->is_winner = TRUE;
+          return TRUE;
+        }
+
+        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+                    _("Game continue in conquest victory for %s."), player_name(victor));
+        log_normal(_("Game continue in conquest victory for %s."), player_name(victor));
         victor->is_winner = TRUE;
         return TRUE;
       }
@@ -566,14 +586,23 @@ bool check_for_game_over(void)
 
     if (best != NULL && best_value >= game.info.culture_vic_points
         && best_value > second_value * (100 + game.info.culture_vic_lead) / 100) {
-      notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                  _("Game ended in cultural domination victory for %s."),
+      if (game.server.end_victory) {
+        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                    _("Game ended in cultural domination victory for %s."),
+                    player_name(best));
+        log_normal(_("Game ended in cultural domination victory for %s."),
                   player_name(best));
-      log_normal(_("Game ended in cultural domination victory for %s."),
+        best->is_winner = TRUE;
+        return TRUE;
+      }
+      notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+                  _("Game continue in cultural domination victory for %s."),
+                  player_name(best));
+      log_normal(_("Game continue in cultural domination victory for %s."),
                  player_name(best));
       best->is_winner = TRUE;
 
-      return TRUE;
+      return FALSE;
     }
   }
 
@@ -646,11 +675,21 @@ bool check_for_game_over(void)
           pteammate->is_winner = TRUE;
         } player_list_iterate_end;
       } else {
-        notify_conn(NULL, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in victory for %s."), player_name(pplayer));
-        pplayer->is_winner = TRUE;
+        if (game.server.end_victory) {
+          notify_conn(NULL, NULL, E_GAME_END, ftc_server,
+                      _("Game ended in victory for %s."), player_name(pplayer));
+          log_normal(_("Game ended in victory for %s."),
+                    player_name(pplayer));
+          pplayer->is_winner = TRUE;
+        } else {
+          notify_conn(NULL, NULL, E_CHAT_MSG, ftc_server,
+                      _("Game continue in victory for %s."), player_name(pplayer));
+          log_normal(_("Game continue in victory for %s."),
+                    player_name(pplayer));
+          pplayer->is_winner = TRUE;
+        }
       }
-      return TRUE;
+      return FALSE;
     }
 
     /* Print notice(s) of imminent arrival. These are not infallible
@@ -731,6 +770,19 @@ static void do_reveal_effects(void)
        * needed. */
       map_show_all(pplayer);
     }
+  } phase_players_iterate_end;
+}
+
+/**********************************************************************//**
+  Calculate metrics for game initialized.
+**************************************************************************/
+static void initialize_metrics(void)
+{
+  phase_players_iterate(pplayer) {
+    city_list_iterate(pplayer->cities, pcity) {
+      city_refresh_from_main_map(pcity, NULL);
+      city_tile_weight_score_calculation(pcity);
+    } city_list_iterate_end;
   } phase_players_iterate_end;
 }
 
@@ -1144,8 +1196,10 @@ static void begin_turn(bool is_new_turn)
                               (lua_Integer)game.info.turn,
                               (lua_Integer)game.info.year);
     script_server_signal_emit("turn_started",
-                              game.info.turn > 0 ? game.info.turn - 1
-                              : game.info.turn, game.info.year);
+                              game.info.turn > 0
+                              ? (lua_Integer)game.info.turn - 1
+                              : (lua_Integer)game.info.turn,
+                              (lua_Integer)game.info.year);
 
     /* We build scores at the beginning of every turn.  We have to
      * build them at the beginning so that the AI can use the data,
@@ -2578,7 +2632,12 @@ void player_nation_defaults(struct player *pplayer, struct nation_type *pnation,
   pplayer->style = style_of_nation(pnation);
 
   if (set_name) {
-    server_player_set_name(pplayer, pick_random_player_name(pnation));
+    if (is_ai(pplayer)) {
+      server_player_set_name(pplayer, pick_random_player_name(pnation));
+    } else {
+      /* FIXME: in Web client, connection username == player name. */
+      server_player_set_name(pplayer, pplayer->username);
+    }
   }
 
   if ((pleader = nation_leader_by_name(pnation, player_name(pplayer)))) {
@@ -3414,6 +3473,15 @@ static void srv_ready(void)
         map_show_all(pplayer);
       } players_iterate_end;
     }
+
+    if (is_longturn()) {
+      players_iterate(pplayer) {
+        if (is_ai(pplayer)) {
+          set_as_human(pplayer);
+          server_player_set_name(pplayer, "New Available Player");
+	}
+      } players_iterate_end;
+    }
   }
 
   if (game.scenario.is_scenario && game.scenario.players) {
@@ -3547,6 +3615,14 @@ void fc__noreturn srv_main(void)
       /* For autogames or if the -e option is specified, exit the server. */
       server_quit();
     }
+
+    /*
+    * calculate metrics for game ended
+    */
+    initialize_metrics();
+    phase_players_iterate(pplayer) {
+      script_server_signal_emit("game_ended", pplayer);
+    } phase_players_iterate_end;
 
     /* Close it even between games. */
     save_system_close();
@@ -3824,10 +3900,22 @@ static void save_all_map_images(void)
     struct mapdef *pmapdef = mapimg_isvalid(i);
 
     if (pmapdef != NULL) {
-      mapimg_create(pmapdef, FALSE, game.server.save_name,
+      char imgfilename[128];
+
+      fc_snprintf(imgfilename, sizeof(imgfilename), "map-%d", srvarg.port);
+
+      mapimg_create(pmapdef, FALSE, imgfilename,
                     srvarg.saves_pathname);
     } else {
       log_error("%s", mapimg_error());
     }
   }
+}
+
+/**********************************************************************//**
+ Is this a LongTurn game?
+**************************************************************************/
+bool is_longturn(void)
+{
+  return (!fc_strcasecmp(game.server.meta_info.type, "longturn"));
 }

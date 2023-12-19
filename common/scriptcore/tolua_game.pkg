@@ -248,6 +248,10 @@ module City {
       @ size(lua_State *L, City *self);
     Tile *api_methods_city_tile_get
       @ tile(lua_State *L, City *self);
+    float api_methods_city_cri_get
+      @ cri(lua_State *L, City *self);
+    float api_methods_city_tri_get
+      @ tri(lua_State *L, City *self);
   }
 
   bool api_methods_city_has_building

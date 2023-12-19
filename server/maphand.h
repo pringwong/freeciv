@@ -147,4 +147,7 @@ bool give_distorted_map(struct player *pfrom, struct player *pto,
 void tile_change_side_effects(struct tile *ptile, bool refresh_city)
   fc__attribute((nonnull (1)));
 
+void handle_web_info_text_req(struct player *pplayer, int loc,
+                              int visible_unit_id, int focus_unit_id);
+
 #endif /* FC__MAPHAND_H */

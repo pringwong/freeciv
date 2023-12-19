@@ -9,6 +9,8 @@ AM_CFLAGS = $(UTILITY_CFLAGS)
 libcivutility_la_SOURCES = \
 		astring.c       \
 		astring.h       \
+		algo.c       \
+		algo.h       \
 		bitvector.c     \
 		bitvector.h     \
 		bugs.c		\

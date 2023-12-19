@@ -555,6 +555,13 @@ static void script_server_signals_create(void)
                           API_TYPE_ACTION,
                           API_TYPE_UNIT, API_TYPE_TILE);
 
+  luascript_signal_create(fcl_main, "action_started_worker_build", 1, 
+                          API_TYPE_CITY);
+
+  luascript_signal_create(fcl_main, "action_finished_worker_build", 1, 
+                          API_TYPE_CITY);
+  luascript_signal_create(fcl_main, "game_started", 1, API_TYPE_PLAYER);
+  luascript_signal_create(fcl_main, "game_ended", 1, API_TYPE_PLAYER);
   luascript_signal_create(fcl_main, "action_finished_unit_tile", 4,
                           API_TYPE_ACTION, API_TYPE_BOOL,
                           API_TYPE_UNIT, API_TYPE_TILE);

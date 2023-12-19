@@ -773,7 +773,8 @@ PACKET_CITY_INFO = 31; sc, lsend, is-game-info, force, cancel(PACKET_CITY_SHORT_
   SINT8 city_image;
 
   UINT16 steal;
-
+  UINT8 anarchy;
+  
   WORKLIST worklist;
 
   BV_IMPRS improvements;
@@ -2447,4 +2448,28 @@ PACKET_WEB_RULESET_UNIT_ADDITION = 260; sc, lsend, handle-via-fields, no-handle
   UNIT_TYPE id; key
 
   BV_ACTIONS utype_actions;
+end
+
+# Used for showing GOTO path in web client.
+PACKET_WEB_GOTO_PATH_REQ = 287; cs, dsend, handle-via-fields
+  UNIT unit_id;
+  TILE goal;
+end
+
+PACKET_WEB_GOTO_PATH = 288; sc, dsend, handle-via-fields, no-handle
+  UNIT unit_id;
+  UINT16 length;
+  DIRECTION dir[MAX_LEN_ROUTE:length];
+  TILE dest;
+  UINT32 turns;
+end
+
+PACKET_WEB_INFO_TEXT_REQ = 289; cs, dsend, handle-via-fields
+  TILE loc;
+  UNIT visible_unit;
+  UNIT focus_unit;
+end
+
+PACKET_WEB_INFO_TEXT_MESSAGE = 290; sc, dsend, handle-via-fields, no-handle
+  STRING message[MAX_LEN_MSG];
 end
