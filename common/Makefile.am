@@ -21,6 +21,8 @@ libfreeciv_la_SOURCES = \
 		actres.h	\
 		ai.c		\
 		ai.h		\
+		aihelper.c		\
+		aihelper.h		\
 		base.c		\
 		base.h		\
 		borders.c	\

@@ -73,6 +73,7 @@ struct Clause {
   enum clause_type type;
   struct player *from;
   int value;
+  int worth;
 };
 
 struct Treaty {

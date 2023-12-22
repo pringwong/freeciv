@@ -162,7 +162,8 @@ static int remove_clause_callback(struct widget *pwidget)
                                              pwidget->data.cont->id0,
                                              (enum clause_type) ((pwidget->data.
                                              cont->value >> 16) & 0xFFFF),
-                                             pwidget->data.cont->value & 0xFFFF);
+                                             pwidget->data.cont->value & 0xFFFF,
+                                             pwidget->data.cont->worth & 0xFFFF);
   }
 
   return -1;

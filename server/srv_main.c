@@ -187,6 +187,7 @@ static enum server_states civserver_state = S_S_INITIAL;
    force end-of-tick asap
 */
 bool force_end_of_sniff;
+ActionQueue* human_assistant;
 
 bv_id identity_numbers_used;
 
@@ -509,7 +510,6 @@ bool check_for_game_over(void)
           }
           pplayer->is_winner = TRUE;
         } player_list_iterate_end;
-
         if (game.server.end_victory) {
           notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
                       /* TRANS: There can be several winners listed */
@@ -519,11 +519,10 @@ bool check_for_game_over(void)
           player_list_destroy(winner_list);
           return TRUE;
         }
-
         notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
                     /* TRANS: There can be several winners listed */
-                    _("Game continue in Allied victory %s."), astr_str(&str));
-        log_normal(_("Game continue in Allied victory %s."), astr_str(&str));
+                    _("Game continue in Allied victory to %s."), astr_str(&str));
+        log_normal(_("Game continue in Allied victory to %s."), astr_str(&str));
         astr_free(&str);
         player_list_destroy(winner_list);
         return FALSE;
@@ -548,11 +547,18 @@ bool check_for_game_over(void)
       } players_iterate_end;
 
       if (found) {
-        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                    _("Game ended in conquest victory for %s."), player_name(victor));
-        log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+        if (game.server.end_victory) {
+          notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                      _("Game ended in conquest victory for %s."), player_name(victor));
+          log_normal(_("Game ended in conquest victory for %s."), player_name(victor));
+          victor->is_winner = TRUE;
+          return TRUE;
+        }
+        notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+                    _("Game continue in conquest victory for %s."), player_name(victor));
+        log_normal(_("Game continue in conquest victory for %s."), player_name(victor));
         victor->is_winner = TRUE;
-        return TRUE;
+        return FALSE;
       }
     }
   }
@@ -579,14 +585,22 @@ bool check_for_game_over(void)
 
     if (best != NULL && best_value >= game.info.culture_vic_points
         && best_value > second_value * (100 + game.info.culture_vic_lead) / 100) {
-      notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
-                  _("Game ended in cultural domination victory for %s."),
+      if (game.server.end_victory) {
+        notify_conn(game.est_connections, NULL, E_GAME_END, ftc_server,
+                    _("Game ended in cultural domination victory for %s."),
+                    player_name(best));
+        log_normal(_("Game ended in cultural domination victory for %s."),
                   player_name(best));
-      log_normal(_("Game ended in cultural domination victory for %s."),
-                 player_name(best));
+        best->is_winner = TRUE;
+        return TRUE;
+      }
+      notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+                  _("Game continue in cultural domination victory for %s."),
+                  player_name(best));
+      log_normal(_("Game continue in cultural domination victory for %s."),
+                player_name(best));
       best->is_winner = TRUE;
-
-      return TRUE;
+      return FALSE;
     }
   }
 
@@ -673,7 +687,8 @@ bool check_for_game_over(void)
           pplayer->is_winner = TRUE;
         }
       }
-      return FALSE;
+
+      return TRUE && game.server.end_victory;
     }
 
     /* Print notice(s) of imminent arrival. These are not infallible
@@ -704,6 +719,7 @@ bool check_for_game_over(void)
 
   return FALSE;
 }
+
 
 /**********************************************************************//**
   Send all information for when game starts or client reconnects.
@@ -1422,6 +1438,9 @@ static void begin_phase(bool is_new_phase)
      * will be responsive again */
     lsend_packet_begin_turn(game.est_connections);
   }
+
+  log_normal("--------------------- BEGIN PHASE FINISHED -------------------")
+
 }
 
 /**********************************************************************//**
@@ -2988,9 +3007,11 @@ static void srv_running(void)
         log_debug("Inresponsive between turns %g seconds", game.server.turn_change_time);
       }
 
+      log_normal("-------------server_sniff_all_input-------------------")
       while (server_sniff_all_input() == S_E_OTHERWISE) {
         /* nothing */
       }
+      log_normal("-------------server_sniff_all_input end-------------------")
 
       between_turns = timer_renew(between_turns, TIMER_USER, TIMER_ACTIVE,
                                   between_turns != NULL ? NULL : "between turns");
@@ -3558,11 +3579,44 @@ void server_game_free(void)
 }
 
 /**********************************************************************//**
+  Human assistant.
+**************************************************************************/
+void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id)
+{
+    log_normal("helper_set_unit_activities: %d, %d, %d", ENTITY_TYPE_UNIT, unit_id, act_id)
+}
+
+void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id)
+{
+    log_normal("helper_do_unit_action: %d %d", unit_id, act_id)
+
+    struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id);
+
+    putNode(human_assistant, packet);
+
+    //gtk test
+
+    // struct packet_ai_player_action_response resp_packet = getNode(pplayer, human_assistant);
+
+    // log_normal("action node 1: %d, %d, %d", resp_packet.actor_id, resp_packet.playerno, resp_packet.action_type)
+
+    // putNode(human_assistant, packet);
+    // log_normal("packet2: %d %d", packet.actor_id, packet.action_type)
+    // log_normal("--------------- put 2----------------------")
+    // struct packet_ai_player_action_response resp_packet2 = getNode(pplayer, human_assistant);
+    // log_normal("action node 2: %d, %d, %d", resp_packet2.actor_id, resp_packet2.playerno, resp_packet2.action_type)
+
+}
+
+/**********************************************************************//**
   Server main loop.
 **************************************************************************/
 void fc__noreturn srv_main(void)
 {
   srv_prepare();
+
+  human_assistant = initQueue();
+  log_normal("human_assistant address 1: %p", &human_assistant)
 
   // redisClient = redisConnect("127.0.0.1", 6379);
 
@@ -3628,22 +3682,6 @@ void fc__noreturn srv_main(void)
       /* For autogames or if the -e option is specified, exit the server. */
       server_quit();
     }
-
-    /*
-    * calculate metrics for game ended
-    */
-    initialize_metrics();
-    phase_players_iterate(pplayer) {
-      script_server_signal_emit("game_ended", pplayer);
-    } phase_players_iterate_end;
-
-    /*
-    * calculate metrics for game ended
-    */
-    initialize_metrics();
-    phase_players_iterate(pplayer) {
-      script_server_signal_emit("game_ended", pplayer);
-    } phase_players_iterate_end;
 
     /* Close it even between games. */
     save_system_close();

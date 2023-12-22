@@ -26,6 +26,13 @@
 #include "shared.h"
 #include "support.h"
 
+/* common/scriptcore */
+#include "luascript_signal.h"
+#include "luascript_types.h"
+
+/* server/scripting */
+#include "script_server.h"
+
 /* common */
 #include "aisupport.h"
 #include "city.h"
@@ -320,7 +327,6 @@ static int dai_goldequiv_clause(struct ai_type *ait,
 
   switch (pclause->type) {
   case CLAUSE_ADVANCE:
-    log_normal("CLAUSE_ADVANCE")
     if (give) {
       worth -= compute_tech_sell_price(ait, pplayer, aplayer, pclause->value,
                                        &is_dangerous);
@@ -629,6 +635,10 @@ void dai_treaty_evaluate(struct ai_type *ait, struct player *pplayer,
                          struct player *aplayer, struct Treaty *ptreaty)
 {
   int total_balance = 0;
+  int tmp_worth = 0;
+  int human_worth = 0;
+  int ai_worth = 0;
+
   bool only_gifts = TRUE;
   enum diplstate_type ds_after =
     player_diplstate_get(pplayer, aplayer)->type;
@@ -647,8 +657,17 @@ void dai_treaty_evaluate(struct ai_type *ait, struct player *pplayer,
   clause_list_iterate(ptreaty->clauses, pclause) {
     const struct research *presearch = research_get(pplayer);
 
-    total_balance +=
-      dai_goldequiv_clause(ait, pplayer, aplayer, pclause, TRUE, ds_after);
+    tmp_worth = dai_goldequiv_clause(ait, pplayer, aplayer, pclause, TRUE, ds_after);
+
+    pclause->worth = tmp_worth;
+
+    if (tmp_worth >= 0){
+      human_worth += tmp_worth;
+    } else {
+      ai_worth += -tmp_worth;
+    }
+
+    total_balance += tmp_worth;
 
     if (pclause->type != CLAUSE_GOLD && pclause->type != CLAUSE_MAP
         && pclause->type != CLAUSE_SEAMAP && pclause->type != CLAUSE_VISION
@@ -696,6 +715,8 @@ void dai_treaty_evaluate(struct ai_type *ait, struct player *pplayer,
     DIPLO_LOG(ait, LOG_DIPL2, pplayer, aplayer, "balance was bad: %d", 
               total_balance);
   }
+
+  script_server_signal_emit("diplomacy_clause_worth", human_worth, ai_worth);
 }
 
 /******************************************************************//**

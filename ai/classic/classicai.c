@@ -486,6 +486,7 @@ static void cai_do_last_activities(struct player *pplayer)
 static void cai_treaty_evaluate(struct player *pplayer, struct player *aplayer,
                                 struct Treaty *ptreaty)
 {
+  log_normal("------------- cai_treaty_evaluate ----------------")
   struct ai_type *deftype = classic_ai_get_self();
   dai_treaty_evaluate(deftype, pplayer, aplayer, ptreaty);
 }

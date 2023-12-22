@@ -31,6 +31,7 @@ extern "C" {
 #include "tech.h"
 #include "unitlist.h"
 #include "vision.h"
+#include "aihelper.h"
 
 struct ai_trait;
 struct city;
@@ -237,9 +238,10 @@ struct ai_type;
 struct ai_data;
 
 bool player_has_flag(const struct player *pplayer, enum plr_flag_id flag);
+bool player_is_ai_or_assistant(const struct player *pplayer, enum plr_flag_id flag);
 
 #define is_human(plr) !player_has_flag((plr), PLRF_AI)
-#define is_ai(plr) player_has_flag((plr), PLRF_AI)
+#define is_ai(plr) player_is_ai_or_assistant((plr), PLRF_AI)
 #define set_as_human(plr) BV_CLR((plr)->flags, PLRF_AI)
 #define set_as_ai(plr) BV_SET((plr)->flags, PLRF_AI)
 

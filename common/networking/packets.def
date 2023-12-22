@@ -2456,6 +2456,7 @@ PACKET_AI_PLAYER_ACTION_REQUEST = 261; cs
 end
 
 PACKET_AI_PLAYER_ACTION_RESPONSE = 262; sc, lsend
+  PLAYER playerno;
   UNIT actor_id;
   ACTION_ID action_type;
 end

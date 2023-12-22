@@ -170,6 +170,7 @@ void gui_prepare_clause_updt(struct Treaty *ptreaty, struct player *they)
 ****************************************************************************/
 void gui_recv_create_clause(struct Treaty *ptreaty, struct player *they)
 {
+  log_normal("------------- gui_recv_create_clause -----------------")
   struct Diplomacy_dialog *pdialog = find_diplomacy_dialog(they);
 
   if (!pdialog) {
@@ -528,7 +529,8 @@ static void row_callback(GtkTreeView *view, GtkTreePath *path,
 					       player_number(pdialog->treaty->plr1),
 					       player_number(pclause->from),
 					       pclause->type,
-					       pclause->value);
+					       pclause->value,
+                 pclause->worth);
       return;
     }
     i++;
@@ -687,6 +689,7 @@ static struct Diplomacy_dialog *create_diplomacy_dialog(struct Treaty *ptreaty,
                                                         struct player *plr0,
                                                         struct player *plr1)
 {
+  log_normal("------------- create_diplomacy_dialog ----------------------")
   struct Diplomacy_notebook *dipl_dialog;
   GtkWidget *vbox, *hbox, *table, *mainbox;
   GtkWidget *label, *sw, *view, *image, *spin;

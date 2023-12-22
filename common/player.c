@@ -1970,3 +1970,11 @@ bool player_has_flag(const struct player *pplayer, enum plr_flag_id flag)
 {
   return BV_ISSET(pplayer->flags, flag);
 }
+
+/*******************************************************************//**
+  Check if player has given flag and if assistant
+***********************************************************************/
+bool player_is_ai_or_assistant(const struct player *pplayer, enum plr_flag_id flag)
+{
+  return BV_ISSET(pplayer->flags, flag) || is_assistant(pplayer);
+}

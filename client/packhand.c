@@ -1649,7 +1649,6 @@ void handle_unit_info(const struct packet_unit_info *packet)
 **************************************************************************/
 void handle_ai_player_action_response(const struct packet_ai_player_action_response *packet)
 {
-  
   log_normal("-------------------started handle_ai_player_action_response--------------------");
   log_normal("packet: {actor_id:%d,action_type:%d}", packet->actor_id, packet->action_type);
   // call ai
@@ -5555,6 +5554,7 @@ void handle_diplomacy_cancel_meeting(int counterpart, int initiated_from)
 void handle_diplomacy_create_clause(int counterpart, int giver,
                                     enum clause_type type, int value)
 {
+  log_normal("--------------- handle_diplomacy_create_clause -------------")
   client_recv_create_clause(counterpart, giver, type, value);
 }
 

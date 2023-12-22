@@ -145,6 +145,7 @@ bool remove_clause(struct Treaty *ptreaty, struct player *pfrom,
 bool add_clause(struct Treaty *ptreaty, struct player *pfrom, 
                 enum clause_type type, int val)
 {
+  log_normal("---------------- add clause --------------------")
   struct player *pto = (pfrom == ptreaty->plr0
                         ? ptreaty->plr1 : ptreaty->plr0);
   struct Clause *pclause;
@@ -194,7 +195,10 @@ bool add_clause(struct Treaty *ptreaty, struct player *pfrom,
     return FALSE;
   }
 
+  pclause = fc_malloc(sizeof(*pclause));
+
   clause_list_iterate(ptreaty->clauses, old_clause) {
+    pclause->worth = old_clause->worth;
     if (old_clause->type == type
         && old_clause->from == pfrom
         && old_clause->value == val) {
@@ -219,12 +223,10 @@ bool add_clause(struct Treaty *ptreaty, struct player *pfrom,
     }
   } clause_list_iterate_end;
 
-  pclause = fc_malloc(sizeof(*pclause));
-
   pclause->type  = type;
   pclause->from  = pfrom;
   pclause->value = val;
-  
+
   clause_list_append(ptreaty->clauses, pclause);
 
   ptreaty->accept0 = FALSE;

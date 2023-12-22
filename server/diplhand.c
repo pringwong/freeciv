@@ -62,6 +62,7 @@
 static void call_treaty_evaluate(struct player *pplayer, struct player *aplayer,
                                  struct Treaty *ptreaty)
 {
+  log_normal("---------------call_treaty_evaluate----------------")
   if (is_ai(pplayer)) {
     CALL_PLR_AI_FUNC(treaty_evaluate, pplayer, pplayer, aplayer, ptreaty);
   }
@@ -807,6 +808,7 @@ void handle_diplomacy_create_clause_req(struct player *pplayer,
     call_treaty_evaluate(pother, pplayer, ptreaty);
 
   }
+  log_normal("ROUTE TO handle_diplomacy_create_clause_req finished")
 
 }
 

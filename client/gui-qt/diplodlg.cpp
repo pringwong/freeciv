@@ -276,7 +276,8 @@ void diplo_wdg::dbl_click(QTableWidgetItem *item)
                                                player_number(treaty->plr1),
                                                player_number(pclause->from),
                                                pclause->type,
-                                               pclause->value);
+                                               pclause->value,
+                                               pclause->worth);
       return;
     }
     i++;

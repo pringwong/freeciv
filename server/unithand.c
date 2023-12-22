@@ -3359,22 +3359,9 @@ bool unit_perform_action(struct player *pplayer,
                          const action_id action_type,
                          const enum action_requester requester)
 {
-  if (is_human(pplayer) && game.server.agent_mode){
-    log_normal("debug agent mode unit_perform_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d", pplayer->name, actor_id, action_type, target_id);
-    // reg action source, if is packet request, then break
-    // send action packet
-    struct packet_ai_player_action_response packet;
-    packet.actor_id = actor_id;
-    packet.action_type = action_type;
-
-    conn_list_iterate(game.est_connections, pconn) {
-      struct player *aplayer = conn_get_player(pconn);
-        if (aplayer == pplayer) {
-          send_packet_ai_player_action_response(pconn, &packet);
-        }
-    } conn_list_iterate_end;
-
-    return FALSE;
+  if (is_assistant(pplayer)){
+    helper_do_unit_action(pplayer, actor_id, action_type);
+    //return FALSE;
   }
   struct action *paction;
   int sub_tgt_id;
@@ -6715,28 +6702,18 @@ static bool unit_activity_targeted_internal(struct unit *punit,
 void handle_ai_player_action_request(struct player *pplayer,
                                      const struct packet_ai_player_action_request *packet)
 {
-  
-  log_normal("-------------------started handle_ai_player_action_request--------------------");
-  log_normal("packet: {playerno:%d,name:%s}", packet->playerno, pplayer->name);
+  // the AI history replay action list
+  // struct packet_ai_player_action_response tmp_packet = load_packet(pplayer, 101, 108);
+  // putNode(human_assistant, tmp_packet);
+  struct packet_ai_player_action_response reciv_packet = getNode(pplayer, human_assistant);
 
-  // start phase action
-  CALL_PLR_AI_REQ_FUNC(first_activities, pplayer, pplayer);
-
-  // call ai
-  log_normal("-------------------finished handle_ai_player_action_request--------------------");
-
-  // return status
-  struct packet_ai_player_action_response resp;
-  resp.actor_id = 101;
-  resp.action_type = 128;
-
+  // udf of AI function
   conn_list_iterate(game.est_connections, pconn) {
     struct player *aplayer = conn_get_player(pconn);
       if (aplayer == pplayer) {
-        send_packet_ai_player_action_response(pconn, &resp);
+        send_packet_ai_player_action_response(pconn, &reciv_packet);
       }
   } conn_list_iterate_end;
-
 }
 
 /**********************************************************************//**

@@ -1479,13 +1479,11 @@ static void send_path_orders(struct unit *punit, struct pf_path *path,
                              enum unit_orders orders,
                              struct unit_order *final_order)
 {
-  log_normal("------------------send_path_orders---------------------------")
   struct packet_unit_orders p;
 
   if (path->length == 1 && final_order == NULL) {
     return; /* No path at all, no need to spam the server. */
   }
-  log_normal("------------------memset---------------------------")
 
   memset(&p, 0, sizeof(p));
   p.unit_id = punit->id;
@@ -1496,27 +1494,13 @@ static void send_path_orders(struct unit *punit, struct pf_path *path,
   log_goto_packet("Orders for unit %d:", punit->id);
   log_goto_packet("  Repeat: %d. Vigilant: %d.",
                   p.repeat, p.vigilant);
-  log_normal("------------------make_path_orders---------------------------")
 
   make_path_orders(punit, path, orders, final_order,
                    p.orders, &p.length, &p.dest_tile);
 
   request_unit_ssa_set(punit, SSA_NONE);
-  log_normal("------------------request_unit_ssa_set---------------------------")
 
   send_packet_unit_orders(&client.conn, &p);
-
-  log_normal("------------------after  send_packet_unit_orders---------------------------")
-
-  /*
-  struct player *pplayer = punit->owner;
-  struct packet_ai_player_action_request pp;
-  
-  pp.playerno = player_number(pplayer);
-  send_packet_ai_player_action_request(&client.conn, &pp);
-  */
-
-  log_normal("------------------after  ai player action---------------------------")
 
 }
 

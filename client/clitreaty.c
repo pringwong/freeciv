@@ -15,6 +15,9 @@
 #include <fc_config.h>
 #endif
 
+/* ai */
+#include "ai.h"
+
 /* utility */
 #include "shared.h"
 
@@ -105,12 +108,14 @@ void client_recv_cancel_meeting(int counterpart, int initiated_from)
 void client_recv_create_clause(int counterpart, int giver,
                                enum clause_type type, int value)
 {
+  log_normal("------------- client_recv_create_clause ------------------")
   struct Treaty *ptreaty;
   struct player *we;
   struct player *they;
 
   we = client_player();
   they = player_by_number(counterpart);
+
   ptreaty = find_treaty(we, they);
 
   if (ptreaty == NULL) {

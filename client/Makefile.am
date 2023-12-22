@@ -52,6 +52,7 @@ endif
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/utility \
 	-I$(srcdir)/include \
+	-I$(top_srcdir)/ai/classical \
 	-I$(top_srcdir)/common \
 	-I$(top_srcdir)/common/aicore \
 	-I$(top_srcdir)/common/networking \

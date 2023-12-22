@@ -20,6 +20,7 @@
 /* common */
 #include "fc_types.h"
 #include "game.h"
+#include "aihelper.h"
 
 struct conn_list;
 
@@ -129,6 +130,12 @@ const char *aifill(int amount);
 extern struct server_arguments srvarg;
 
 extern bool force_end_of_sniff;
+
+extern ActionQueue* human_assistant;
+
+void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id);
+void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id);
+
 
 void update_nations_with_startpos(void);
 

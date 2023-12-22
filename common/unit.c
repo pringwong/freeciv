@@ -25,6 +25,7 @@
 
 /* common */
 #include "ai.h"
+#include "aihelper.h"
 #include "actions.h"
 #include "base.h"
 #include "city.h"
@@ -1061,13 +1062,19 @@ bool can_unit_do_activity_targeted_at(const struct unit *punit,
 static void set_unit_activity_internal(struct unit *punit,
                                        enum unit_activity new_activity)
 {
+  // if (is_assistant(punit->owner)){
+  //   helper_set_unit_activities(punit->owner, punit->id, new_activity);
+  //   return;
+  // }
+
+  log_normal("set_unit_activity_internal: %s, %d, %d", punit->owner->name, punit->id, new_activity)
   punit->activity = new_activity;
   punit->activity_count = 0;
   punit->activity_target = NULL;
   if (new_activity == ACTIVITY_IDLE && punit->moves_left > 0) {
     /* No longer done. */
     punit->done_moving = FALSE;
-  }
+  }  
 }
 
 /**********************************************************************//**
