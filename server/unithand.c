@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <jansson.h>
 
 /* dependencies/lua */
 #include "lua.h" /* lua_Integer */
@@ -3327,14 +3328,7 @@ void unit_do_action(struct player *pplayer,
                     const char *name,
                     const action_id action_type)
 {
-  /*
-  json_t* obj = json_object();
-  json_object_set_new(obj, "player", json_string(pplayer->name));
-  json_object_set_new(obj, "actor_id", json_integer(actor_id));
-  json_object_set_new(obj, "action_type", json_integer(action_type));
-  char* js_str = json_dumps(obj, 0);
-  */
-  // insert_redis(js_str);
+  log_normal("------------unit_do_action----------")
   if (is_ai(pplayer)){
     log_normal("debug unit_do_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d, sub_tgt_id: %d", pplayer->name, actor_id, action_type, target_id, sub_tgt_id);
     unit_perform_action(pplayer, actor_id, target_id,
@@ -3359,10 +3353,7 @@ bool unit_perform_action(struct player *pplayer,
                          const action_id action_type,
                          const enum action_requester requester)
 {
-  if (is_assistant(pplayer)){
-    helper_do_unit_action(pplayer, actor_id, action_type);
-    //return FALSE;
-  }
+
   struct action *paction;
   int sub_tgt_id;
   struct unit *actor_unit = player_unit_by_number(pplayer, actor_id);
@@ -4301,6 +4292,7 @@ static bool city_build(struct player *pplayer, struct unit *punit,
 **************************************************************************/
 void handle_web_goto_path_req(struct player *pplayer, int unit_id, int goal)
 {
+  log_normal("--------------- handle_web_goto_path_req -----------------------")
   struct unit *punit = player_unit_by_number(pplayer, unit_id);
   struct tile *ptile = index_to_tile(&(wld.map), goal);
   struct pf_parameter parameter;
@@ -4397,7 +4389,7 @@ static void handle_unit_change_activity_real(struct player *pplayer,
   /* Remove city spot reservations for AI settlers on city founding
    * mission, before goto_tile reset. */
   if (punit->server.adv->task != AUT_NONE) {
-    adv_unit_new_task(punit, AUT_NONE, NULL);
+    adv_unit_new_task(punit, AUT_NONE, NULL, FALSE);
   }
 
   punit->goto_tile = NULL;
@@ -5606,8 +5598,10 @@ static bool unit_do_regular_move(struct player *actor_player,
                                  struct tile *target_tile,
                                  const struct action *paction)
 {
+  log_normal("--------------unit_do_regular_move---------------------")
   const struct unit_type *act_utype = unit_type_get(actor_unit);
   int move_cost = map_move_cost_unit(&(wld.map), actor_unit, target_tile);
+
 
   unit_move(actor_unit, target_tile, move_cost,
             NULL, BV_ISSET(paction->sub_results, ACT_SUB_RES_MAY_EMBARK),
@@ -6411,9 +6405,11 @@ void handle_unit_sscs_set(struct player *pplayer,
 **************************************************************************/
 static void unit_plans_clear(struct unit *punit)
 {
-  /* Remove city spot reservations for AI settlers on city founding
-   * mission. */
-  adv_unit_new_task(punit, AUT_NONE, NULL);
+  log_normal("----unit_plans_clear-----")
+    /* Remove city spot reservations for AI settlers on city founding
+    * mission. */
+
+  adv_unit_new_task(punit, AUT_NONE, NULL, FALSE);
 
   /* Get rid of old orders. */
   free_unit_orders(punit);
@@ -6576,6 +6572,7 @@ bool unit_activity_handling(struct unit *punit,
                             enum unit_activity new_activity)
 {
   /* Must specify target for ACTIVITY_BASE */
+  log_normal("----------unit_activity_handling--------------")
   fc_assert_ret_val(new_activity != ACTIVITY_BASE
                     && new_activity != ACTIVITY_GEN_ROAD, FALSE);
 
@@ -6585,6 +6582,7 @@ bool unit_activity_handling(struct unit *punit,
     /* Assume untargeted pillaging if no target specified */
     unit_activity_handling_targeted(punit, new_activity, &target);
   } else if (can_unit_do_activity(punit, new_activity)) {
+    log_normal("after can_unit_do_activity")
     free_unit_orders(punit);
     unit_activity_internal(punit, new_activity);
   }
@@ -6601,6 +6599,7 @@ bool unit_activity_handling(struct unit *punit,
 static bool unit_activity_internal(struct unit *punit,
                                    enum unit_activity new_activity)
 {
+  log_normal("----------unit_activity_internal--------")
   if (!can_unit_do_activity(punit, new_activity)) {
     return FALSE;
   } else {
@@ -6696,24 +6695,46 @@ static bool unit_activity_targeted_internal(struct unit *punit,
   }
 }
 
+
 /**********************************************************************//**
   Receives AI human agent requests.
 **************************************************************************/
 void handle_ai_player_action_request(struct player *pplayer,
                                      const struct packet_ai_player_action_request *packet)
 {
-  // the AI history replay action list
-  // struct packet_ai_player_action_response tmp_packet = load_packet(pplayer, 101, 108);
-  // putNode(human_assistant, tmp_packet);
+
+  /* 
+  call AI function
+  */
+  //// settler move
+  // build city
+
+  // struct settlermap *state;
+
+  // unit_list_iterate_safe(pplayer->units, punit) {
+  //   CALL_PLR_AI_FUNC(settler_run, pplayer, pplayer, punit, state);
+  // }unit_list_iterate_safe_end;
+
+  // unit_move
+  notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+              /* TRANS: There can be several winners listed */
+              _("Prepare handle_ai_player_action_request"));
+
+  /*
+  get node of action recommendations
+  */
   struct packet_ai_player_action_response reciv_packet = getNode(pplayer, human_assistant);
 
-  // udf of AI function
+  /*
+  send response
+  */
   conn_list_iterate(game.est_connections, pconn) {
     struct player *aplayer = conn_get_player(pconn);
       if (aplayer == pplayer) {
         send_packet_ai_player_action_response(pconn, &reciv_packet);
       }
   } conn_list_iterate_end;
+
 }
 
 /**********************************************************************//**
@@ -6775,7 +6796,7 @@ void handle_unit_orders(struct player *pplayer,
    * settlers on city founding mission, city spot reservation
    * from goto_tile must be freed, and free_unit_orders() loses
    * goto_tile information */
-  adv_unit_new_task(punit, AUT_NONE, NULL);
+  adv_unit_new_task(punit, AUT_NONE, NULL, FALSE);
 
   free_unit_orders(punit);
   /* If we waited on a tile, reset punit->done_moving */
@@ -6885,4 +6906,29 @@ void handle_worker_task(struct player *pplayer,
   }
 
   lsend_packet_worker_task(pplayer->connections, packet);
+}
+
+/* Assistant*/
+void assistant_unit_do_action(struct player *pplayer,
+                    const int actor_id,
+                    const int target_id,
+                    const int sub_tgt_id,
+                    const char *name,
+                    const action_id action_type)
+{
+  log_normal("------------assistant_unit_do_action----------")
+  struct tile *target_tile = NULL;
+  struct unit *actor_unit = player_unit_by_number(pplayer, actor_id);
+  target_tile = index_to_tile(&(wld.map), target_id);
+  int dir8 = -1;
+  switch (action_type) {
+    case ACTION_UNIT_MOVE:
+      dir8 = get_direction_for_step(&(wld.map), unit_tile(actor_unit), target_tile);
+      break;
+  }
+  json_t* js_data = json_object();
+  json_object_set_new(js_data, "target_id", json_integer(target_id));
+  json_object_set_new(js_data, "dir8", json_integer(dir8));
+  char* js_str = json_dumps(js_data, 0);
+  helper_do_unit_action(pplayer, actor_id, action_type, js_str);
 }

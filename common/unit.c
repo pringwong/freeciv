@@ -1082,6 +1082,7 @@ static void set_unit_activity_internal(struct unit *punit,
 **************************************************************************/
 void set_unit_activity(struct unit *punit, enum unit_activity new_activity)
 {
+  log_normal("--------set_unit_activity---------")
   fc_assert_ret(!activity_requires_target(new_activity));
 
   if (new_activity == ACTIVITY_FORTIFYING

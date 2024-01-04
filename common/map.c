@@ -1331,13 +1331,15 @@ bool base_get_direction_for_step(const struct civ_map *nmap,
                                  const struct tile *end_tile,
                                  enum direction8 *dir)
 {
+  log_normal("---------- base_get_direction_for_step ------------")
   adjc_dir_iterate(nmap, start_tile, test_tile, test_dir) {
     if (same_pos(end_tile, test_tile)) {
       *dir = test_dir;
+      log_normal("---------- return true ------------")
       return TRUE;
     }
   } adjc_dir_iterate_end;
-
+  log_normal("---------- return false ------------")
   return FALSE;
 }
 
@@ -1349,14 +1351,13 @@ int get_direction_for_step(const struct civ_map *nmap,
                            const struct tile *start_tile,
                            const struct tile *end_tile)
 {
+  log_normal("---------- get_direction_for_step ------------")
   enum direction8 dir;
-
   if (base_get_direction_for_step(nmap, start_tile, end_tile, &dir)) {
+    log_normal("---------- dir ------------%d", dir)
     return dir;
   }
-
   fc_assert(FALSE);
-
   return -1;
 }
 

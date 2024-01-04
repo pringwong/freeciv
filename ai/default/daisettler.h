@@ -38,4 +38,9 @@ void dai_auto_settler_cont(struct ai_type *ait, const struct civ_map *nmap,
 
 void contemplate_new_city(struct ai_type *ait, struct city *pcity);
 
+/*assistant*/
+void assistant_dai_auto_settler_run(struct ai_type *ait, const struct civ_map *nmap,
+                          struct player *pplayer,
+                          struct unit *punit, struct settlermap *state);
+
 #endif /* FC__DAISETTLER_H */

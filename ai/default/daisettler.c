@@ -746,7 +746,6 @@ struct cityresult *city_desirability(struct ai_type *ait, struct player *pplayer
   }
 
   /*** Alright: Now consider building a new city ***/
-
   if (food_starvation(cr) || shield_starvation(cr)) {
     cityresult_destroy(cr);
     return NULL;
@@ -860,6 +859,7 @@ static struct cityresult *settler_map_iterate(struct ai_type *ait,
     log_debug("settler map search (final): no result");
   }
 
+
   return best;
 }
 
@@ -881,6 +881,7 @@ static struct cityresult *find_best_city_placement(struct ai_type *ait,
                                                    bool look_for_boat,
                                                    bool use_virt_boat)
 {
+  log_normal("-----------started find_best_city_placement-----------")
   struct pf_parameter parameter;
   struct player *pplayer = unit_owner(punit);
   struct unit *ferry = NULL;
@@ -899,6 +900,7 @@ static struct cityresult *find_best_city_placement(struct ai_type *ait,
 
   if (cr1 && cr1->result > RESULT_IS_ENOUGH) {
     /* skip further searches */
+    log_normal("----------cr1------------")
     return cr1;
   }
 
@@ -936,6 +938,7 @@ static struct cityresult *find_best_city_placement(struct ai_type *ait,
         }
 
         /* Return the result from the search on our current continent */
+        log_normal("--------------ferry---------------")
         return cr1;
       }
       ferry = unit_virtual_create(pplayer, NULL, boattype, 0);
@@ -971,10 +974,12 @@ static struct cityresult *find_best_city_placement(struct ai_type *ait,
   if (!cr1) {
     /* No want for a new city on our current continent; return the result for
      * traveling by boat. */
+    log_normal("---------------cr2---------------")
     return cr2;
   } else if (!cr2) {
     /* No want for an overseas city; return the result for a city on our
      * current continent. */
+    log_normal("---------------!cr2---------------")
     return cr1;
   }
 
@@ -982,11 +987,15 @@ static struct cityresult *find_best_city_placement(struct ai_type *ait,
    * best! */
   if (cr1->result > cr2->result) {
     cityresult_destroy(cr2);
+    log_normal("---------------cityresult_destroy cr1---------------")
     return cr1;
   } else {
     cityresult_destroy(cr1);
+    log_normal("---------------cityresult_destroy cr2---------------")
     return cr2;
   }
+  log_normal("-----------ended find_best_city_placement-----------")
+
 }
 
 /*************************************************************************//**
@@ -1008,6 +1017,7 @@ void dai_auto_settler_init(struct ai_plr *ai)
 #endif /* FREECIV_DEBUG */
 }
 
+
 /*************************************************************************//**
   Auto settler that can also build cities.
 *****************************************************************************/
@@ -1015,6 +1025,7 @@ void dai_auto_settler_run(struct ai_type *ait, const struct civ_map *nmap,
                           struct player *pplayer,
                           struct unit *punit, struct settlermap *state)
 {
+  log_normal("------------dai_auto_settler_run--------------")
   adv_want best_impr = 0; /* Value of best terrain improvement we can do */
   enum unit_activity best_act;
   struct extra_type *best_target;
@@ -1030,6 +1041,7 @@ void dai_auto_settler_run(struct ai_type *ait, const struct civ_map *nmap,
   /*** If we are on a city mission: Go where we should ***/
 
 BUILD_CITY:
+  log_normal("------------BUILD_CITY----------------:%d, %p", def_ai_unit_data(punit, ait)->task, punit->goto_tile)
 
   if (def_ai_unit_data(punit, ait)->task == AIUNIT_BUILD_CITY) {
     struct tile *ptile = punit->goto_tile;
@@ -1038,6 +1050,7 @@ BUILD_CITY:
     /* Check that the mission is still possible. If the tile has become
      * unavailable, call it off. */
     if (!city_can_be_built_here(ptile, punit, FALSE)) {
+      log_normal("-----------not city_can_be_built_here------")
       dai_unit_new_task(ait, punit, AIUNIT_NONE, NULL);
       set_unit_activity(punit, ACTIVITY_IDLE);
       send_unit_info(NULL, punit);
@@ -1045,12 +1058,17 @@ BUILD_CITY:
       return; /* Avoid recursion at all cost */
     } else {
      /* Go there */
-      if ((!dai_gothere(ait, pplayer, punit, ptile)
+      log_normal("-----goto go there ------: %p, %p", unit_tile(punit), ptile)
+      bool gothere = dai_gothere(ait, pplayer, punit, ptile);
+      if ((!gothere
            && NULL == game_unit_by_number(sanity))
           || punit->moves_left <= 0) {
+        log_normal("--------break by game-----------")
         return;
       }
+      log_normal("-----same pos---------%p, %p", unit_tile(punit), ptile)
       if (same_pos(unit_tile(punit), ptile)) {
+        log_normal("--------same_pos-----------")
         /*log_normal("debug build city, player:%s, unit: %d", pplayer->name, punit->id)*/
         enum cb_error_level elevel = dai_do_build_city(ait, pplayer, punit);
 
@@ -1068,10 +1086,12 @@ BUILD_CITY:
 
           return;
        } else {
+          log_normal("--------We came, we saw, we built-----------")
           return; /* We came, we saw, we built... */
         }
       } else {
         UNIT_LOG(LOG_DEBUG, punit, "could not go to target");
+        log_normal("--------could not go to target-----------")
         /* dai_unit_new_task(ait, punit, AIUNIT_NONE, NULL); */
         return;
       }
@@ -1081,12 +1101,15 @@ BUILD_CITY:
   /*** Try find some work ***/
 
   if (unit_has_type_flag(punit, UTYF_SETTLERS)) {
+    log_normal("-------------unit_has_type_flag-----------------------")
     struct worker_task *best_task;
 
     TIMING_LOG(AIT_WORKERS, TIMER_START);
 
     /* Have nearby cities requests? */
     pcity = settler_evaluate_city_requests(punit, &best_task, &path, state);
+
+    log_normal("-------pcity, path---------%p,%p", pcity, path)
 
     if (pcity != NULL) {
       if (path != NULL) {
@@ -1113,12 +1136,16 @@ BUILD_CITY:
   }
 
   if (unit_is_cityfounder(punit)) {
+    log_normal("-------------unit_is_cityfounder-----------------------")
+
     struct cityresult *result;
 
     /* May use a boat: */
     TIMING_LOG(AIT_SETTLERS, TIMER_START);
     result = find_best_city_placement(ait, punit, TRUE, FALSE);
     TIMING_LOG(AIT_SETTLERS, TIMER_STOP);
+    log_normal("-------------best_impr---------- %f:%f", result->result, best_impr)
+
     if (result && result->result > best_impr) {
       UNIT_LOG(LOG_DEBUG, punit, "city want " ADV_WANT_PRINTF, result->result);
       if (tile_city(result->tile)) {
@@ -1134,8 +1161,8 @@ BUILD_CITY:
       }
       /* Go make a city! */
       /*log_normal("debug adv_unit_new_task: %s, unit_id: %d", pplayer->name, punit->id)*/
-
-      adv_unit_new_task(punit, AUT_BUILD_CITY, result->tile);
+      log_normal("daisettler goto adv_unit_new_task")
+      adv_unit_new_task(punit, AUT_BUILD_CITY, result->tile, FALSE);
       if (result->best_other.tile && result->best_other.tdc->sum >= 0) {
         /* Reserve best other tile (if there is one). It is the tile where the
          * first citizen of the city is working. */
@@ -1157,7 +1184,8 @@ BUILD_CITY:
         /* We had a city result, just worse than best impr */
         cityresult_destroy(result);
       }
-      adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile);
+      log_normal("AUT_AUTO_SETTLER goto adv_unit_new_task")
+      adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile, FALSE);
     } else {
       UNIT_LOG(LOG_DEBUG, punit, "cannot find work");
       fc_assert(result == NULL);
@@ -1166,7 +1194,8 @@ BUILD_CITY:
     }
   } else {
     /* We are a worker or engineer */
-    adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile);
+    log_normal("engineer goto adv_unit_new_task")
+    adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile, FALSE);
   }
 
   if (best_tile != NULL
@@ -1252,6 +1281,7 @@ static enum cb_error_level dai_do_build_city(struct ai_type *ait,
                                              struct player *pplayer,
                                              struct unit *punit)
 {
+  log_normal("----------- dai_do_build_city ---------------")
   struct tile *ptile = unit_tile(punit);
   struct city *pcity;
 
@@ -1363,4 +1393,279 @@ void contemplate_new_city(struct ai_type *ait, struct city *pcity)
   }
 
   unit_virtual_destroy(virtualunit);
+}
+
+/*
+Assistant
+*/
+
+
+static enum cb_error_level assistant_dai_do_build_city(struct ai_type *ait,
+                                             struct player *pplayer,
+                                             struct unit *punit)
+{
+  log_normal("----------- assistant_dai_do_build_city ---------------")
+  struct tile *ptile = unit_tile(punit);
+  fc_assert_ret_val(pplayer == unit_owner(punit), FALSE);
+  assistant_unit_do_action(pplayer, punit->id, ptile->index,
+                 0, city_name_suggestion(pplayer, ptile),
+                 ACTION_FOUND_CITY);
+  return CBE_OK;
+}
+
+static struct cityresult *find_assistant_best_city_placement(struct ai_type *ait,
+                                                   struct unit *punit,
+                                                   bool look_for_boat,
+                                                   bool use_virt_boat)
+{
+  log_normal("-----------started find_assistant_best_city_placement %p-----------", punit)
+
+  struct pf_parameter parameter;
+  struct player *pplayer = unit_owner(punit);
+  struct unit *ferry = NULL;
+  struct cityresult *cr1 = NULL, *cr2 = NULL;
+  const struct civ_map *nmap = &(wld.map);
+
+  /* Only virtual units may use virtual boats: */
+  fc_assert_ret_val(0 == punit->id || !use_virt_boat, NULL);
+
+  /* Phase 1: Consider building cities on our continent */
+
+  pft_fill_unit_parameter(&parameter, nmap, punit);
+  parameter.omniscience = !has_handicap(pplayer, H_MAP);
+  cr1 = settler_map_iterate(ait, &parameter, punit, 0);
+
+  if (cr1 && cr1->result > RESULT_IS_ENOUGH) {
+    /* skip further searches */
+    log_normal("--------------------cr1------------------")
+    return cr1;
+  }
+
+  /* Phase 2: Consider travelling to another continent */
+
+  if (look_for_boat) {
+    int ferry_id = aiferry_find_boat(ait, punit, 1, NULL);
+
+    ferry = game_unit_by_number(ferry_id);
+  }
+
+  if (ferry || (use_virt_boat
+                && is_terrain_class_near_tile(unit_tile(punit), TC_OCEAN)
+                && tile_city(unit_tile(punit)))) {
+    if (!ferry) {
+      /* No boat?  Get a virtual one! */
+      struct unit_type *boattype
+        = best_role_unit_for_player(pplayer, L_FERRYBOAT);
+
+      if (boattype == NULL) {
+        /* Sea travel not possible yet. Bump tech want for ferries. */
+        boattype = get_role_unit(L_FERRYBOAT, 0);
+
+        if (NULL != boattype) {
+          struct ai_plr *plr_data = def_ai_player_data(pplayer, ait);
+
+          unit_tech_reqs_iterate(boattype, padv) {
+            plr_data->tech_want[advance_index(padv)]
+              += FERRY_TECH_WANT;
+            TECH_LOG(ait, LOG_DEBUG, pplayer, padv,
+                     "+ %d for %s to ferry settler",
+                     FERRY_TECH_WANT,
+                     utype_rule_name(boattype));
+          } unit_tech_reqs_iterate_end;
+        }
+      log_normal("--------------------ferry------------------")
+
+        /* Return the result from the search on our current continent */
+        return cr1;
+      }
+      ferry = unit_virtual_create(pplayer, NULL, boattype, 0);
+      unit_tile_set(ferry, unit_tile(punit));
+    }
+
+    fc_assert(dai_is_ferry(ferry, ait));
+    pft_fill_unit_overlap_param(&parameter, nmap, ferry);
+    parameter.omniscience = !has_handicap(pplayer, H_MAP);
+    parameter.get_TB = no_fights_or_unknown;
+
+    /* FIXME: Maybe penalty for using an existing boat is too high?
+     * We shouldn't make the penalty for building a new boat too high though.
+     * Building a new boat is like a war against a weaker enemy -- 
+     * good for the economy. (c) Bush family */
+    cr2 = settler_map_iterate(ait, &parameter, punit,
+                              unit_build_shield_cost_base(ferry));
+    if (cr2) {
+      cr2->overseas = TRUE;
+      cr2->virt_boat = (ferry->id == 0);
+    }
+
+    if (ferry->id == 0) {
+      unit_virtual_destroy(ferry);
+    }
+
+    /* If we use a virtual boat, we must have permission and be emigrating: */
+    /* FIXME: These assert do not free cr2! */
+    fc_assert_ret_val(!cr2 || (!cr2->virt_boat || use_virt_boat), NULL);
+    fc_assert_ret_val(!cr2 || (!cr2->virt_boat || cr2->overseas), NULL);
+  }
+
+  if (!cr1) {
+    /* No want for a new city on our current continent; return the result for
+     * traveling by boat. */
+    log_normal("--------------------cr2------------------")
+    return cr2;
+  } else if (!cr2) {
+    /* No want for an overseas city; return the result for a city on our
+     * current continent. */
+    log_normal("--------------------cr1------------------")
+    return cr1;
+  }
+
+  /* We want an overseas city and a city on the current continent - select the
+   * best! */
+  if (cr1->result > cr2->result) {
+    cityresult_destroy(cr2);
+    log_normal("--------------------cityresult_destroy cr1------------------")
+    return cr1;
+  } else {
+    cityresult_destroy(cr1);
+    log_normal("--------------------cityresult_destroy cr2------------------")
+    return cr2;
+  }
+}
+
+/*************************************************************************//**
+  Assistant settler that can also build cities.
+*****************************************************************************/
+void assistant_dai_auto_settler_run(struct ai_type *ait, const struct civ_map *nmap,
+                          struct player *pplayer,
+                          struct unit *punit, struct settlermap *state)
+{
+  log_normal("------------assistant_auto_settler_run--------------")
+  adv_want best_impr = 0; /* Value of best terrain improvement we can do */
+  enum unit_activity best_act;
+  struct extra_type *best_target;
+  struct tile *best_tile = NULL;
+  struct pf_path *path = NULL;
+  struct city *pcity = NULL;
+  int completion_time = 0;
+
+  CHECK_UNIT(punit);
+
+BUILD_CITY:
+  log_normal("------------BUILD_CITY----------------:%d, %d, %p", AIUNIT_BUILD_CITY, def_ai_unit_data(punit, ait)->assistant_task, punit->assistant_goto_tile)
+  if (def_ai_unit_data(punit, ait)->assistant_task == AIUNIT_BUILD_CITY) {
+    struct tile *ptile = punit->assistant_goto_tile;
+    if (!city_can_be_built_here(ptile, punit, FALSE)) {
+      log_normal("-----------not city_can_be_built_here------")
+      dai_unit_new_task(ait, punit, AIUNIT_NONE, NULL);
+      set_unit_activity(punit, ACTIVITY_IDLE);
+      return; /* Avoid recursion at all cost */
+    } else {
+      log_normal("-----goto go there ------: %p, %p", unit_tile(punit), ptile)
+      /* Go there */
+      bool gothere = assistant_gothere(ait, pplayer, punit, ptile);
+      log_normal("--------gothere-------%d", gothere)
+      if (gothere) {
+        assistant_dai_do_build_city(ait, pplayer, punit);
+      }
+      return;
+    }
+  }
+
+/*** Try find some work ***/
+
+  if (unit_has_type_flag(punit, UTYF_SETTLERS)) {
+    log_normal("-------------unit_has_type_flag-----------------------")
+
+    struct worker_task *best_task;
+
+    TIMING_LOG(AIT_WORKERS, TIMER_START);
+
+    /* Have nearby cities requests? */
+    pcity = settler_evaluate_city_requests(punit, &best_task, &path, state);
+
+    if (pcity != NULL) {
+      if (path != NULL) {
+        completion_time = pf_path_last_position(path)->turn;
+        best_impr = 1;
+        best_act = best_task->act;
+        best_target = best_task->tgt;
+        best_tile = best_task->ptile;
+      } else {
+        pcity = NULL;
+      }
+    }
+    log_normal("-------------pcity---------------%p", pcity)
+
+    if (pcity == NULL) {
+      best_impr = settler_evaluate_improvements(nmap, punit,
+                                                &best_act, &best_target,
+                                                &best_tile, &path, state);
+      if (path) {
+        completion_time = pf_path_last_position(path)->turn;
+      }
+    }
+    UNIT_LOG(LOG_DEBUG, punit, "impr want " ADV_WANT_PRINTF, best_impr);
+    TIMING_LOG(AIT_WORKERS, TIMER_STOP);
+  }
+
+  if (unit_is_cityfounder(punit)) {
+    log_normal("-------------unit_is_cityfounder-----------------------")
+
+    struct cityresult *result;
+
+    /* May use a boat: */
+    TIMING_LOG(AIT_SETTLERS, TIMER_START);
+    result = find_assistant_best_city_placement(ait, punit, TRUE, FALSE);
+    TIMING_LOG(AIT_SETTLERS, TIMER_STOP);
+    log_normal("-------------best_impr---------- %f:%f", result->result, best_impr)
+
+    if (result && result->result > best_impr) {
+      /* Go make a city! */
+      /*log_normal("debug adv_unit_new_task: %s, unit_id: %d", pplayer->name, punit->id)*/
+      log_normal("daisettler goto adv_unit_new_task")
+      adv_unit_new_task(punit, AUT_BUILD_CITY, result->tile, TRUE);
+      if (result->best_other.tile && result->best_other.tdc->sum >= 0) {
+        /* Reserve best other tile (if there is one). It is the tile where the
+         * first citizen of the city is working. */
+        citymap_reserve_tile(result->best_other.tile, punit->id);
+      }
+      punit->assistant_goto_tile = result->tile; /* TMP */
+
+      log_normal("best->tile: %p", result->tile)
+
+      cityresult_destroy(result);
+
+      /*** Go back to and found a city ***/
+      pf_path_destroy(path);
+      path = NULL;
+      goto BUILD_CITY;
+    } else if (best_impr > 0) {
+      UNIT_LOG(LOG_DEBUG, punit, "improves terrain instead of founding");
+      /* Terrain improvements follows the old model, and is recalculated
+       * each turn. */
+      if (result) {
+        /* We had a city result, just worse than best impr */
+        cityresult_destroy(result);
+      }
+      log_normal("AUT_AUTO_SETTLER goto adv_unit_new_task")
+      adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile, TRUE);
+    }
+  }
+   else {
+    /* We are a worker or engineer */
+    log_normal("engineer goto adv_unit_new_task")
+    adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile, TRUE);
+  }
+
+  if (best_tile != NULL
+      && auto_settler_setup_work(nmap, pplayer, punit, state, 0, path,
+                                 best_tile, best_act, &best_target,
+                                 completion_time)) {
+    if (pcity != NULL) {
+      clear_worker_tasks(pcity);
+    }
+  }
+
+  log_normal("------------finished assistant_dai_auto_settler_run----------")
 }

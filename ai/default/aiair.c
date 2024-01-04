@@ -487,6 +487,7 @@ static struct tile *dai_find_strategic_airbase(struct ai_type *ait,
 void dai_manage_airunit(struct ai_type *ait, struct player *pplayer,
                         struct unit *punit)
 {
+  log_normal("---------dai_manage_airunit--------")
   struct tile *dst_tile = unit_tile(punit);
   /* Loop prevention */
   int moves = punit->moves_left;

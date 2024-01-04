@@ -18,6 +18,8 @@ ActionNode* newNode(struct packet_ai_player_action_response pdata)
     temp->actor_id = pdata.actor_id;
     temp->action_type = pdata.action_type;
     temp->playerno = pdata.playerno;
+    temp->unique_id = 0;
+    sz_strlcpy(temp->js_data, pdata.js_data);
     temp->next = NULL;
     return temp;
 }
@@ -35,6 +37,7 @@ void putNode(ActionQueue* action_q, struct packet_ai_player_action_response data
     }
  
     // Add the new node at the end of queue and change rear
+    temp->unique_id = action_q->rear->unique_id + 1;
     action_q->rear->next = temp;
     action_q->rear = temp;
 }
@@ -45,6 +48,8 @@ struct packet_ai_player_action_response getPacket(ActionNode *node)
     packet.actor_id = node->actor_id;
     packet.action_type = node->action_type;
     packet.playerno = node->playerno;
+    packet.unique_id = node->unique_id;
+    sz_strlcpy(packet.js_data, node->js_data);
     return packet;
 }
 
@@ -74,11 +79,12 @@ struct packet_ai_player_action_response getNode(struct player *pplayer, ActionQu
     return packet;
 }
 
-struct packet_ai_player_action_response load_packet(struct player *pplayer, int actor_id, int action_type)
+struct packet_ai_player_action_response load_packet(struct player *pplayer, int actor_id, int action_type, char* js_data)
 {
     struct packet_ai_player_action_response packet;
     packet.actor_id = actor_id;
     packet.action_type = action_type;
+    sz_strlcpy(packet.js_data, js_data);
     packet.playerno = player_number(pplayer);
     return packet;
 }
@@ -96,5 +102,5 @@ void send_ai_assistant_message(struct player *pplayer,
 
 bool is_assistant(const struct player *pplayer)
 {
-    return is_human(pplayer) && game.server.agent_mode;
+    return is_human(pplayer) && game.server.advisor;
 }

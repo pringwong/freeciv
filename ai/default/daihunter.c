@@ -430,6 +430,7 @@ static void dai_hunter_juiciness(struct player *pplayer, struct unit *punit,
 int dai_hunter_manage(struct ai_type *ait, struct player *pplayer,
                       struct unit *punit)
 {
+  log_normal("-----------dai_hunter_manage-----------")
   bool is_virtual = (punit->id == 0);
   struct pf_parameter parameter;
   struct pf_map *pfm;

@@ -920,6 +920,7 @@ void auto_settler_findwork(const struct civ_map *nmap,
                            struct settlermap *state,
                            int recursion)
 {
+  log_normal("----auto_settler_findwork-----")
   struct worker_task *best_task;
   enum unit_activity best_act;
   struct tile *best_tile = NULL;
@@ -937,7 +938,7 @@ void auto_settler_findwork(const struct civ_map *nmap,
       && recursion > unit_list_size(pplayer->units) * 1.5) {
     log_warn("Workers displacing each other recursing too much.");
 
-    adv_unit_new_task(punit, AUT_NONE, NULL);
+    adv_unit_new_task(punit, AUT_NONE, NULL, FALSE);
     set_unit_activity(punit, ACTIVITY_IDLE);
     send_unit_info(NULL, punit);
 
@@ -959,7 +960,7 @@ void auto_settler_findwork(const struct civ_map *nmap,
       completion_time = pf_path_last_position(path)->turn;
     }
 
-    adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile);
+    adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile, FALSE);
 
     best_target = best_task->tgt;
 
@@ -987,7 +988,7 @@ void auto_settler_findwork(const struct civ_map *nmap,
     }
     TIMING_LOG(AIT_WORKERS, TIMER_STOP);
 
-    adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile);
+    adv_unit_new_task(punit, AUT_AUTO_SETTLER, best_tile, FALSE);
 
     auto_settler_setup_work(nmap, pplayer, punit, state, recursion, path,
                             best_tile, best_act, &best_target,
@@ -1012,6 +1013,7 @@ bool auto_settler_setup_work(const struct civ_map *nmap,
                              struct extra_type **best_target,
                              int completion_time)
 {
+  log_normal("----------auto_settler_setup_work------------")
   /* Run the "autosettler" program */
   if (punit->server.adv->task == AUT_AUTO_SETTLER) {
     struct pf_map *pfm = NULL;
@@ -1159,6 +1161,8 @@ bool adv_settler_safe_tile(const struct civ_map *nmap,
 **************************************************************************/
 void auto_settlers_player(struct player *pplayer) 
 {
+  log_normal("------------auto_settlers_player-------------")
+  log_normal("is_ai(pplayer): %d", is_ai(pplayer))
   struct settlermap *state;
   const struct civ_map *nmap = &(wld.map);
 
@@ -1194,9 +1198,7 @@ void auto_settlers_player(struct player *pplayer)
 
   log_debug("Warmth = %d, game.globalwarming=%d",
             pplayer->ai_common.warmth, game.info.globalwarming);
-  log_debug("Frost = %d, game.nuclearwinter=%d",
-            pplayer->ai_common.frost, game.info.nuclearwinter);
-
+   
   /* Auto-settle with a settler unit if it's under AI control (e.g. human
    * player auto-settler mode) or if the player is an AI. But don't
    * auto-settle with a unit under orders even for an AI player - these come
@@ -1232,6 +1234,7 @@ void auto_settlers_player(struct player *pplayer)
         if (!is_ai(pplayer)) {
           auto_settler_findwork(nmap, pplayer, punit, state, 0);
         } else {
+          log_normal("------------settler_run-------------")
           CALL_PLR_AI_FUNC(settler_run, pplayer, pplayer, punit, state);
         }
       }
@@ -1262,7 +1265,7 @@ void auto_settlers_player(struct player *pplayer)
   Change unit's advisor task.
 **************************************************************************/
 void adv_unit_new_task(struct unit *punit, enum adv_unit_task task,
-                       struct tile *ptile)
+                       struct tile *ptile, bool assistant)
 {
   if (punit->server.adv->task == task) {
     /* Already that task */
@@ -1272,6 +1275,10 @@ void adv_unit_new_task(struct unit *punit, enum adv_unit_task task,
   log_normal("debug advisor task: %d", task);
 
   punit->server.adv->task = task;
+  if (assistant){
+    log_normal("debug advisor assistant_task: %d", task)
+    punit->server.adv->assistant_task = task;
+  }
 
   CALL_PLR_AI_FUNC(unit_task, unit_owner(punit), punit, task, ptile);
 }
@@ -1337,3 +1344,38 @@ bool auto_settlers_speculate_can_act_at(const struct unit *punit,
 
   return FALSE;
 }
+
+/**********************************************************************//**
+  Assistant
+**************************************************************************/
+void assistant_settlers_player(struct player *pplayer) 
+{
+  log_normal("------------assistant_settlers_player-------------")
+  log_normal("is_ai(pplayer): %d", is_ai(pplayer))
+  struct settlermap *state;
+  const struct civ_map *nmap = &(wld.map);
+
+  state = fc_calloc(MAP_INDEX_SIZE, sizeof(*state));
+
+  aw_timer = timer_renew(aw_timer, TIMER_CPU, TIMER_DEBUG,
+                         aw_timer != NULL ? NULL : "autoworkers");
+  timer_start(aw_timer);
+
+  citymap_turn_init(pplayer);
+
+  whole_map_iterate(nmap, ptile) {
+    state[tile_index(ptile)].enroute = -1;
+    state[tile_index(ptile)].eta = FC_INFINITY;    
+  } whole_map_iterate_end;
+
+  unit_list_iterate_safe(pplayer->units, punit) {
+    if ((unit_type_get(punit)->adv.worker
+            || unit_is_cityfounder(punit))
+        && !unit_has_orders(punit)
+        && punit->moves_left > 0) {
+      CALL_PLR_AI_FUNC(assistant_settler_run, pplayer, pplayer, punit, state);
+    }
+  } unit_list_iterate_safe_end;
+  FC_FREE(state);
+}
+

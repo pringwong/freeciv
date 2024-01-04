@@ -476,6 +476,7 @@ static void do_upgrade_effects(struct player *pplayer)
 **************************************************************************/
 void player_restore_units(struct player *pplayer)
 {
+  log_normal("--------------player_restore_units------------")
   const struct civ_map *nmap = &(wld.map);
 
   /* 1) get Leonardo out of the way first: */
@@ -562,7 +563,7 @@ void player_restore_units(struct player *pplayer)
                 /* Clear activity. Unit info will be sent in the end of
 	         * the function. */
                 unit_activity_handling(punit, ACTIVITY_IDLE);
-                adv_unit_new_task(punit, AUT_NONE, NULL);
+                adv_unit_new_task(punit, AUT_NONE, NULL, FALSE);
                 punit->goto_tile = NULL;
 
                 if (!is_unit_being_refueled(punit)) {
@@ -1832,6 +1833,8 @@ void unit_unset_removal_callback(struct unit *punit)
 static void server_remove_unit_full(struct unit *punit, bool transported,
                                     enum unit_loss_reason reason)
 {
+  log_normal("----server_remove_unit_full-----")
+
   struct packet_unit_remove packet;
   struct tile *ptile = unit_tile(punit);
   struct city *pcity = tile_city(ptile);
@@ -1860,7 +1863,7 @@ static void server_remove_unit_full(struct unit *punit, bool transported,
      are built, so that no two settlers head towards the same city
      spot, we need to ensure this reservation is cleared should
      the settler disappear on the way. */
-  adv_unit_new_task(punit, AUT_NONE, NULL);
+  adv_unit_new_task(punit, AUT_NONE, NULL, FALSE);
 
   /* Clear the vision before sending unit remove. Else, we might duplicate
    * the PACKET_UNIT_REMOVE if we lose vision of the unit tile. */
@@ -2712,6 +2715,7 @@ void unit_goes_out_of_sight(struct player *pplayer, struct unit *punit)
 **************************************************************************/
 void send_unit_info(struct conn_list *dest, struct unit *punit)
 {
+  log_normal("--------------send_unit_info--------------")
   const struct player *powner;
   struct packet_unit_info info;
   struct packet_unit_short_info sinfo;
@@ -2934,6 +2938,7 @@ bool do_airline(struct unit *punit, struct city *pdest_city,
 **************************************************************************/
 void do_explore(struct unit *punit)
 {
+  log_normal("-------do_explore----------")
   switch (manage_auto_explorer(punit)) {
    case MR_DEATH:
      /* don't use punit! */
@@ -3900,6 +3905,7 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
                bool conquer_city_allowed, bool conquer_extras_allowed,
                bool enter_hut, bool frighten_hut)
 {
+  log_normal("------------ unit_move ----------------")
   struct player *pplayer;
   struct tile *psrctile;
   struct city *psrccity;
@@ -3921,6 +3927,7 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   pplayer = unit_owner(punit);
   saved_id = punit->id;
   psrctile = unit_tile(punit);
+
   adj = base_get_direction_for_step(&(wld.map), psrctile, pdesttile, &facing);
 
   conn_list_do_buffer(game.est_connections);

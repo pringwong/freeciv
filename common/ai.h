@@ -316,6 +316,12 @@ struct ai_type
      */
     void (*unit_info)(struct unit *punit);
 
+    /* Called for assistant*/
+    void (*assistant_settler_run)(struct player *pplayer, struct unit *punit,
+                        struct settlermap *state);
+    void (*assistant_unit_move)(struct unit *punit, struct tile *ptile,
+                      struct pf_path *path, int step);
+
     /* These are here reserving space for future optional callbacks.
      * This way we don't need to change the mandatory capability of the AI module
      * interface when adding such callbacks, but existing modules just have these

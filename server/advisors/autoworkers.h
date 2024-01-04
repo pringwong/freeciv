@@ -54,7 +54,7 @@ struct city *settler_evaluate_city_requests(struct unit *punit,
                                             struct settlermap *state);
 
 void adv_unit_new_task(struct unit *punit, enum adv_unit_task task,
-                       struct tile *ptile);
+                       struct tile *ptile, bool assistant);
 
 bool adv_settler_safe_tile(const struct civ_map *nmap,
                            const struct player *pplayer, struct unit *punit,
@@ -70,6 +70,8 @@ bool auto_settlers_speculate_can_act_at(const struct unit *punit,
                                         const struct tile *ptile);
 
 extern action_id aw_actions_transform[MAX_NUM_ACTIONS];
+
+void assistant_settlers_player(struct player *pplayer);
 
 #define aw_transform_action_iterate(_act_)                                \
 {                                                                         \

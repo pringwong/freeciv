@@ -126,7 +126,7 @@ int identity_number(void);
 void server_game_init(bool keep_ruleset_value);
 void server_game_free(void);
 const char *aifill(int amount);
-
+// struct player *get_assistant_player(struct player *human_player);
 extern struct server_arguments srvarg;
 
 extern bool force_end_of_sniff;
@@ -134,7 +134,7 @@ extern bool force_end_of_sniff;
 extern ActionQueue* human_assistant;
 
 void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id);
-void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id);
+void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char* js_data);
 
 
 void update_nations_with_startpos(void);

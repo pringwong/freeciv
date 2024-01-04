@@ -47,6 +47,7 @@ static bool adv_unit_move(struct unit *punit, struct tile *ptile);
 bool adv_follow_path(struct unit *punit, struct pf_path *path,
                      struct tile *ptile)
 {
+  log_normal("-------------- adv_follow_path ---------------")
   struct tile *old_tile = punit->goto_tile;
   enum unit_activity activity = punit->activity;
   struct extra_type *tgt = punit->activity_target;
@@ -71,7 +72,6 @@ bool adv_follow_path(struct unit *punit, struct pf_path *path,
   return alive;
 }
 
-
 /**********************************************************************//**
   This is a function to execute paths returned by the path-finding engine,
   for units controlled by advisors.
@@ -81,6 +81,7 @@ bool adv_follow_path(struct unit *punit, struct pf_path *path,
 **************************************************************************/
 bool adv_unit_execute_path(struct unit *punit, struct pf_path *path)
 {
+  log_normal("------------adv_unit_execute_path---------------")
   const bool is_plr_ai = is_ai(unit_owner(punit));
   int i;
 
@@ -123,6 +124,7 @@ bool adv_unit_execute_path(struct unit *punit, struct pf_path *path)
      */
 
     if (is_plr_ai) {
+      log_normal("-----is_plr_ai unit_move -----------")
       CALL_PLR_AI_FUNC(unit_move, unit_owner(punit), punit, ptile, path, i);
     } else {
       (void) adv_unit_move(punit, ptile);
@@ -599,4 +601,82 @@ void adv_avoid_risks(struct pf_parameter *parameter,
   risk_cost->fearfulness = fearfulness * linger_fraction;
 
   risk_cost->enemy_zoc_cost = PF_TURN_FACTOR * 20;
+}
+
+/* Assistant */
+
+bool assistant_follow_path(struct unit *punit, struct pf_path *path,
+                     struct tile *ptile)
+{
+  log_normal("-------------- assistant_follow_path ---------------")
+  struct tile *old_tile = punit->goto_tile;
+  enum unit_activity activity = punit->activity;
+  struct extra_type *tgt = punit->activity_target;
+  bool alive;
+
+  if (punit->moves_left <= 0) {
+    return TRUE;
+  }
+  punit->goto_tile = ptile;
+  unit_activity_handling(punit, ACTIVITY_GOTO);
+  alive = assistant_unit_execute_path(punit, path);
+  if (alive) {
+    if (activity != ACTIVITY_GOTO) {
+      /* Only go via ACTIVITY_IDLE if we are actually changing the activity */
+      unit_activity_handling(punit, ACTIVITY_IDLE);
+      unit_activity_handling_targeted(punit, activity, &tgt);
+    }
+    punit->goto_tile = old_tile; /* May be NULL. */
+  }
+  return alive;
+}
+
+bool assistant_unit_execute_path(struct unit *punit, struct pf_path *path)
+{
+  log_normal("------------assistant_unit_execute_path---------------")
+  int i;
+
+  /* We start with i = 1 for i = 0 is our present position */
+  for (i = 1; i < path->length; i++) {
+    struct tile *ptile = path->positions[i].tile;
+    int id = punit->id;
+
+    if (same_pos(unit_tile(punit), ptile)) {
+#ifdef PF_WAIT_DEBUG
+      fc_assert_msg(
+#if PF_WAIT_DEBUG & 1
+                    punit->moves_left < unit_move_rate(punit)
+#if PF_WAIT_DEBUG & (2 | 4)
+                   ||
+#endif
+#endif
+#if PF_WAIT_DEBUG & 2
+                   punit->fuel < utype_fuel(unit_type_get(punit))
+#if PF_WAIT_DEBUG & 4
+                   ||
+#endif
+#endif
+#if PF_WAIT_DEBUG & 4
+                   punit->hp < unit_type_get(punit)->hp
+#endif
+                    , "%s waits at %d,%d for no visible profit",
+                    unit_rule_name(punit), TILE_XY(ptile));
+#endif
+      UNIT_LOG(LOG_DEBUG, punit, "execute_path: waiting this turn");
+      return TRUE;
+    }
+
+    CALL_PLR_AI_FUNC(assistant_unit_move, unit_owner(punit), punit, ptile, path, i);
+    if (!game_unit_by_number(id)) {
+      /* Died... */
+      return FALSE;
+    }
+
+    if (!same_pos(unit_tile(punit), ptile) || punit->moves_left <= 0) {
+      /* Stopped (or maybe fought) or ran out of moves */
+      return TRUE;
+    }
+  }
+
+  return TRUE;
 }

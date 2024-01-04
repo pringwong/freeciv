@@ -600,6 +600,7 @@ static struct pf_path *find_rampage_target(struct unit *punit,
 bool dai_military_rampage(struct unit *punit, int thresh_adj, 
                           int thresh_move)
 {
+  log_normal("-----------dai_military_rampage-----------")
   int count = punit->moves_left + 1; /* break any infinite loops */
   struct pf_path *path = NULL;
 
@@ -1742,6 +1743,7 @@ static void dai_military_attack_barbarian(struct ai_type *ait,
 static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
                                 struct unit *punit)
 {
+  log_normal("----------dai_military_attack----------")
   struct tile *dest_tile;
   int id = punit->id;
   int ct = 10;
@@ -1895,6 +1897,7 @@ static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
 **************************************************************************/
 static bool dai_find_boat_for_unit(struct ai_type *ait, struct unit *punit)
 {
+  log_normal("-----------dai_find_boat_for_unit-----------")
   bool alive = TRUE;
   int ferryboat = 0;
   struct pf_path *path_to_ferry = NULL;
@@ -1983,6 +1986,7 @@ static void dai_caravan_goto(struct ai_type *ait, struct player *pplayer,
                              bool help_wonder,
                              bool required_boat, bool request_boat)
 {
+  log_normal("-----------dai_caravan_goto-------------")
   bool alive = TRUE;
   struct unit_ai *unit_data = def_ai_unit_data(punit, ait);
 
@@ -2213,6 +2217,7 @@ static bool dai_caravan_can_trade_cities_diff_cont(struct player *pplayer,
 **************************************************************************/
 static bool search_homecity_for_caravan(struct ai_type *ait, struct unit *punit)
 {
+  log_normal("---------------search_homecity_for_caravan-----------------")
   struct city *nearest = NULL;
   int min_dist = FC_INFINITY;
   struct tile *current_loc = unit_tile(punit);
@@ -2616,7 +2621,7 @@ static void dai_manage_settler(struct ai_type *ait, struct player *pplayer,
   unit_data->done = TRUE; /* We will manage this unit later... ugh */
   /* If BUILD_CITY must remain BUILD_CITY, otherwise turn into autosettler */
   if (unit_data->task == AIUNIT_NONE) {
-    adv_unit_new_task(punit, AUT_AUTO_SETTLER, NULL);
+    adv_unit_new_task(punit, AUT_AUTO_SETTLER, NULL, FALSE);
   }
 }
 
@@ -2631,6 +2636,7 @@ static void dai_manage_settler(struct ai_type *ait, struct player *pplayer,
 void dai_manage_unit(struct ai_type *ait, struct player *pplayer,
                      struct unit *punit)
 {
+  log_normal("-----------dai_manage_unit--------------")
   struct unit_ai *unit_data;
   struct unit *bodyguard = aiguard_guard_of(ait, punit);
   bool is_ferry = FALSE;
@@ -2923,6 +2929,7 @@ static void dai_manage_barbarian_leader(struct ai_type *ait,
                                         struct player *pplayer,
                                         struct unit *leader)
 {
+  log_normal("-----------dai_manage_barbarian_leader-------------")
   struct tile *leader_tile = unit_tile(leader), *safest_tile;
   struct pf_parameter parameter;
   struct pf_map *pfm;

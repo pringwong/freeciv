@@ -529,8 +529,7 @@ static void row_callback(GtkTreeView *view, GtkTreePath *path,
 					       player_number(pdialog->treaty->plr1),
 					       player_number(pclause->from),
 					       pclause->type,
-					       pclause->value,
-                 pclause->worth);
+					       pclause->value);
       return;
     }
     i++;

@@ -1494,7 +1494,6 @@ bool city_can_be_built_here(const struct tile *ptile,
     if (towner == NULL || towner == unit_owner(punit)) {
       return TRUE;
     }
-
     return FALSE;
   }
 

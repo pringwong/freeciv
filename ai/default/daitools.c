@@ -242,6 +242,7 @@ static bool dai_gothere_bodyguard(struct ai_type *ait,
 bool dai_gothere(struct ai_type *ait, struct player *pplayer,
                  struct unit *punit, struct tile *dest_tile)
 {
+  log_normal("------------dai_gothere------------")
   CHECK_UNIT(punit);
   bool bg_needed;
 
@@ -268,6 +269,7 @@ bool dai_gothere(struct ai_type *ait, struct player *pplayer,
   if (goto_is_sane(punit, dest_tile) && punit->moves_left > 0) {
     punit->goto_tile = dest_tile;
     UNIT_LOG(LOGLEVEL_GOTHERE, punit, "Walking to (%d,%d)", TILE_XY(dest_tile));
+    log_normal("----goto dai_unit_goto----")
     if (!dai_unit_goto(ait, punit, dest_tile)) {
       /* died */
       return FALSE;
@@ -377,6 +379,7 @@ bool dai_unit_goto_constrained(struct ai_type *ait, struct unit *punit,
                                struct tile *ptile,
                                struct pf_parameter *parameter)
 {
+  log_normal("-----------dai_unit_goto_constrained---------------")
   bool alive = TRUE;
   struct pf_map *pfm;
   struct pf_path *path;
@@ -468,6 +471,7 @@ void dai_fill_unit_param(struct ai_type *ait, struct pf_parameter *parameter,
                          struct adv_risk_cost *risk_cost,
                          struct unit *punit, struct tile *ptile)
 {
+  log_normal("----------------dai_fill_unit_param--------------------")
   const bool long_path = LONG_TIME < (map_distance(unit_tile(punit),
                                                    unit_tile(punit))
                                       * SINGLE_MOVE
@@ -602,6 +606,7 @@ void dai_fill_unit_param(struct ai_type *ait, struct pf_parameter *parameter,
 **************************************************************************/
 bool dai_unit_goto(struct ai_type *ait, struct unit *punit, struct tile *ptile)
 {
+  log_normal("---------------dai_unit_goto-------------------")
   struct pf_parameter parameter;
   struct adv_risk_cost risk_cost;
 
@@ -641,6 +646,7 @@ void dai_unit_new_adv_task(struct ai_type *ait, struct unit *punit,
 void dai_unit_new_task(struct ai_type *ait, struct unit *punit,
                        enum ai_unit_task task, struct tile *ptile)
 {
+  log_normal("--------dai_unit_new_task-----------------")
   struct unit *bodyguard = aiguard_guard_of(ait, punit);
   struct unit_ai *unit_data = def_ai_unit_data(punit, ait);
 
@@ -694,6 +700,11 @@ void dai_unit_new_task(struct ai_type *ait, struct unit *punit,
   }
 
   unit_data->task = task;
+  log_normal("--------unit_data->assistant_task val--------%d", unit_data->assistant_task)
+  if (task > 0){
+    log_normal("--------unit_data->assistant_task suc--------%d", task)
+    unit_data->assistant_task = task;
+  }
 
   /* Verify and set the goto destination.  Eventually this can be a lot more
    * stringent, but for now we don't want to break things too badly. */
@@ -736,12 +747,15 @@ void dai_unit_new_task(struct ai_type *ait, struct unit *punit,
   switch (unit_data->task) {
    case AIUNIT_AUTO_SETTLER:
      punit->server.adv->task = AUT_AUTO_SETTLER;
+     punit->server.adv->assistant_task = AUT_AUTO_SETTLER;
      break;
    case AIUNIT_BUILD_CITY:
      punit->server.adv->task = AUT_BUILD_CITY;
+     punit->server.adv->assistant_task = AUT_BUILD_CITY;
      break;
    default:
      punit->server.adv->task = AUT_NONE;
+     //punit->server.adv->assistant_task = AUT_NONE;
      break;
   }
 }
@@ -814,6 +828,7 @@ static void dai_unit_bodyguard_move(struct ai_type *ait,
 **************************************************************************/
 bool dai_unit_attack(struct ai_type *ait, struct unit *punit, struct tile *ptile)
 {
+  log_normal("-----------dai_unit_attack---------");
   struct unit *ptrans;
   struct unit *bodyguard = aiguard_guard_of(ait, punit);
   int sanity = punit->id;
@@ -1063,6 +1078,7 @@ bool dai_unit_attack(struct ai_type *ait, struct unit *punit, struct tile *ptile
 void dai_unit_move_or_attack(struct ai_type *ait, struct unit *punit,
                              struct tile *ptile, struct pf_path *path, int step)
 {
+  log_normal("---------dai_unit_move_or_attack-----------")
   if (step == path->length - 1) {
     (void) dai_unit_attack(ait, punit, ptile);
   } else {
@@ -1080,6 +1096,7 @@ void dai_unit_move_or_attack(struct ai_type *ait, struct unit *punit,
 **************************************************************************/
 bool dai_unit_move(struct ai_type *ait, struct unit *punit, struct tile *ptile)
 {
+  log_normal(" -------------- dai_unit_move -------------")
   struct action *paction;
   struct unit *bodyguard;
   struct unit *ptrans = NULL;
@@ -1253,6 +1270,7 @@ bool dai_unit_move(struct ai_type *ait, struct unit *punit, struct tile *ptile)
                                         ACTRES_HUT_FRIGHTEN))) {
     /* "Transport Disembark", "Transport Disembark 2", "Enter Hut",
      * "Frighten Hut" or "Unit Move". */
+    log_normal("-----goto unit_do_action--------")
     unit_do_action(unit_owner(punit), punit->id, tile_index(ptile),
                    0, "", action_number(paction));
   }
@@ -1431,4 +1449,315 @@ bool dai_assess_military_unhappiness(struct city *pcity)
     unhap = 0;
   }
   return (unhap > 0);
+}
+
+/* Assistant */
+bool assistant_gothere(struct ai_type *ait, struct player *pplayer,
+                 struct unit *punit, struct tile *dest_tile)
+{
+  log_normal("------------assistant_gothere-----------")
+  CHECK_UNIT(punit);
+
+  log_normal("--------Nowhere to go-----------%d,%d", same_pos(dest_tile, unit_tile(punit)),
+        punit->moves_left <= 0)
+
+  if (same_pos(dest_tile, unit_tile(punit))) {
+    /* Nowhere to go */
+    return TRUE;
+  }
+
+  /* Go where we should be going if we can, and are at our destination 
+   * if we are on a ferry */
+  if (goto_is_sane(punit, dest_tile) && punit->moves_left > 0) {
+    punit->goto_tile = dest_tile;
+    log_normal("----goto dai_unit_goto----")
+    if (!assistant_unit_goto(ait, punit, dest_tile)) {
+      /* died */
+      return FALSE;
+    }
+    /* liable to bump into someone that will kill us.  Should avoid? */
+  } else {
+    return FALSE;
+  }
+  
+  /* Dead unit shouldn't reach this point */
+  CHECK_UNIT(punit);
+
+  log_normal("--------assistant_gothere return---------%d, %d", same_pos(unit_tile(punit), dest_tile),
+              is_tiles_adjacent(unit_tile(punit), dest_tile))
+
+  return same_pos(unit_tile(punit), dest_tile);
+}
+
+bool assistant_unit_goto_constrained(struct ai_type *ait, struct unit *punit,
+                               struct tile *ptile,
+                               struct pf_parameter *parameter)
+{
+  log_normal("-----------assistant_unit_goto_constrained---------------")
+  bool alive = TRUE;
+  struct pf_map *pfm;
+  struct pf_path *path;
+
+  if (same_pos(unit_tile(punit), ptile)) {
+    return TRUE;
+  } else if (!goto_is_sane(punit, ptile)) {/* FIXME: why do we check it? */
+    return TRUE;
+  } else if (punit->moves_left == 0) {
+    return TRUE;
+  }
+
+  pfm = pf_map_new(parameter);
+  path = pf_map_path(pfm, ptile);
+
+  if (path) {
+    dai_log_path(punit, path, parameter);
+    alive = assistant_follow_path(punit, path, ptile);
+  }
+
+  pf_path_destroy(path);
+  pf_map_destroy(pfm);
+
+  return alive;
+}
+
+
+void assistant_dai_fill_unit_param(struct ai_type *ait, struct pf_parameter *parameter,
+                         struct adv_risk_cost *risk_cost,
+                         struct unit *punit, struct tile *ptile)
+{
+  log_normal("----------------dai_fill_unit_param--------------------")
+  const bool barbarian = is_barbarian(unit_owner(punit));
+  bool is_ferry;
+  struct unit_ai *unit_data = def_ai_unit_data(punit, ait);
+  struct player *pplayer = unit_owner(punit);
+  const struct civ_map *nmap = &(wld.map);
+
+  /* If a unit is hunting, don't expect it to be a ferry. */
+  is_ferry = (unit_data->task != AIUNIT_HUNTER
+              && dai_is_ferry(punit, ait));
+
+  if (is_ferry) {
+    /* The destination may be a coastal land tile,
+     * in which case the ferry should stop on an adjacent tile. */
+    pft_fill_unit_overlap_param(parameter, nmap, punit);
+  } else if (!utype_fuel(unit_type_get(punit))
+             && utype_can_do_action_result(unit_type_get(punit),
+                                           ACTRES_ATTACK)
+             && (unit_data->task == AIUNIT_DEFEND_HOME
+                 || unit_data->task == AIUNIT_ATTACK
+                 || unit_data->task ==  AIUNIT_ESCORT
+                 || unit_data->task == AIUNIT_HUNTER)) {
+    /* Use attack movement for defenders and escorts so they can
+     * make defensive attacks */
+    pft_fill_unit_attack_param(parameter, nmap, punit);
+  } else {
+    pft_fill_unit_parameter(parameter, nmap, punit);
+  }
+  parameter->omniscience = !has_handicap(pplayer, H_MAP);
+
+  /* Should we use the risk avoidance code?
+   * The risk avoidance code uses omniscience, so do not use for
+   * human-player units under temporary AI control.
+   * Barbarians bravely/stupidly ignore risks
+   */
+  if (!uclass_has_flag(unit_class_get(punit), UCF_UNREACHABLE)
+      && !barbarian) {
+    adv_avoid_risks(parameter, risk_cost, punit, NORMAL_STACKING_FEARFULNESS);
+  }
+
+  /* Should we absolutely forbid ending a turn on a dangerous tile?
+   * Do not annoy human players by killing their units for them.
+   * For AI units be optimistic; allows attacks across dangerous terrain,
+   * and polar settlements.
+   * TODO: This is compatible with old code,
+   * but probably ought to be more cautious for non military units
+   */
+  if (!is_ferry && !utype_fuel(unit_type_get(punit))) {
+    parameter->get_moves_left_req = NULL;
+  }
+
+  if (unit_has_type_flag(punit, UTYF_SETTLERS)) {
+    parameter->get_TB = no_fights;
+  } else if (unit_is_cityfounder(punit)) {
+    /* Short path */
+    parameter->get_TB = no_fights;
+  } else if (unit_has_type_role(punit, L_BARBARIAN_LEADER)) {
+    /* Avoid capture */
+    parameter->get_TB = no_fights;
+  } else if (is_ferry) {
+    /* Ferries are not warships */
+    parameter->get_TB = no_fights;
+  } else if (is_losing_hp(punit)) {
+    /* Losing hitpoints over time (helicopter in default rules) */
+    /* Default tile behaviour */
+  } else if (utype_may_act_at_all(unit_type_get(punit))) {
+    switch (unit_data->task) {
+    case AIUNIT_AUTO_SETTLER:
+    case AIUNIT_BUILD_CITY:
+      /* Strange, but not impossible */
+      parameter->get_TB = no_fights;
+      break;
+    case AIUNIT_DEFEND_HOME:
+    case AIUNIT_ATTACK: /* Includes spy actions */
+    case AIUNIT_ESCORT:
+    case AIUNIT_HUNTER:
+    case AIUNIT_TRADE:
+    case AIUNIT_WONDER:
+      parameter->get_TB = no_intermediate_fights;
+      break;
+    case AIUNIT_EXPLORE:
+    case AIUNIT_RECOVER:
+      parameter->get_TB = no_fights;
+      break;
+    case AIUNIT_NONE:
+      /* Default tile behaviour */
+      break;
+    }
+  } else {
+    /* Probably an explorer */
+    parameter->get_TB = no_fights;
+  }
+
+  if (is_ferry) {
+    /* Show the destination in the client when watching an AI: */
+    punit->goto_tile = ptile;
+  }
+}
+
+
+bool assistant_unit_goto(struct ai_type *ait, struct unit *punit, struct tile *ptile)
+{
+  log_normal("---------------dai_unit_goto-------------------")
+  struct pf_parameter parameter;
+  struct adv_risk_cost risk_cost;
+
+  UNIT_LOG(LOG_DEBUG, punit, "dai_unit_goto to %d,%d", TILE_XY(ptile));
+  assistant_dai_fill_unit_param(ait, &parameter, &risk_cost, punit, ptile);
+
+  return assistant_unit_goto_constrained(ait, punit, ptile, &parameter);
+}
+
+bool assistant_unit_attack(struct ai_type *ait, struct unit *punit, struct tile *ptile)
+{
+  log_normal("-----------assistant_unit_attack---------");
+  struct unit *bodyguard = aiguard_guard_of(ait, punit);
+  int sanity = punit->id;
+  bool alive;
+
+  CHECK_UNIT(punit);
+  fc_assert_ret_val(is_tiles_adjacent(unit_tile(punit), ptile), TRUE);
+
+  unit_activity_handling(punit, ACTIVITY_IDLE);
+  if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE,
+                                            punit, ptile, NULL)) {
+    /* Choose "Unit Move". */
+    assistant_unit_do_action(unit_owner(punit), punit->id, tile_index(ptile),
+                   0, "", ACTION_UNIT_MOVE);
+  }
+  alive = (game_unit_by_number(sanity) != NULL);
+
+  if (alive && same_pos(ptile, unit_tile(punit))
+      && bodyguard != NULL  && def_ai_unit_data(bodyguard, ait)->charge == punit->id) {
+    dai_unit_bodyguard_move(ait, bodyguard, ptile);
+    /* Clumsy bodyguard might trigger an auto-attack */
+    alive = (game_unit_by_number(sanity) != NULL);
+  }
+
+  return alive;
+}
+
+void assistant_dai_unit_move_or_attack(struct ai_type *ait, struct unit *punit,
+                             struct tile *ptile, struct pf_path *path, int step)
+{
+  log_normal("---------assistant_unit_move_or_attack-----------")
+  if (step == path->length - 1) {
+    (void) assistant_unit_attack(ait, punit, ptile);
+  } else {
+    (void) assistant_unit_move(ait, punit, ptile);
+  }
+
+}
+
+bool assistant_unit_move(struct ai_type *ait, struct unit *punit, struct tile *ptile)
+{
+  log_normal(" -------------- assistant_dai_unit_move -------------")
+  struct action *paction;
+  struct unit *bodyguard;
+  struct unit *ptrans = NULL;
+  int sanity = punit->id;
+  struct player *pplayer = unit_owner(punit);
+
+  CHECK_UNIT(punit);
+  fc_assert_ret_val_msg(is_tiles_adjacent(unit_tile(punit), ptile), FALSE,
+                        "Tiles not adjacent: Unit = %d, "
+                        "from = (%d, %d]) to = (%d, %d).",
+                        punit->id, TILE_XY(unit_tile(punit)),
+                        TILE_XY(ptile));
+
+  /* if enemy, stop and give a chance for the ai attack function
+   * to handle this case */
+  if (is_enemy_unit_tile(ptile, pplayer)
+      || is_enemy_city_tile(ptile, pplayer)) {
+    UNIT_LOG(LOG_DEBUG, punit, "movement halted due to enemy presence");
+    return FALSE;
+  }
+
+  /* barbarians shouldn't enter huts */
+  /* FIXME: use unit_can_displace_hut(punit, ptile) better */
+  if (is_barbarian(pplayer) && hut_on_tile(ptile)) {
+    return FALSE;
+  }
+
+  /* don't leave bodyguard behind */
+  if ((bodyguard = aiguard_guard_of(ait, punit))
+      && same_pos(unit_tile(punit), unit_tile(bodyguard))
+      && bodyguard->moves_left == 0) {
+    UNIT_LOG(LOGLEVEL_BODYGUARD, punit, "does not want to leave "
+             "its bodyguard");
+    return FALSE;
+  }
+
+  if (is_action_enabled_unit_on_tile(ACTION_UNIT_MOVE,
+                                            punit, ptile, NULL)) {
+    /* "Unit Move". */
+    paction = action_by_number(ACTION_UNIT_MOVE);
+  } else {
+    /* "Unit Move 3". */
+    paction = action_by_number(ACTION_UNIT_MOVE3);
+  }
+
+  /* go */
+  unit_activity_handling(punit, ACTIVITY_IDLE);
+  /* Move */
+  if (paction && ptrans
+      && action_has_result(paction, ACTRES_TRANSPORT_EMBARK)) {
+      /* "Transport Embark". */
+      assistant_unit_do_action(unit_owner(punit), punit->id, ptrans->id,
+                     0, "", action_number(paction));
+    } else if (paction
+               && (action_has_result(paction,
+                                     ACTRES_TRANSPORT_DISEMBARK)
+                   || action_has_result(paction, ACTRES_UNIT_MOVE)
+                   || action_has_result(paction,
+                                        ACTRES_HUT_ENTER)
+                   || action_has_result(paction,
+                                        ACTRES_HUT_FRIGHTEN))) {
+    /* "Transport Disembark", "Transport Disembark 2", "Enter Hut",
+     * "Frighten Hut" or "Unit Move". */
+    log_normal("-----goto assistant_unit_do_action--------")
+    assistant_unit_do_action(unit_owner(punit), punit->id, tile_index(ptile),
+                   0, "", action_number(paction));
+  }
+
+  /* handle the results */
+  if (game_unit_by_number(sanity) && same_pos(ptile, unit_tile(punit))) {
+    bodyguard = aiguard_guard_of(ait, punit);
+
+    if (bodyguard != NULL
+        && def_ai_unit_data(bodyguard, ait)->charge == punit->id) {
+      dai_unit_bodyguard_move(ait, bodyguard, ptile);
+    }
+    return TRUE;
+  }
+  return FALSE;
 }

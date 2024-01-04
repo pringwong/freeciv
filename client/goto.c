@@ -1391,6 +1391,7 @@ static void make_path_orders(struct unit *punit, struct pf_path *path,
                              struct unit_order *order_list,
                              int *length, int *dest_tile)
 {
+  log_normal("--------- make_path_orders ---------------")
   int i;
   struct tile *old_tile;
 

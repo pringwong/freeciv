@@ -2923,12 +2923,12 @@ static struct setting settings[] = {
            N_("If enabled, the game will end when victory."),
            NULL, NULL, GAME_DEFAULT_END_VICTORY)
 
-  GEN_BOOL("agentmode", game.server.agent_mode,
+  GEN_BOOL("advisor", game.server.advisor,
            SSET_META, SSET_SOCIOLOGY, SSET_VITAL,
            ALLOW_NONE, ALLOW_BASIC,
            N_("Whether the human player follows the agent policy"),
            N_("If enabled, the human player will follow the agent policy."),
-           NULL, NULL, GAME_DEFAULT_AGENT_MODE)
+           NULL, NULL, GAME_DEFAULT_ADVISOR)
 
   GEN_BITWISE("revealmap", game.server.revealmap, SSET_GAME_INIT,
               SSET_MILITARY, SSET_SITUATIONAL, ALLOW_NONE, ALLOW_BASIC,

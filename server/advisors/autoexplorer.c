@@ -125,6 +125,7 @@ static enum tile_behavior explorer_tb(const struct tile *ptile,
 **************************************************************************/
 static bool explorer_goto(struct unit *punit, struct tile *ptile)
 {
+  log_normal("-----------explorer_goto------------")
   struct pf_parameter parameter;
   struct adv_risk_cost risk_cost;
   bool alive = TRUE;
@@ -272,6 +273,7 @@ static int explorer_desirable(struct tile *ptile, struct player *pplayer,
 **************************************************************************/
 enum unit_move_result manage_auto_explorer(struct unit *punit)
 {
+  log_normal("----------manage_auto_explorer-------------")
   struct player *pplayer = unit_owner(punit);
   /* Loop prevention */
   const struct tile *init_tile = unit_tile(punit);

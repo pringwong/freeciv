@@ -241,9 +241,11 @@ static int adv_calc_rmextra(const struct city *pcity, const struct tile *ptile,
 **************************************************************************/
 void initialize_infrastructure_cache(struct player *pplayer)
 {
+  log_normal("---------city_list_iterate----------")
   city_list_iterate(pplayer->cities, pcity) {
     struct tile *pcenter = city_tile(pcity);
     int radius_sq = city_map_radius_sq_get(pcity);
+    log_normal("---------city_map_iterate----------")
 
     city_map_iterate(radius_sq, city_index, city_x, city_y) {
       aw_transform_action_iterate(act) {
@@ -251,6 +253,7 @@ void initialize_infrastructure_cache(struct player *pplayer)
                                 -1);
       } aw_transform_action_iterate_end;
     } city_map_iterate_end;
+    log_normal("---------city_tile_iterate_index----------")
 
     city_tile_iterate_index(radius_sq, pcenter, ptile, cindex) {
       adv_city_worker_act_set(pcity, cindex, ACTIVITY_MINE,

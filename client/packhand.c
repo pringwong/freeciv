@@ -1650,7 +1650,7 @@ void handle_unit_info(const struct packet_unit_info *packet)
 void handle_ai_player_action_response(const struct packet_ai_player_action_response *packet)
 {
   log_normal("-------------------started handle_ai_player_action_response--------------------");
-  log_normal("packet: {actor_id:%d,action_type:%d}", packet->actor_id, packet->action_type);
+  log_normal("packet: {actor_id:%d,action_type:%d,js_data:%s}", packet->actor_id, packet->action_type, packet->js_data);
   // call ai
   log_normal("-------------------finished handle_ai_player_action_response--------------------");
 }

@@ -1147,6 +1147,7 @@ static void ai_start_phase(void)
 {
   phase_players_iterate(pplayer) {
     if (is_ai(pplayer)) {
+      log_normal("-------------ai_start_phase---------------")
       CALL_PLR_AI_FUNC(first_activities, pplayer, pplayer);
     }
   } phase_players_iterate_end;
@@ -1160,9 +1161,7 @@ static void ai_start_phase(void)
 **************************************************************************/
 static void begin_turn(bool is_new_turn)
 {
-  log_debug("Begin turn");
-
-  log_normal("---------------- BEGIN TURN --------------------")
+  log_normal("---------------- started BEGIN TURN --------------------")
 
   event_cache_remove_old();
 
@@ -1261,6 +1260,9 @@ static void begin_turn(bool is_new_turn)
   }
 
   sanity_check();
+
+  log_normal("---------------- ended BEGIN TURN --------------------")
+
 }
 
 /**********************************************************************//**
@@ -1269,7 +1271,7 @@ static void begin_turn(bool is_new_turn)
 **************************************************************************/
 static void begin_phase(bool is_new_phase)
 {
-  log_normal("--------------------- BEGIN PHASE -------------------")
+  log_normal("--------------------- STARTED BEGIN PHASE -------------------")
 
   conn_list_do_buffer(game.est_connections);
 
@@ -1407,6 +1409,7 @@ static void begin_phase(bool is_new_phase)
     phase_players_iterate(pplayer) {
       unit_list_iterate_safe(pplayer->units, punit) {
         if (punit->activity == ACTIVITY_EXPLORE) {
+          log_normal("------------srv_main do_explore------------")
           do_explore(punit);
         }
       } unit_list_iterate_safe_end;
@@ -1439,7 +1442,7 @@ static void begin_phase(bool is_new_phase)
     lsend_packet_begin_turn(game.est_connections);
   }
 
-  log_normal("--------------------- BEGIN PHASE FINISHED -------------------")
+  log_normal("--------------------- FINISHED BEGIN PHASE -------------------")
 
 }
 
@@ -1449,8 +1452,7 @@ static void begin_phase(bool is_new_phase)
 **************************************************************************/
 static void end_phase(void)
 {
-  log_normal("----------------------- END_PHASE ----------------------------");
-
+  log_normal("----------------------- STARTED END_PHASE ----------------------------");
   /*
    * This empties the client Messages window; put this before
    * everything else below, since otherwise any messages from the
@@ -1528,7 +1530,9 @@ static void end_phase(void)
     } unit_list_iterate_end;
   } players_iterate_end;
   phase_players_iterate(pplayer) {
+    log_normal("----------started srv_main- auto_settlers_player -----------")
     auto_settlers_player(pplayer);
+    log_normal("----------ended srv_main- auto_settlers_player -----------")
     if (is_ai(pplayer)) {
       CALL_PLR_AI_FUNC(last_activities, pplayer, pplayer);
     }
@@ -1607,6 +1611,20 @@ static void end_phase(void)
        is initialized for human players also. */
     adv_data_phase_done(pplayer);
   } phase_players_iterate_end;
+
+  log_normal("----------------------- FINISHED END_PHASE ----------------------------");
+
+}
+
+static void assistant_player(void){
+  log_normal("-------started assistant_player------")
+  phase_players_iterate(pplayer) {
+    if (is_assistant(pplayer)){
+      assistant_settlers_player(pplayer);
+    }
+  } phase_players_iterate_end;
+  log_normal("-------ended assistant_player------")
+  return;
 }
 
 /**********************************************************************//**
@@ -3007,6 +3025,8 @@ static void srv_running(void)
         log_debug("Inresponsive between turns %g seconds", game.server.turn_change_time);
       }
 
+      assistant_player();
+
       log_normal("-------------server_sniff_all_input-------------------")
       while (server_sniff_all_input() == S_E_OTHERWISE) {
         /* nothing */
@@ -3586,11 +3606,11 @@ void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id)
     log_normal("helper_set_unit_activities: %d, %d, %d", ENTITY_TYPE_UNIT, unit_id, act_id)
 }
 
-void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id)
+void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char* js_data)
 {
-    log_normal("helper_do_unit_action: %d %d", unit_id, act_id)
+    log_normal("helper_do_unit_action: %d %d, %s", unit_id, act_id, js_data)
 
-    struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id);
+    struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_data);
 
     putNode(human_assistant, packet);
 
@@ -3598,7 +3618,15 @@ void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id)
 
     // struct packet_ai_player_action_response resp_packet = getNode(pplayer, human_assistant);
 
-    // log_normal("action node 1: %d, %d, %d", resp_packet.actor_id, resp_packet.playerno, resp_packet.action_type)
+    // log_normal("action node 1: %d, %d, %d, %s", resp_packet.actor_id, resp_packet.playerno, resp_packet.action_type, resp_packet.js_data)
+
+    // udf of AI function
+    // conn_list_iterate(game.est_connections, pconn) {
+    //   struct player *aplayer = conn_get_player(pconn);
+    //     if (aplayer == pplayer) {
+    //       send_packet_ai_player_action_response(pconn, &resp_packet);
+    //     }
+    // } conn_list_iterate_end;
 
     // putNode(human_assistant, packet);
     // log_normal("packet2: %d %d", packet.actor_id, packet.action_type)
@@ -3643,6 +3671,7 @@ void fc__noreturn srv_main(void)
 
     log_normal(_("Now accepting new client connections on port %d."),
                srvarg.port);
+
     /* Remain in S_S_INITIAL until all players are ready. */
     while (S_E_FORCE_END_OF_SNIFF != server_sniff_all_input()) {
       /* When force_end_of_sniff is used in pregame, it means that the server

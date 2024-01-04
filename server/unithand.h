@@ -64,4 +64,12 @@ bool unit_server_side_agent_set(struct player *pplayer,
                                 struct unit *punit,
                                 enum server_side_agent agent);
 
+/* Assistant */
+void assistant_unit_do_action(struct player *pplayer,
+                    const int actor_id,
+                    const int target_id,
+                    const int sub_tgt_id,
+                    const char *name,
+                    const action_id action_type);
+
 #endif /* FC__UNITHAND_H */

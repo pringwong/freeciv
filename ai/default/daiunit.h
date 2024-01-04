@@ -44,6 +44,7 @@ struct unit_ai {
   bool done;  /* we are done controlling this unit this turn */
 
   enum ai_unit_task task;
+  enum ai_unit_task assistant_task;
 };
 
 struct unit_type_ai

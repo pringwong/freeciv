@@ -63,6 +63,7 @@ void citymap_turn_init(struct player *pplayer)
   /* The citymap is reinitialized at the start of ever turn.  This includes
    * a call to realloc, which only really matters if this is the first turn
    * of the game (but it's easier than a separate function to do this). */
+  log_normal("-----------citymap_turn_init------------------")
   citymap = fc_realloc(citymap, MAP_INDEX_SIZE * sizeof(*citymap));
   memset(citymap, 0, MAP_INDEX_SIZE * sizeof(*citymap));
 
@@ -85,7 +86,10 @@ void citymap_turn_init(struct player *pplayer)
     } city_list_iterate_end;
   } players_iterate_end;
 
+  log_normal("-----------players_iterate_end------------------ %p", pplayer->units)
+
   unit_list_iterate(pplayer->units, punit) {
+    log_normal("--------------punit: %p", punit)
     if (unit_is_cityfounder(punit)
         && punit->server.adv->task == AUT_BUILD_CITY) {
 
@@ -100,6 +104,7 @@ void citymap_turn_init(struct player *pplayer)
       citymap[tile_index(punit->goto_tile)] = -(punit->id);
     }
   } unit_list_iterate_end;
+  log_normal("-----------unit_list_iterate_end------------------")
 }
 
 /**********************************************************************//**

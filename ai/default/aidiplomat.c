@@ -588,6 +588,7 @@ static bool dai_diplomat_bribe_nearby(struct ai_type *ait,
                                       struct player *pplayer, 
                                       struct unit *punit, struct pf_map *pfm)
 {
+  log_normal("-----------adv_unit_execute_path-----------")
   int gold_avail, expenses;
 
   dai_calc_data(pplayer, NULL, &expenses, NULL);
@@ -721,6 +722,7 @@ static bool dai_diplomat_bribe_nearby(struct ai_type *ait,
 void dai_manage_diplomat(struct ai_type *ait, struct player *pplayer,
                          struct unit *punit)
 {
+  log_normal("--------dai_manage_diplomat-------------")
   struct city *pcity, *ctarget = NULL;
   struct pf_parameter parameter;
   struct pf_map *pfm;

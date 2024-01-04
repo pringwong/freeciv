@@ -746,6 +746,7 @@ static void dai_manage_government(struct ai_type *ait, struct player *pplayer)
 *****************************************************************************/
 void dai_do_first_activities(struct ai_type *ait, struct player *pplayer)
 {
+  log_normal("----------dai_do_first_activities----------------")
   TIMING_LOG(AIT_ALL, TIMER_START);
   dai_assess_danger_player(ait, pplayer, &(wld.map));
   /* TODO: Make assess_danger save information on what is threatening

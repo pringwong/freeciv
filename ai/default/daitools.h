@@ -56,6 +56,7 @@ bool dai_unit_goto_constrained(struct ai_type *ait, struct unit *punit,
                                struct tile *ptile,
                                struct pf_parameter *parameter);
 bool dai_unit_goto(struct ai_type *ait, struct unit *punit, struct tile *ptile);
+
 bool goto_is_sane(struct unit *punit, struct tile *ptile);
 
 void dai_unit_new_task(struct ai_type *ait, struct unit *punit,
@@ -84,4 +85,18 @@ void dai_consider_plr_dangerous(struct ai_type *ait, struct player *plr1,
                                 struct player *plr2,
                                 enum override_bool *result);
 
+/* Assistant */
+bool assistant_gothere(struct ai_type *ait, struct player *pplayer,
+                 struct unit *punit, struct tile *dest_tile);
+bool assistant_unit_goto_constrained(struct ai_type *ait, struct unit *punit,
+                               struct tile *ptile,
+                               struct pf_parameter *parameter);
+void assistant_dai_fill_unit_param(struct ai_type *ait, struct pf_parameter *parameter,
+                         struct adv_risk_cost *risk_cost,
+                         struct unit *punit, struct tile *ptile);
+bool assistant_unit_goto(struct ai_type *ait, struct unit *punit, struct tile *ptile);
+bool assistant_unit_attack(struct ai_type *ait, struct unit *punit, struct tile *ptile);
+void assistant_dai_unit_move_or_attack(struct ai_type *ait, struct unit *punit,
+                             struct tile *ptile, struct pf_path *path, int step);
+bool assistant_unit_move(struct ai_type *ait, struct unit *punit, struct tile *ptile);
 #endif /* FC__DAITOOLS_H */

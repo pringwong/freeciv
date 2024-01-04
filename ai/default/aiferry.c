@@ -766,6 +766,7 @@ bool aiferry_goto_amphibious(struct ai_type *ait, struct unit *ferry,
 bool aiferry_gobyboat(struct ai_type *ait, struct player *pplayer,
                       struct unit *punit, struct tile *dest_tile, bool with_bodyguard)
 {
+  log_normal("-----------aiferry_gobyboat-----------")
   if (!unit_transported(punit)) {
     /* We are not on a boat and we cannot walk */
     int boatid;

@@ -87,6 +87,7 @@ enum unit_airlift_result {
 
 struct unit_adv {
   enum adv_unit_task task;
+  enum adv_unit_task assistant_task;
 };
 
 struct unit_order {
@@ -144,6 +145,7 @@ struct unit {
   struct player *nationality;
   int id;
   int homecity;
+  bool assistant_ctrl;
 
   int upkeep[O_LAST]; /* unit upkeep with regards to the homecity */
 
@@ -153,6 +155,7 @@ struct unit {
   int fuel;
 
   struct tile *goto_tile; /* May be NULL. */
+  struct tile *assistant_goto_tile; /* May be NULL. */
 
   enum unit_activity activity;
 

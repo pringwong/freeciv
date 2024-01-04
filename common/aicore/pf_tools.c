@@ -841,6 +841,7 @@ void pft_fill_unit_parameter(struct pf_parameter *parameter,
                              const struct civ_map *nmap,
                              const struct unit *punit)
 {
+  log_normal("--------pft_fill_unit_parameter-----------")
   pft_fill_unit_default_parameter(parameter, nmap, punit);
   pft_fill_parameter(parameter, unit_type_get(punit));
 }

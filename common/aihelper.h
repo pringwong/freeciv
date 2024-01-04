@@ -20,6 +20,8 @@ typedef struct ActionNode{
     int actor_id;
     int action_type;
     int playerno;
+    int unique_id;
+    char js_data[512];
     struct ActionNode* next;
 } ActionNode;
 
@@ -37,7 +39,7 @@ struct packet_ai_player_action_response getPacket(ActionNode *node);
 
 struct packet_ai_player_action_response getNode(struct player *pplayer, ActionQueue *action_q);
 
-struct packet_ai_player_action_response load_packet(struct player *pplayer, int actor_id, int action_type);
+struct packet_ai_player_action_response load_packet(struct player *pplayer, int actor_id, int action_type, char* js_data);
 void send_ai_assistant_message(struct player *pplayer, 
                                struct packet_ai_player_action_response packet);
 bool is_assistant(const struct player *pplayer);
