@@ -6405,7 +6405,7 @@ void handle_unit_sscs_set(struct player *pplayer,
 **************************************************************************/
 static void unit_plans_clear(struct unit *punit)
 {
-  log_normal("----unit_plans_clear-----")
+  log_normal("----start unit_plans_clear-----")
     /* Remove city spot reservations for AI settlers on city founding
     * mission. */
 
@@ -6416,6 +6416,7 @@ static void unit_plans_clear(struct unit *punit)
 
   /* Make sure that no old goto_tile remains. */
   punit->goto_tile = NULL;
+  log_normal("----finish unit_plans_clear-----")
 }
 
 /**********************************************************************//**
@@ -6448,6 +6449,7 @@ void handle_unit_server_side_agent_set(struct player *pplayer,
 
   /* Give the new agent a blank slate */
   unit_plans_clear(punit);
+
 
   if (agent == SSA_AUTOEXPLORE) {
     if (!unit_activity_internal(punit, ACTIVITY_EXPLORE)) {
@@ -6572,7 +6574,7 @@ bool unit_activity_handling(struct unit *punit,
                             enum unit_activity new_activity)
 {
   /* Must specify target for ACTIVITY_BASE */
-  log_normal("----------unit_activity_handling--------------")
+  log_normal("----------start unit_activity_handling-------------- %d", game.server.open_assistant)
   fc_assert_ret_val(new_activity != ACTIVITY_BASE
                     && new_activity != ACTIVITY_GEN_ROAD, FALSE);
 
@@ -6586,6 +6588,8 @@ bool unit_activity_handling(struct unit *punit,
     free_unit_orders(punit);
     unit_activity_internal(punit, new_activity);
   }
+  log_normal("----------finish unit_activity_handling-------------- %d", game.server.open_assistant)
+  log_normal("====== unit activity: %d, %d", punit->id, punit->activity)
 
   return TRUE;
 }
@@ -6599,19 +6603,31 @@ bool unit_activity_handling(struct unit *punit,
 static bool unit_activity_internal(struct unit *punit,
                                    enum unit_activity new_activity)
 {
-  log_normal("----------unit_activity_internal--------")
+  log_normal("----------unit_activity_internal-------- %d", game.server.open_assistant)
+
   if (!can_unit_do_activity(punit, new_activity)) {
     return FALSE;
-  } else {
-    enum unit_activity old_activity = punit->activity;
-    struct extra_type *old_target = punit->activity_target;
-
-    set_unit_activity(punit, new_activity);
-    send_unit_info(NULL, punit);
-    unit_activity_dependencies(punit, old_activity, old_target);
-
-    return TRUE;
   }
+
+  enum unit_activity old_activity = punit->activity;
+  struct extra_type *old_target = punit->activity_target;
+  
+  if (game.server.open_assistant && is_assistant(punit->owner)){
+    json_t* js_data = json_object();
+    json_object_set_new(js_data, "is_activity", json_integer(1));
+    char* js_str = json_dumps(js_data, 0);
+    helper_set_unit_activities(punit->owner, punit->id, new_activity, js_str);
+
+    punit->assistant_activity = new_activity;
+    log_normal("====== assistant_activity =======%d", new_activity)
+    return FALSE;
+  }
+
+  set_unit_activity(punit, new_activity);
+  send_unit_info(NULL, punit);
+  unit_activity_dependencies(punit, old_activity, old_target);
+
+  return TRUE;
 }
 
 /**********************************************************************//**
@@ -6640,6 +6656,8 @@ bool unit_activity_handling_targeted(struct unit *punit,
                                      enum unit_activity new_activity,
                                      struct extra_type **new_target)
 {
+  log_normal("==== unit_activity_handling_targeted")
+
   if (!activity_requires_target(new_activity)) {
     unit_activity_handling(punit, new_activity);
   } else if (can_unit_do_activity_targeted(punit, new_activity, *new_target)) {
@@ -6660,6 +6678,7 @@ static bool unit_activity_targeted_internal(struct unit *punit,
                                             enum unit_activity new_activity,
                                             struct extra_type **new_target)
 {
+  log_normal("===unit_activity_targeted_internal")
   if (!can_unit_do_activity_targeted(punit, new_activity, *new_target)) {
     return FALSE;
   } else {
@@ -6917,6 +6936,9 @@ void assistant_unit_do_action(struct player *pplayer,
                     const action_id action_type)
 {
   log_normal("------------assistant_unit_do_action----------")
+  if (!is_assistant(pplayer)){
+    return;
+  }
   struct tile *target_tile = NULL;
   struct unit *actor_unit = player_unit_by_number(pplayer, actor_id);
   target_tile = index_to_tile(&(wld.map), target_id);

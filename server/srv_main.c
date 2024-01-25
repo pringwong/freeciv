@@ -1147,8 +1147,9 @@ static void ai_start_phase(void)
 {
   phase_players_iterate(pplayer) {
     if (is_ai(pplayer)) {
-      log_normal("-------------ai_start_phase---------------")
+      log_normal("-------------started ai_start_phase---------------")
       CALL_PLR_AI_FUNC(first_activities, pplayer, pplayer);
+      log_normal("-------------ended ai_start_phase---------------")
     }
   } phase_players_iterate_end;
   kill_dying_players();
@@ -1300,6 +1301,7 @@ static void begin_phase(bool is_new_phase)
     CALL_PLR_AI_FUNC(phase_begin, pplayer, pplayer, is_new_phase);
   } phase_players_iterate_end;
 
+  log_normal("====== is_new_phase ====== %d", is_new_phase)
   if (is_new_phase) {
     /* Unit "end of turn" activities - of course these actually go at
      * the start of the turn! */
@@ -1340,6 +1342,8 @@ static void begin_phase(bool is_new_phase)
       }
     } whole_map_iterate_end;
 
+    log_normal("======== phase_players_iterate ========")
+
     phase_players_iterate(pplayer) {
       update_unit_activities(pplayer);
       flush_packets();
@@ -1357,6 +1361,7 @@ static void begin_phase(bool is_new_phase)
       }
       flush_packets();
     } phase_players_iterate_end;
+    log_normal("======== unit_tc_effect_refresh ========")
 
     phase_players_iterate(pplayer) {
       unit_tc_effect_refresh(pplayer);
@@ -1373,11 +1378,13 @@ static void begin_phase(bool is_new_phase)
     log_debug("beginning player turn for #%d (%s)",
               player_number(pplayer), player_name(pplayer));
     if (is_human(pplayer)) {
+      log_normal("======== building_advisor ========")
       building_advisor(pplayer);
     }
   } phase_players_iterate_end;
 
   phase_players_iterate(pplayer) {
+    log_normal("======== send_player_cities ========")
     send_player_cities(pplayer);
   } phase_players_iterate_end;
 
@@ -1385,31 +1392,39 @@ static void begin_phase(bool is_new_phase)
   conn_list_do_unbuffer(game.est_connections);
 
   alive_phase_players_iterate(pplayer) {
+    log_normal("======== update_revolution ========")
     update_revolution(pplayer);
     update_capital(pplayer);
   } alive_phase_players_iterate_end;
 
+  log_normal("=========== started do action ============")
+
   if (is_new_phase) {
     /* Try to avoid hiding events under a diplomacy dialog */
+    log_normal("======= diplomacy_actions ========")
     phase_players_iterate(pplayer) {
       if (is_ai(pplayer)) {
         CALL_PLR_AI_FUNC(diplomacy_actions, pplayer, pplayer);
       }
     } phase_players_iterate_end;
+    log_normal("======= random_movements ========")
 
     /* Spend random movement move points before any controlled actions */
     phase_players_iterate(pplayer) {
       random_movements(pplayer);
     } phase_players_iterate_end;
+    log_normal("======= ai_start_phase ========")
 
     log_debug("Aistartturn");
     ai_start_phase();
 
     flush_packets();
+
+    log_normal("======= do_explore ========")
+
     phase_players_iterate(pplayer) {
       unit_list_iterate_safe(pplayer->units, punit) {
         if (punit->activity == ACTIVITY_EXPLORE) {
-          log_normal("------------srv_main do_explore------------")
           do_explore(punit);
         }
       } unit_list_iterate_safe_end;
@@ -1417,12 +1432,14 @@ static void begin_phase(bool is_new_phase)
       flush_packets();
     } phase_players_iterate_end;
   } else {
+    log_normal("======= restart_phase ========")
     phase_players_iterate(pplayer) {
       if (is_ai(pplayer)) {
         CALL_PLR_AI_FUNC(restart_phase, pplayer, pplayer);
       }
     } phase_players_iterate_end;
   }
+  log_normal("=========== finished do action ============")
 
   sanity_check();
 
@@ -1530,9 +1547,7 @@ static void end_phase(void)
     } unit_list_iterate_end;
   } players_iterate_end;
   phase_players_iterate(pplayer) {
-    log_normal("----------started srv_main- auto_settlers_player -----------")
     auto_settlers_player(pplayer);
-    log_normal("----------ended srv_main- auto_settlers_player -----------")
     if (is_ai(pplayer)) {
       CALL_PLR_AI_FUNC(last_activities, pplayer, pplayer);
     }
@@ -1620,7 +1635,11 @@ static void assistant_player(void){
   log_normal("-------started assistant_player------")
   phase_players_iterate(pplayer) {
     if (is_assistant(pplayer)){
+      game.server.open_assistant = TRUE;
       assistant_settlers_player(pplayer);
+      CALL_PLR_AI_FUNC(assistant_first_activities, pplayer, pplayer);
+      game.server.open_assistant = FALSE;
+      log_normal("========== finish assistant first activities =============")
     }
   } phase_players_iterate_end;
   log_normal("-------ended assistant_player------")
@@ -3601,9 +3620,13 @@ void server_game_free(void)
 /**********************************************************************//**
   Human assistant.
 **************************************************************************/
-void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id)
+void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id, char* js_data)
 {
     log_normal("helper_set_unit_activities: %d, %d, %d", ENTITY_TYPE_UNIT, unit_id, act_id)
+    if (act_id == ACTIVITY_FORTIFYING) {
+      struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_data);
+      putNode(human_assistant, packet);
+    }
 }
 
 void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char* js_data)
@@ -3613,27 +3636,6 @@ void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char
     struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_data);
 
     putNode(human_assistant, packet);
-
-    //gtk test
-
-    // struct packet_ai_player_action_response resp_packet = getNode(pplayer, human_assistant);
-
-    // log_normal("action node 1: %d, %d, %d, %s", resp_packet.actor_id, resp_packet.playerno, resp_packet.action_type, resp_packet.js_data)
-
-    // udf of AI function
-    // conn_list_iterate(game.est_connections, pconn) {
-    //   struct player *aplayer = conn_get_player(pconn);
-    //     if (aplayer == pplayer) {
-    //       send_packet_ai_player_action_response(pconn, &resp_packet);
-    //     }
-    // } conn_list_iterate_end;
-
-    // putNode(human_assistant, packet);
-    // log_normal("packet2: %d %d", packet.actor_id, packet.action_type)
-    // log_normal("--------------- put 2----------------------")
-    // struct packet_ai_player_action_response resp_packet2 = getNode(pplayer, human_assistant);
-    // log_normal("action node 2: %d, %d, %d", resp_packet2.actor_id, resp_packet2.playerno, resp_packet2.action_type)
-
 }
 
 /**********************************************************************//**

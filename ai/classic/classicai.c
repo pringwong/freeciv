@@ -357,10 +357,13 @@ static void cai_unit_turn_end(struct unit *punit)
 static void cai_unit_move_or_attack(struct unit *punit, struct tile *ptile,
                                     struct pf_path *path, int step)
 {
-  log_normal("-----------cai_unit_move_or_attack-------------")
+  log_normal("-----------start cai_unit_move_or_attack-------------")
   struct ai_type *deftype = classic_ai_get_self();
 
   dai_unit_move_or_attack(deftype, punit, ptile, path, step);
+
+  log_normal("-----------finish cai_unit_move_or_attack-------------")
+
 }
 
 /**********************************************************************//**
@@ -598,11 +601,20 @@ static void assistant_cai_auto_settler_run(struct player *pplayer,
 static void assistant_cai_unit_move_or_attack(struct unit *punit, struct tile *ptile,
                                     struct pf_path *path, int step)
 {
-  log_normal("-----------cai_unit_move_or_attack-------------")
+  log_normal("-----------start assistant_cai_unit_move_or_attack-------------")
   struct ai_type *deftype = classic_ai_get_self();
 
   assistant_dai_unit_move_or_attack(deftype, punit, ptile, path, step);
+  log_normal("-----------finish assistant_cai_unit_move_or_attack-------------")
 }
+
+static void assistant_cai_do_first_activities(struct player *pplayer)
+{
+  log_normal("------------assistant_cai_do_first_activities------------")
+  struct ai_type *deftype = classic_ai_get_self();
+  assistant_dai_do_first_activities(deftype, pplayer);
+}
+
 
 /**********************************************************************//**
   Setup player ai_funcs function pointers.
@@ -720,6 +732,7 @@ bool fc_ai_classic_setup(struct ai_type *ai)
   /* assistant */
   ai->funcs.assistant_unit_move = assistant_cai_unit_move_or_attack;
   ai->funcs.assistant_settler_run = assistant_cai_auto_settler_run;
+  ai->funcs.assistant_first_activities = assistant_cai_do_first_activities;
 
   return TRUE;
 }

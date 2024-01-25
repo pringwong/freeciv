@@ -404,6 +404,7 @@ static void game_defaults(bool keep_ruleset_value)
     game.server.savepalace        = GAME_DEFAULT_SAVEPALACE;
     game.server.scorelog          = GAME_DEFAULT_SCORELOG;
     game.server.end_victory   = GAME_DEFAULT_END_VICTORY;
+    game.server.open_assistant   = GAME_DEFAULT_OPEN_ASSISTANT;
     game.server.advisor   = GAME_DEFAULT_ADVISOR;
     game.server.scoreloglevel     = GAME_DEFAULT_SCORELOGLEVEL;
     game.server.scoreturn         = GAME_DEFAULT_SCORETURN - 1;

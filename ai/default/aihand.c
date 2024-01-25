@@ -763,6 +763,8 @@ void dai_do_first_activities(struct ai_type *ait, struct player *pplayer)
   flush_packets(); /* AIs can be such spammers... */
 }
 
+
+
 /*************************************************************************//**
   Activities to be done by AI _after_ human turn.  Here we respond to
   dangers created by human and AI opposition by ordering defenders in
@@ -790,4 +792,28 @@ void dai_do_last_activities(struct ai_type *ait, struct player *pplayer)
   dai_manage_spaceship(pplayer);
 
   TIMING_LOG(AIT_ALL, TIMER_STOP);
+}
+
+
+/*************************************************************************//**
+  Activities to be done by AI assistant _before_ human turn.  Here we just move the
+  units intelligently.
+*****************************************************************************/
+void assistant_dai_do_first_activities(struct ai_type *ait, struct player *pplayer)
+{
+  log_normal("----------assistant_dai_do_first_activities----------------")
+  TIMING_LOG(AIT_ALL, TIMER_START);
+  //dai_assess_danger_player(ait, pplayer, &(wld.map));
+  /* TODO: Make assess_danger save information on what is threatening
+   * us and make dai_manage_units and Co act upon this information, trying
+   * to eliminate the source of danger */
+
+  TIMING_LOG(AIT_UNITS, TIMER_START);
+  assistant_dai_manage_units(ait, pplayer);
+  TIMING_LOG(AIT_UNITS, TIMER_STOP);
+  /* STOP.  Everything else is at end of turn. */
+
+  TIMING_LOG(AIT_ALL, TIMER_STOP);
+
+  //flush_packets(); /* AIs can be such spammers... */
 }

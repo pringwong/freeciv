@@ -321,6 +321,7 @@ struct ai_type
                         struct settlermap *state);
     void (*assistant_unit_move)(struct unit *punit, struct tile *ptile,
                       struct pf_path *path, int step);
+    void (*assistant_first_activities)(struct player *pplayer);
 
     /* These are here reserving space for future optional callbacks.
      * This way we don't need to change the mandatory capability of the AI module

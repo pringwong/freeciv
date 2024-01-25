@@ -137,22 +137,30 @@ static bool explorer_goto(struct unit *punit, struct tile *ptile)
   pft_fill_unit_parameter(&parameter, nmap, punit);
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   parameter.get_TB = explorer_tb;
+
+  log_normal("======== adv_avoid_risks ===========")
+
   adv_avoid_risks(&parameter, &risk_cost, punit, NORMAL_STACKING_FEARFULNESS);
 
   /* Show the destination in the client */
   punit->goto_tile = ptile;
 
   UNIT_LOG(LOG_DEBUG, punit, "explorer_goto to %d,%d", TILE_XY(ptile));
+  log_normal("======== pf_map_new ===========")
 
   pfm = pf_map_new(&parameter);
   path = pf_map_path(pfm, ptile);
+  log_normal("======== adv_follow_path ===========")
 
   if (path != NULL) {
     alive = adv_follow_path(punit, path, ptile);
     pf_path_destroy(path);
   }
+  log_normal("======== pf_map_destroy ===========")
 
   pf_map_destroy(pfm);
+
+  log_normal("======== finish explorer_goto ===========")
 
   return alive;
 }
@@ -420,6 +428,213 @@ enum unit_move_result manage_auto_explorer(struct unit *punit)
   }
 #undef DIST_FACTOR
 }
+
+/* assistant */
+
+/**********************************************************************//**
+  Constrained goto using player_may_explore().
+**************************************************************************/
+static bool assistant_explorer_goto(struct unit *punit, struct tile *ptile)
+{
+  log_normal("-----------assistant_explorer_goto------------")
+  struct pf_parameter parameter;
+  struct adv_risk_cost risk_cost;
+  bool alive = TRUE;
+  struct pf_map *pfm;
+  struct pf_path *path;
+  struct player *pplayer = unit_owner(punit);
+  const struct civ_map *nmap = &(wld.map);
+
+  pft_fill_unit_parameter(&parameter, nmap, punit);
+  parameter.omniscience = !has_handicap(pplayer, H_MAP);
+  parameter.get_TB = explorer_tb;
+
+  log_normal("======== adv_avoid_risks ===========")
+
+  adv_avoid_risks(&parameter, &risk_cost, punit, NORMAL_STACKING_FEARFULNESS);
+
+  /* Show the destination in the client */
+  punit->goto_tile = ptile;
+
+  UNIT_LOG(LOG_DEBUG, punit, "explorer_goto to %d,%d", TILE_XY(ptile));
+  log_normal("======== pf_map_new ===========")
+
+  pfm = pf_map_new(&parameter);
+  path = pf_map_path(pfm, ptile);
+  log_normal("======== adv_follow_path ===========")
+
+  if (path != NULL) {
+    alive = assistant_adv_follow_path(punit, path, ptile);
+    pf_path_destroy(path);
+  }
+  log_normal("======== pf_map_destroy ===========")
+
+  pf_map_destroy(pfm);
+
+  log_normal("======== finish explorer_goto ===========")
+
+  return alive;
+}
+
+/**********************************************************************//**
+  Handle eXplore mode of a unit (explorers are always in eXplore mode
+  for AI) - explores unknown territory, finds huts.
+
+  MR_OK: there is more territory to be explored.
+  MR_DEATH: unit died.
+  MR_PAUSE: unit cannot explore further now.
+  Other results: unit cannot explore further.
+**************************************************************************/
+enum unit_move_result assistant_manage_auto_explorer(struct unit *punit)
+{
+  log_normal("----------assistant_manage_auto_explorer-------------")
+  struct player *pplayer = unit_owner(punit);
+  /* Loop prevention */
+  const struct tile *init_tile = unit_tile(punit);
+
+  /* The log of the want of the most desirable tile, 
+   * given nearby water, cities, etc. */
+  double log_most_desirable = -FC_INFINITY;
+
+  /* The maximum distance we are willing to search. It decreases depending
+   * on the want of already discovered targets. It is defined as the distance
+   * at which a tile with BEST_POSSIBLE_SCORE would have to be found in
+   * order to be better than the current most_desirable tile. */
+  int max_dist = FC_INFINITY;
+
+  /* Coordinates of most desirable tile. Initialized to make
+   * compiler happy. Also MC to the best tile. */
+  struct tile *best_tile = NULL;
+  int best_MC = FC_INFINITY;
+
+  /* Path-finding stuff */
+  struct pf_map *pfm;
+  struct pf_parameter parameter;
+
+  const struct civ_map *nmap = &(wld.map);
+
+#define DIST_FACTOR   0.6
+
+  double logDF = log(DIST_FACTOR);
+  double logBPS = log(BEST_POSSIBLE_SCORE);
+
+  UNIT_LOG(LOG_DEBUG, punit, "auto-exploring.");
+
+  if (!is_human(pplayer) && unit_has_type_flag(punit, UTYF_GAMELOSS)) {
+    UNIT_LOG(LOG_DEBUG, punit, "exploration too dangerous!");
+
+    return MR_BAD_ACTIVITY; /* too dangerous */
+  }
+
+  TIMING_LOG(AIT_EXPLORER, TIMER_START);
+
+  pft_fill_unit_parameter(&parameter, nmap, punit);
+  parameter.get_TB = no_fights_or_unknown;
+  /* When exploring, even AI should pretend to not cheat. */
+  parameter.omniscience = FALSE;
+
+  pfm = pf_map_new(&parameter);
+  pf_map_move_costs_iterate(pfm, ptile, move_cost, FALSE) {
+    int desirable;
+    double log_desirable;
+
+    /* Our callback should insure this. */
+    fc_assert_action(map_is_known(ptile, pplayer), continue);
+
+    desirable = explorer_desirable(ptile, pplayer, punit);
+
+    if (desirable <= 0) { 
+      /* Totally non-desirable tile. No need to continue. */
+      continue;
+    }
+
+    /* take the natural log */
+    log_desirable = log(desirable);
+
+    /* Ok, the way we calculate goodness is taking the base tile 
+     * desirability amortized by the time it takes to get there:
+     *
+     *     goodness = desirability * DIST_FACTOR^total_MC
+     *
+     * TODO: JDS notes that we should really make our exponential
+     *       term dimensionless by dividing by move_rate.
+     * 
+     * We want to truncate our search, so we calculate a maximum distance
+     * that we would move to find the tile with the most possible desirability
+     * (BEST_POSSIBLE_SCORE) that gives us the same goodness as the current
+     * tile position we're looking at. Therefore we have:
+     *
+     *   desirability * DIST_FACTOR^total_MC = 
+     *               BEST_POSSIBLE_SCORE * DIST_FACTOR^(max distance)      (1)
+     *
+     * and then solve for max_dist. We only want to change max_dist when
+     * we find a tile that has better goodness than we've found so far; hence
+     * the conditional below. It looks cryptic, but all it is is testing which
+     * of two goodnesses is bigger after taking the natural log of both sides.
+     */
+    if (log_desirable + move_cost * logDF 
+	> log_most_desirable + best_MC * logDF) {
+
+      log_most_desirable = log_desirable;
+      best_tile = ptile;
+      best_MC = move_cost;
+
+      /* take the natural log and solve equation (1) above.  We round
+       * max_dist down (is this correct?). */
+      max_dist = best_MC + (log_most_desirable - logBPS)/logDF;
+    }
+
+    /* let's not go further than this */
+    if (move_cost > max_dist) {
+      break;
+    }
+  } pf_map_move_costs_iterate_end;
+  pf_map_destroy(pfm);
+
+  TIMING_LOG(AIT_EXPLORER, TIMER_STOP);
+
+  /* Go to the best tile found. */
+  if (best_tile != NULL) {
+    /* TODO: read the path off the map we made.  Then we can make a path 
+     * which goes beside the unknown, with a good EC callback... */
+    enum override_bool allow = NO_OVERRIDE;
+
+    if (is_ai(pplayer)) {
+      CALL_PLR_AI_FUNC(want_to_explore, pplayer, punit, best_tile, &allow);
+    }
+    if (allow == OVERRIDE_FALSE) {
+      UNIT_LOG(LOG_DEBUG, punit, "not allowed to explore");
+      return MR_NOT_ALLOWED;
+    }
+    if (!assistant_explorer_goto(punit, best_tile)) {
+      /* Died?  Strange... */
+      return MR_DEATH;
+    }
+    UNIT_LOG(LOG_DEBUG, punit, "exploration GOTO succeeded");
+    if (punit->moves_left > 0) {
+      /* We can still move on... */
+      if (!same_pos(init_tile, unit_tile(punit))) {
+        /* At least we moved (and maybe even got to where we wanted).  
+         * Let's do more exploring. 
+         * (Checking only whether our position changed is unsafe: can allow
+         * yoyoing on a RR) */
+	UNIT_LOG(LOG_DEBUG, punit, "recursively exploring...");
+	return assistant_manage_auto_explorer(punit);          
+      } else {
+	UNIT_LOG(LOG_DEBUG, punit, "done exploring (all finished)...");
+	return MR_PAUSE;
+      }
+    }
+    UNIT_LOG(LOG_DEBUG, punit, "done exploring (but more go go)...");
+    return MR_OK;
+  } else {
+    /* Didn't find anything. */
+    UNIT_LOG(LOG_DEBUG, punit, "failed to explore more");
+    return MR_BAD_MAP_POSITION;
+  }
+#undef DIST_FACTOR
+}
+
 
 #undef SAME_TER_SCORE
 #undef DIFF_TER_SCORE

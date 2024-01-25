@@ -1822,6 +1822,7 @@ static void ocean_to_land_fix_rivers(struct tile *ptile)
 static void terrain_change_bounce_single_unit(struct unit *punit,
                                               struct tile *from)
 {
+  log_normal("==== terrain_change_bounce_single_unit")
   bool unit_alive = TRUE;
 
   /* Look for a nearby safe tile */

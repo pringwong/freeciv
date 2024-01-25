@@ -50,8 +50,8 @@ int adv_unit_def_rating_basic(const struct unit *punit);
 int adv_unit_def_rating_basic_squared(const struct unit *punit);
 
 /* Assistant */
-bool assistant_follow_path(struct unit *punit, struct pf_path *path,
+bool assistant_adv_follow_path(struct unit *punit, struct pf_path *path,
                      struct tile *ptile);
-bool assistant_unit_execute_path(struct unit *punit, struct pf_path *path);
+bool assistant_adv_unit_execute_path(struct unit *punit, struct pf_path *path);
 
 #endif   /* FC__ADVGOTO_H */

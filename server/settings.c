@@ -2930,7 +2930,7 @@ static struct setting settings[] = {
            N_("If enabled, the human player will follow the agent policy."),
            NULL, NULL, GAME_DEFAULT_ADVISOR)
 
-  GEN_BITWISE("revealmap", game.server.revealmap, SSET_GAME_INIT,
+    GEN_BITWISE("revealmap", game.server.revealmap, SSET_GAME_INIT,
               SSET_MILITARY, SSET_SITUATIONAL, ALLOW_NONE, ALLOW_BASIC,
               N_("Reveal the map"),
               /* TRANS: The strings between double quotes are also translated

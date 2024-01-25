@@ -133,7 +133,7 @@ extern bool force_end_of_sniff;
 
 extern ActionQueue* human_assistant;
 
-void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id);
+void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id, char* js_data);
 void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char* js_data);
 
 

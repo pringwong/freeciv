@@ -169,4 +169,11 @@ bool dai_unit_can_strike_my_unit(const struct unit *attacker,
 void dai_switch_to_explore(struct ai_type *ait, struct unit *punit,
                            struct tile *target, enum override_bool *allow);
 
+/* assistant */
+void assistant_dai_manage_units(struct ai_type *ait, struct player *pplayer); 
+void assistant_dai_manage_unit(struct ai_type *ait, struct player *pplayer,
+                     struct unit *punit);
+void assistant_dai_manage_military(struct ai_type *ait, struct player *pplayer,
+                         struct unit *punit);
+
 #endif /* FC__DAIUNIT_H */

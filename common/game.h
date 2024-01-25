@@ -221,6 +221,7 @@ struct civ_game {
       char orig_game_version[MAX_LEN_NAME];
       bool scorelog;
       bool end_victory;
+      bool open_assistant;
       bool advisor;
       enum scorelog_level scoreloglevel;
       char scorefile[MAX_LEN_PATH];
@@ -590,6 +591,7 @@ static inline bool is_ruleset_compat_mode(void)
 
 #define GAME_DEFAULT_AUTO_AI_TOGGLE  FALSE
 #define GAME_DEFAULT_END_VICTORY  TRUE
+#define GAME_DEFAULT_OPEN_ASSISTANT  FALSE
 #define GAME_DEFAULT_ADVISOR  FALSE
 
 #define GAME_DEFAULT_TIMEOUT         0

@@ -3908,6 +3908,7 @@ static bool is_action_enabled(const action_id wanted_action,
   possible = is_action_possible(wanted_action, actor, target, target_extra,
                                 TRUE, actor_home);
 
+
   if (possible != TRI_YES) {
     /* This context is omniscient. Should be yes or no. */
     fc_assert_msg(possible != TRI_MAYBE,
@@ -4206,10 +4207,12 @@ is_action_enabled_unit_on_tile_full(const action_id wanted_action,
 
   fc_assert_ret_val(actor_tile, FALSE);
 
+
   if (!unit_can_do_action(actor_unit, wanted_action)) {
     /* No point in continuing. */
     return FALSE;
   }
+
 
   return is_action_enabled(wanted_action,
                            &(const struct req_context) {
@@ -4239,10 +4242,11 @@ bool is_action_enabled_unit_on_tile(const action_id wanted_action,
                                     const struct tile *target_tile,
                                     const struct extra_type *target_extra)
 {
-  return is_action_enabled_unit_on_tile_full(wanted_action, actor_unit,
+  bool res = is_action_enabled_unit_on_tile_full(wanted_action, actor_unit,
                                              unit_home(actor_unit),
                                              unit_tile(actor_unit),
                                              target_tile, target_extra);
+  return res;
 }
 
 /**********************************************************************//**

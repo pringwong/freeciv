@@ -312,6 +312,7 @@ bool can_unit_attack_tile(const struct unit *punit,
                           const struct action *paction,
                           const struct tile *dest_tile)
 {
+  log_normal("==can_unit_attack_tile===")
   return (can_player_attack_tile(unit_owner(punit), dest_tile)
           && (unit_attack_units_at_tile_result(punit, paction, dest_tile)
               == ATT_OK));

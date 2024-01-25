@@ -15,6 +15,8 @@
 #include <fc_config.h>
 #endif
 
+#include <jansson.h>
+
 /* utility */
 #include "astring.h"
 #include "bitvector.h"
@@ -1062,10 +1064,6 @@ bool can_unit_do_activity_targeted_at(const struct unit *punit,
 static void set_unit_activity_internal(struct unit *punit,
                                        enum unit_activity new_activity)
 {
-  // if (is_assistant(punit->owner)){
-  //   helper_set_unit_activities(punit->owner, punit->id, new_activity);
-  //   return;
-  // }
 
   log_normal("set_unit_activity_internal: %s, %d, %d", punit->owner->name, punit->id, new_activity)
   punit->activity = new_activity;
