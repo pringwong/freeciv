@@ -833,12 +833,16 @@ int get_player_bonus(const struct player *pplayer,
     return 0;
   }
 
-  return get_target_bonus_effects(NULL,
+  int bonus = 0;
+
+  bonus = get_target_bonus_effects(NULL,
                                   &(const struct req_context) {
                                     .player = pplayer,
                                   },
                                   NULL,
                                   effect_type);
+
+  return bonus;
 }
 
 /**********************************************************************//**

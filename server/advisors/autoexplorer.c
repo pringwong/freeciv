@@ -125,7 +125,6 @@ static enum tile_behavior explorer_tb(const struct tile *ptile,
 **************************************************************************/
 static bool explorer_goto(struct unit *punit, struct tile *ptile)
 {
-  log_normal("-----------explorer_goto------------")
   struct pf_parameter parameter;
   struct adv_risk_cost risk_cost;
   bool alive = TRUE;
@@ -138,7 +137,6 @@ static bool explorer_goto(struct unit *punit, struct tile *ptile)
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   parameter.get_TB = explorer_tb;
 
-  log_normal("======== adv_avoid_risks ===========")
 
   adv_avoid_risks(&parameter, &risk_cost, punit, NORMAL_STACKING_FEARFULNESS);
 
@@ -146,21 +144,17 @@ static bool explorer_goto(struct unit *punit, struct tile *ptile)
   punit->goto_tile = ptile;
 
   UNIT_LOG(LOG_DEBUG, punit, "explorer_goto to %d,%d", TILE_XY(ptile));
-  log_normal("======== pf_map_new ===========")
 
   pfm = pf_map_new(&parameter);
   path = pf_map_path(pfm, ptile);
-  log_normal("======== adv_follow_path ===========")
 
   if (path != NULL) {
     alive = adv_follow_path(punit, path, ptile);
     pf_path_destroy(path);
   }
-  log_normal("======== pf_map_destroy ===========")
 
   pf_map_destroy(pfm);
 
-  log_normal("======== finish explorer_goto ===========")
 
   return alive;
 }
@@ -281,7 +275,6 @@ static int explorer_desirable(struct tile *ptile, struct player *pplayer,
 **************************************************************************/
 enum unit_move_result manage_auto_explorer(struct unit *punit)
 {
-  log_normal("----------manage_auto_explorer-------------")
   struct player *pplayer = unit_owner(punit);
   /* Loop prevention */
   const struct tile *init_tile = unit_tile(punit);
@@ -436,7 +429,6 @@ enum unit_move_result manage_auto_explorer(struct unit *punit)
 **************************************************************************/
 static bool assistant_explorer_goto(struct unit *punit, struct tile *ptile)
 {
-  log_normal("-----------assistant_explorer_goto------------")
   struct pf_parameter parameter;
   struct adv_risk_cost risk_cost;
   bool alive = TRUE;
@@ -449,7 +441,6 @@ static bool assistant_explorer_goto(struct unit *punit, struct tile *ptile)
   parameter.omniscience = !has_handicap(pplayer, H_MAP);
   parameter.get_TB = explorer_tb;
 
-  log_normal("======== adv_avoid_risks ===========")
 
   adv_avoid_risks(&parameter, &risk_cost, punit, NORMAL_STACKING_FEARFULNESS);
 
@@ -457,21 +448,17 @@ static bool assistant_explorer_goto(struct unit *punit, struct tile *ptile)
   punit->goto_tile = ptile;
 
   UNIT_LOG(LOG_DEBUG, punit, "explorer_goto to %d,%d", TILE_XY(ptile));
-  log_normal("======== pf_map_new ===========")
 
   pfm = pf_map_new(&parameter);
   path = pf_map_path(pfm, ptile);
-  log_normal("======== adv_follow_path ===========")
 
   if (path != NULL) {
     alive = assistant_adv_follow_path(punit, path, ptile);
     pf_path_destroy(path);
   }
-  log_normal("======== pf_map_destroy ===========")
 
   pf_map_destroy(pfm);
 
-  log_normal("======== finish explorer_goto ===========")
 
   return alive;
 }
@@ -487,7 +474,6 @@ static bool assistant_explorer_goto(struct unit *punit, struct tile *ptile)
 **************************************************************************/
 enum unit_move_result assistant_manage_auto_explorer(struct unit *punit)
 {
-  log_normal("----------assistant_manage_auto_explorer-------------")
   struct player *pplayer = unit_owner(punit);
   /* Loop prevention */
   const struct tile *init_tile = unit_tile(punit);

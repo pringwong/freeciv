@@ -308,6 +308,7 @@ static int dai_goldequiv_clause(struct ai_type *ait,
                                 bool verbose,
                                 enum diplstate_type ds_after)
 {
+  log_normal("debug: dai_goldequiv_clause")
   bool close_here;
   struct ai_plr *ai;
   int worth = 0; /* worth for pplayer of what aplayer gives */
@@ -473,7 +474,6 @@ static int dai_goldequiv_clause(struct ai_type *ait,
   break;
 
   case CLAUSE_GOLD:
-    log_normal("CLAUSE_GOLD")
 
     if (give) {
       worth -= pclause->value;
@@ -526,7 +526,6 @@ static int dai_goldequiv_clause(struct ai_type *ait,
     break;
 
   case CLAUSE_CITY: {
-    log_normal("CLAUSE_CITY")
 
     struct city *offer = city_list_find_number(pclause->from->cities,
                                                pclause->value);
@@ -581,7 +580,6 @@ static int dai_goldequiv_clause(struct ai_type *ait,
     break;
 
   case CLAUSE_EMBASSY:
-    log_normal("CLAUSE_EMBASSY")
     if (give) {
       if (ds_after == DS_ALLIANCE) {
         worth = 0;
@@ -716,7 +714,7 @@ void dai_treaty_evaluate(struct ai_type *ait, struct player *pplayer,
               total_balance);
   }
 
-  script_server_signal_emit("diplomacy_clause_worth", human_worth, ai_worth);
+  script_server_signal_emit("diplomacy_clause_worth", pplayer, aplayer, human_worth, ai_worth);
 }
 
 /******************************************************************//**
@@ -968,7 +966,7 @@ static int dai_war_desire(struct ai_type *ait, struct player *pplayer,
 static void dai_diplomacy_suggest(struct player *pplayer, 
 				  struct player *aplayer,
 				  enum clause_type what,
-                                  bool to_pplayer,
+          bool to_pplayer,
 				  int value)
 {
   if (!could_meet_with_player(pplayer, aplayer)) {
@@ -976,6 +974,8 @@ static void dai_diplomacy_suggest(struct player *pplayer,
              player_name(pplayer), player_name(aplayer));
     return;
   }
+
+  log_normal("helper dilpmacy suggest: %d, %d", what, value)
 
   handle_diplomacy_init_meeting_req(pplayer, player_number(aplayer));
   handle_diplomacy_create_clause_req(pplayer, player_number(aplayer),
@@ -1582,6 +1582,7 @@ static void war_countdown(struct ai_type *ait, struct player *pplayer,
 **********************************************************************/
 void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
 {
+  log_normal("----start dai_diplomacy_actions ------")
   struct ai_plr *ai = dai_plr_data_get(ait, pplayer, NULL);
   bool need_targets = TRUE;
   struct player *target = NULL;
@@ -1949,6 +1950,8 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
       }
     }
   } players_iterate_alive_end;
+
+  log_normal("----finish dai_diplomacy_actions ------")
 }
 
 /******************************************************************//**

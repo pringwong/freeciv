@@ -1001,8 +1001,8 @@ static void update_unit_activity(struct unit *punit)
           if (pcity != NULL){
             city_refresh_from_main_map(pcity, NULL);
             city_tile_weight_score_calculation(pcity);
-            script_server_signal_emit("action_finished_worker_build", pcity);
           }
+          script_server_signal_emit("action_finished_worker_build", pcity, punit, activity);
         }
       }
     }
@@ -1023,8 +1023,8 @@ static void update_unit_activity(struct unit *punit)
           if (pcity != NULL){
             city_refresh_from_main_map(pcity, NULL);
             city_tile_weight_score_calculation(pcity);
-            script_server_signal_emit("action_finished_worker_build", pcity);
           }
+          script_server_signal_emit("action_finished_worker_build", pcity, punit, activity);
         }
       }
 
@@ -1063,8 +1063,8 @@ static void update_unit_activity(struct unit *punit)
         if (pcity != NULL){
           city_refresh_from_main_map(pcity, NULL);
           city_tile_weight_score_calculation(pcity);
-          script_server_signal_emit("action_finished_worker_build", pcity);
         }
+        script_server_signal_emit("action_finished_worker_build", pcity, punit, activity);
       }
     }
   }

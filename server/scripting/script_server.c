@@ -558,11 +558,12 @@ static void script_server_signals_create(void)
   luascript_signal_create(fcl_main, "action_started_worker_build", 1, 
                           API_TYPE_CITY);
 
-  luascript_signal_create(fcl_main, "action_finished_worker_build", 1, 
-                          API_TYPE_CITY);
+  luascript_signal_create(fcl_main, "action_finished_worker_build", 3, 
+                          API_TYPE_CITY, API_TYPE_UNIT, API_TYPE_INT);
   luascript_signal_create(fcl_main, "game_started", 1, API_TYPE_PLAYER);
   luascript_signal_create(fcl_main, "game_ended", 1, API_TYPE_PLAYER);
-  luascript_signal_create(fcl_main, "diplomacy_clause_worth", 2, API_TYPE_INT, API_TYPE_INT);
+  luascript_signal_create(fcl_main, "diplomacy_clause_worth", 4, API_TYPE_PLAYER, 
+              API_TYPE_PLAYER, API_TYPE_INT, API_TYPE_INT);
 
   luascript_signal_create(fcl_main, "action_finished_unit_tile", 4,
                           API_TYPE_ACTION, API_TYPE_BOOL,

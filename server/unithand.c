@@ -6574,7 +6574,6 @@ bool unit_activity_handling(struct unit *punit,
                             enum unit_activity new_activity)
 {
   /* Must specify target for ACTIVITY_BASE */
-  log_normal("----------start unit_activity_handling-------------- %d", game.server.open_assistant)
   fc_assert_ret_val(new_activity != ACTIVITY_BASE
                     && new_activity != ACTIVITY_GEN_ROAD, FALSE);
 
@@ -6584,12 +6583,9 @@ bool unit_activity_handling(struct unit *punit,
     /* Assume untargeted pillaging if no target specified */
     unit_activity_handling_targeted(punit, new_activity, &target);
   } else if (can_unit_do_activity(punit, new_activity)) {
-    log_normal("after can_unit_do_activity")
     free_unit_orders(punit);
     unit_activity_internal(punit, new_activity);
   }
-  log_normal("----------finish unit_activity_handling-------------- %d", game.server.open_assistant)
-  log_normal("====== unit activity: %d, %d", punit->id, punit->activity)
 
   return TRUE;
 }
@@ -6603,8 +6599,6 @@ bool unit_activity_handling(struct unit *punit,
 static bool unit_activity_internal(struct unit *punit,
                                    enum unit_activity new_activity)
 {
-  log_normal("----------unit_activity_internal-------- %d", game.server.open_assistant)
-
   if (!can_unit_do_activity(punit, new_activity)) {
     return FALSE;
   }

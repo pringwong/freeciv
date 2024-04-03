@@ -47,7 +47,6 @@ static bool adv_unit_move(struct unit *punit, struct tile *ptile);
 bool adv_follow_path(struct unit *punit, struct pf_path *path,
                      struct tile *ptile)
 {
-  log_normal("-------------- adv_follow_path ---------------")
   struct tile *old_tile = punit->goto_tile;
   enum unit_activity activity = punit->activity;
   struct extra_type *tgt = punit->activity_target;
@@ -81,7 +80,6 @@ bool adv_follow_path(struct unit *punit, struct pf_path *path,
 **************************************************************************/
 bool adv_unit_execute_path(struct unit *punit, struct pf_path *path)
 {
-  log_normal("------------start adv_unit_execute_path---------------")
   const bool is_plr_ai = is_ai(unit_owner(punit));
   int i;
 
@@ -124,7 +122,6 @@ bool adv_unit_execute_path(struct unit *punit, struct pf_path *path)
      */
 
     if (is_plr_ai) {
-      log_normal("-----is_plr_ai unit_move -----------")
       CALL_PLR_AI_FUNC(unit_move, unit_owner(punit), punit, ptile, path, i);
     } else {
       (void) adv_unit_move(punit, ptile);
@@ -139,7 +136,6 @@ bool adv_unit_execute_path(struct unit *punit, struct pf_path *path)
       return TRUE;
     }
   }
-  log_normal("------------finish adv_unit_execute_path---------------")
 
   return TRUE;
 }
@@ -609,7 +605,6 @@ void adv_avoid_risks(struct pf_parameter *parameter,
 bool assistant_adv_follow_path(struct unit *punit, struct pf_path *path,
                      struct tile *ptile)
 {
-  log_normal("-------------- start assistant_adv_follow_path ---------------")
   struct tile *old_tile = punit->goto_tile;
   enum unit_activity activity = punit->activity;
   struct extra_type *tgt = punit->activity_target;
@@ -629,13 +624,11 @@ bool assistant_adv_follow_path(struct unit *punit, struct pf_path *path,
     }
     punit->goto_tile = old_tile; /* May be NULL. */
   }
-  log_normal("-------------- finish assistant_adv_follow_path ---------------")
   return alive;
 }
 
 bool assistant_adv_unit_execute_path(struct unit *punit, struct pf_path *path)
 {
-  log_normal("------------start assistant_adv_unit_execute_path---------------")
   int i;
 
   /* We start with i = 1 for i = 0 is our present position */
@@ -679,7 +672,6 @@ bool assistant_adv_unit_execute_path(struct unit *punit, struct pf_path *path)
       return TRUE;
     }
   }
-  log_normal("------------finish assistant_adv_unit_execute_path---------------")
 
   return TRUE;
 }

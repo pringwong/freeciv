@@ -700,9 +700,7 @@ void dai_unit_new_task(struct ai_type *ait, struct unit *punit,
   }
 
   unit_data->task = task;
-  log_normal("--------unit_data->assistant_task val--------%d", unit_data->assistant_task)
   if (task > 0){
-    log_normal("--------unit_data->assistant_task suc--------%d", task)
     unit_data->assistant_task = task;
   }
 
@@ -1460,9 +1458,6 @@ bool assistant_gothere(struct ai_type *ait, struct player *pplayer,
 {
   log_normal("------------assistant_gothere-----------")
   CHECK_UNIT(punit);
-
-  log_normal("--------Nowhere to go-----------%d,%d", same_pos(dest_tile, unit_tile(punit)),
-        punit->moves_left <= 0)
 
   if (same_pos(dest_tile, unit_tile(punit))) {
     /* Nowhere to go */

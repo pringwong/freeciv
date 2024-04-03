@@ -1769,7 +1769,6 @@ static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
   if (!dai_military_rampage(punit, RAMPAGE_ANYTHING, RAMPAGE_ANYTHING)) {
     return; /* we died */
   }
-  log_normal("-------- punit->moves_left -------")
 
   if (punit->moves_left <= 0) {
     return;
@@ -1781,11 +1780,9 @@ static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
     struct pf_path *path;
     struct unit *ferryboat;
 
-    log_normal("-------- find_something_to_kill -------")
     /* Then find enemies the hard way */
     find_something_to_kill(ait, pplayer, punit, &dest_tile, &path,
                            NULL, &ferryboat, NULL, NULL);
-    log_normal("-------- can_unit_attack_tile -------")
     if (!same_pos(unit_tile(punit), dest_tile)) {
       if (!is_tiles_adjacent(unit_tile(punit), dest_tile)
           || !can_unit_attack_tile(punit, NULL, dest_tile)) {
@@ -1794,14 +1791,12 @@ static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
          * and on a ferry. This fixes the problem (usually). */
         UNIT_LOG(LOG_DEBUG, punit, "mil att gothere -> (%d, %d)",
                  TILE_XY(dest_tile));
-        log_normal("----- before unit_activity_handling ------")
 
         /* Set ACTIVITY_GOTO more permanently than just inside
          * adv_follow_path(). This way other units will know we're
          * on our way even if we don't reach target yet. */
         punit->goto_tile = dest_tile;
         unit_activity_handling(punit, ACTIVITY_GOTO);
-        log_normal("----- before adv_follow_path ------")
         if (NULL != path && !adv_follow_path(punit, path, dest_tile)) {
           /* Died. */
           pf_path_destroy(path);
@@ -1858,7 +1853,6 @@ static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
       ct = 0;
     }
     pf_path_destroy(path);
-    log_normal("----- while ------")
     ct--; /* infinite loops from railroads must be stopped */
   } while (punit->moves_left > 0 && ct > 0);
 
@@ -1866,18 +1860,15 @@ static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
   if (punit->moves_left == 0) {
     return;
   }
-  log_normal("------------find_nearest_safe_city-----------")
   pcity = find_nearest_safe_city(punit);
   if (pcity != NULL
       && (dai_is_ferry(punit, ait)
           || punit->hp < unit_type_get(punit)->hp * 0.50)) { /* WAG */
     /* Go somewhere safe */
-    log_normal("-=====----dai_unit_goto------====--")
     UNIT_LOG(LOG_DEBUG, punit, "heading to nearest safe house.");
     (void) dai_unit_goto(ait, punit, pcity->tile);
   } else if (!is_barbarian(pplayer)) {
     /* Nothing else to do, so try exploring. */
-    log_normal("-=====----manage_auto_explorer------====--")
     switch (manage_auto_explorer(punit)) {
     case MR_DEATH:
       /* don't use punit! */
@@ -1892,7 +1883,6 @@ static void dai_military_attack(struct ai_type *ait, struct player *pplayer,
   } else {
     /* You can still have some moves left here, but barbarians should
        not sit helplessly, but advance towards nearest known enemy city */
-    log_normal("-=====----dai_military_attack_barbarian------====--")
     UNIT_LOG(LOG_DEBUG, punit, "attack: barbarian");
     dai_military_attack_barbarian(ait, pplayer, punit);
   }
@@ -2229,7 +2219,6 @@ static bool dai_caravan_can_trade_cities_diff_cont(struct player *pplayer,
 **************************************************************************/
 static bool search_homecity_for_caravan(struct ai_type *ait, struct unit *punit)
 {
-  log_normal("---------------search_homecity_for_caravan-----------------")
   struct city *nearest = NULL;
   int min_dist = FC_INFINITY;
   struct tile *current_loc = unit_tile(punit);
@@ -2524,7 +2513,6 @@ void dai_manage_military(struct ai_type *ait, struct player *pplayer,
   TIMING_LOG(AIT_HUNTER, TIMER_START);
   /* Try hunting with this unit */
   if (dai_hunter_qualify(pplayer, punit)) {
-    log_normal("=====dai_hunter_qualify=====")
     int result, sanity = punit->id;
 
     UNIT_LOG(LOGLEVEL_HUNT, punit, "is qualified as hunter");
@@ -2545,14 +2533,12 @@ void dai_manage_military(struct ai_type *ait, struct player *pplayer,
       dai_unit_new_task(ait, punit, AIUNIT_NONE, NULL);
     }
   } else if (unit_data->task == AIUNIT_HUNTER) {
-    log_normal("=====dai_unit_new_task=====")
     dai_unit_new_task(ait, punit, AIUNIT_NONE, NULL);
   }
   TIMING_LOG(AIT_HUNTER, TIMER_STOP);
 
   /* Do we have a specific job for this unit? If not, we default
    * to attack. */
-  log_normal("=====dai_military_findjob=====")
   dai_military_findjob(ait, pplayer, punit);
 
   switch (unit_data->task) {
@@ -2567,7 +2553,6 @@ void dai_manage_military(struct ai_type *ait, struct player *pplayer,
     break;
   case AIUNIT_ATTACK:
   case AIUNIT_NONE:
-    log_normal("=====AIUNIT_ATTACK=====")
     TIMING_LOG(AIT_ATTACK, TIMER_START);
     dai_military_attack(ait, pplayer, punit);
     TIMING_LOG(AIT_ATTACK, TIMER_STOP);
@@ -2578,7 +2563,6 @@ void dai_manage_military(struct ai_type *ait, struct player *pplayer,
     TIMING_LOG(AIT_BODYGUARD, TIMER_STOP);
     break;
   case AIUNIT_EXPLORE:
-    log_normal("=====AIUNIT_EXPLORE=====")
     switch (manage_auto_explorer(punit)) {
     case MR_DEATH:
       /* don't use punit! */
@@ -2593,7 +2577,6 @@ void dai_manage_military(struct ai_type *ait, struct player *pplayer,
     def_ai_unit_data(punit, ait)->done = (punit->moves_left <= 0);
     break;
   case AIUNIT_RECOVER:
-    log_normal("=====AIUNIT_RECOVER=====")
     TIMING_LOG(AIT_RECOVER, TIMER_START);
     dai_manage_hitpoint_recovery(ait, punit);
     TIMING_LOG(AIT_RECOVER, TIMER_STOP);
@@ -2604,7 +2587,6 @@ void dai_manage_military(struct ai_type *ait, struct player *pplayer,
   default:
     fc_assert(FALSE);
   }
-  log_normal("=====unit_activity_handling=====")
 
   /* If we are still alive, either sentry or fortify. */
   if ((punit = game_unit_by_number(id))) {
@@ -2701,7 +2683,6 @@ void dai_manage_unit(struct ai_type *ait, struct player *pplayer,
     return;
   } else if (unit_has_type_flag(punit, UTYF_SETTLERS)
              || unit_is_cityfounder(punit)) {
-    log_normal("===dai_manage_settler===")
     dai_manage_settler(ait, pplayer, punit);
     return;
   } else if (unit_can_do_action(punit, ACTION_TRADE_ROUTE)
@@ -2740,14 +2721,11 @@ void dai_manage_unit(struct ai_type *ait, struct player *pplayer,
   } else if (!is_special_unit(punit)) {
     TIMING_LOG(AIT_MILITARY, TIMER_START);
     UNIT_LOG(LOG_DEBUG, punit, "recruit unit for the military");
-    log_normal("===started dai_manage_military===")
     dai_manage_military(ait, pplayer, punit); 
     TIMING_LOG(AIT_MILITARY, TIMER_STOP);
-    log_normal("===finished dai_manage_military===")
     return;
   } else {
     /* what else could this be? -- Syela */
-    log_normal("===started manage_auto_explorer===")
     switch (manage_auto_explorer(punit)) {
     case MR_DEATH:
       /* don't use punit! */
@@ -2762,7 +2740,6 @@ void dai_manage_unit(struct ai_type *ait, struct player *pplayer,
       break;
     };
     return;
-    log_normal("===finished manage_auto_explorer===")
   }
   log_normal("----------- finished dai_manage_unit--------------")
 }
@@ -3821,7 +3798,6 @@ static void assistant_dai_military_attack(struct ai_type *ait, struct player *pp
   if (!dai_military_rampage(punit, RAMPAGE_ANYTHING, RAMPAGE_ANYTHING)) {
     return; /* we died */
   }
-  log_normal("-------- punit->moves_left -------")
 
   if (punit->moves_left <= 0) {
     return;
@@ -3833,11 +3809,9 @@ static void assistant_dai_military_attack(struct ai_type *ait, struct player *pp
     struct pf_path *path;
     struct unit *ferryboat;
 
-    log_normal("-------- find_something_to_kill -------")
     /* Then find enemies the hard way */
     find_something_to_kill(ait, pplayer, punit, &dest_tile, &path,
                            NULL, &ferryboat, NULL, NULL);
-    log_normal("-------- can_unit_attack_tile -------")
     if (!same_pos(unit_tile(punit), dest_tile)) {
       if (!is_tiles_adjacent(unit_tile(punit), dest_tile)
           || !can_unit_attack_tile(punit, NULL, dest_tile)) {
@@ -3846,14 +3820,12 @@ static void assistant_dai_military_attack(struct ai_type *ait, struct player *pp
          * and on a ferry. This fixes the problem (usually). */
         UNIT_LOG(LOG_DEBUG, punit, "mil att gothere -> (%d, %d)",
                  TILE_XY(dest_tile));
-        log_normal("----- before unit_activity_handling ------")
 
         /* Set ACTIVITY_GOTO more permanently than just inside
          * adv_follow_path(). This way other units will know we're
          * on our way even if we don't reach target yet. */
         punit->goto_tile = dest_tile;
         unit_activity_handling(punit, ACTIVITY_GOTO);
-        log_normal("----- before adv_follow_path ------")
         if (NULL != path && !adv_follow_path(punit, path, dest_tile)) {
           /* Died. */
           pf_path_destroy(path);
@@ -3881,7 +3853,6 @@ static void assistant_dai_military_attack(struct ai_type *ait, struct player *pp
           break;
         }
       }
-      log_normal("-------- is_tiles_adjacent -------")
 
       if (is_tiles_adjacent(unit_tile(punit), dest_tile)) {
         /* Close combat. fstk sometimes want us to attack an adjacent
@@ -3910,7 +3881,6 @@ static void assistant_dai_military_attack(struct ai_type *ait, struct player *pp
       ct = 0;
     }
     pf_path_destroy(path);
-    log_normal("----- while ------")
     ct--; /* infinite loops from railroads must be stopped */
   } while (punit->moves_left > 0 && ct > 0);
 
@@ -3918,18 +3888,15 @@ static void assistant_dai_military_attack(struct ai_type *ait, struct player *pp
   if (punit->moves_left == 0) {
     return;
   }
-  log_normal("------------find_nearest_safe_city-----------")
   pcity = find_nearest_safe_city(punit);
   if (pcity != NULL
       && (dai_is_ferry(punit, ait)
           || punit->hp < unit_type_get(punit)->hp * 0.50)) { /* WAG */
     /* Go somewhere safe */
-    log_normal("-=====----dai_unit_goto------====--")
     UNIT_LOG(LOG_DEBUG, punit, "heading to nearest safe house.");
     (void) dai_unit_goto(ait, punit, pcity->tile);
   } else if (!is_barbarian(pplayer)) {
     /* Nothing else to do, so try exploring. */
-    log_normal("-=====----manage_auto_explorer------====--")
     switch (assistant_manage_auto_explorer(punit)) {
     case MR_DEATH:
       /* don't use punit! */
@@ -3944,7 +3911,6 @@ static void assistant_dai_military_attack(struct ai_type *ait, struct player *pp
   } else {
     /* You can still have some moves left here, but barbarians should
        not sit helplessly, but advance towards nearest known enemy city */
-    log_normal("-=====----dai_military_attack_barbarian------====--")
     UNIT_LOG(LOG_DEBUG, punit, "attack: barbarian");
     dai_military_attack_barbarian(ait, pplayer, punit);
   }

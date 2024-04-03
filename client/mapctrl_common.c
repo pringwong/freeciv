@@ -486,7 +486,6 @@ void upgrade_canvas_clipboard(void)
 **************************************************************************/
 void release_goto_button(int canvas_x, int canvas_y)
 {
-  log_normal("================release_goto_button=================")
   struct tile *ptile = canvas_pos_to_tile(canvas_x, canvas_y);
 
   if (keyboardless_goto_active

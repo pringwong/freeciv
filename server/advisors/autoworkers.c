@@ -920,7 +920,6 @@ void auto_settler_findwork(const struct civ_map *nmap,
                            struct settlermap *state,
                            int recursion)
 {
-  log_normal("----auto_settler_findwork-----")
   struct worker_task *best_task;
   enum unit_activity best_act;
   struct tile *best_tile = NULL;
@@ -1013,7 +1012,6 @@ bool auto_settler_setup_work(const struct civ_map *nmap,
                              struct extra_type **best_target,
                              int completion_time)
 {
-  log_normal("----------auto_settler_setup_work------------")
   /* Run the "autosettler" program */
   if (punit->server.adv->task == AUT_AUTO_SETTLER) {
     struct pf_map *pfm = NULL;
@@ -1161,8 +1159,6 @@ bool adv_settler_safe_tile(const struct civ_map *nmap,
 **************************************************************************/
 void auto_settlers_player(struct player *pplayer) 
 {
-  log_normal("------------auto_settlers_player-------------")
-  log_normal("is_ai(pplayer): %d", is_ai(pplayer))
   struct settlermap *state;
   const struct civ_map *nmap = &(wld.map);
 
@@ -1234,7 +1230,6 @@ void auto_settlers_player(struct player *pplayer)
         if (!is_ai(pplayer)) {
           auto_settler_findwork(nmap, pplayer, punit, state, 0);
         } else {
-          log_normal("------------settler_run-------------")
           CALL_PLR_AI_FUNC(settler_run, pplayer, pplayer, punit, state);
         }
       }
@@ -1272,11 +1267,9 @@ void adv_unit_new_task(struct unit *punit, enum adv_unit_task task,
     return;
   }
 
-  log_normal("debug advisor task: %d", task);
 
   punit->server.adv->task = task;
   if (assistant){
-    log_normal("debug advisor assistant_task: %d", task)
     punit->server.adv->assistant_task = task;
   }
 
@@ -1350,8 +1343,6 @@ bool auto_settlers_speculate_can_act_at(const struct unit *punit,
 **************************************************************************/
 void assistant_settlers_player(struct player *pplayer) 
 {
-  log_normal("------------assistant_settlers_player-------------")
-  log_normal("is_ai(pplayer): %d", is_ai(pplayer))
   struct settlermap *state;
   const struct civ_map *nmap = &(wld.map);
 

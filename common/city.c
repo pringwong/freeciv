@@ -2423,13 +2423,11 @@ void city_tile_weight_score_calculation(struct city *pcity)
     trade_score = (pcity->tile_cache[city_tile_index]).output[O_TRADE];
     score_array[city_tile_index] = food_score * TRI_FOOD_WEIGHT + shield_score * TRI_SHIELD_WEIGHT + trade_score * TRI_TRADE_WEIGHT;
     total_tiles_resource_indic += score_array[city_tile_index];
-    log_normal("base j=%d, score=%f", city_tile_index, score_array[city_tile_index])
   } city_tile_iterate_index_end;
 
   quick_sort(score_array, 0, tiles_cnt-1);
 
   for (int j=0; j<CRI_TOP_N; j++){
-    log_normal("top n j=%d, score=%f", j, score_array[j])
     city_resource_indic += score_array[j];
   }
 

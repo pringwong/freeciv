@@ -793,14 +793,17 @@ static void initialize_metrics(void)
 static void do_have_contacts_effect(void)
 {
   phase_players_iterate(pplayer) {
+    log_normal("start do_have_contacts_effect: %s", player_name(pplayer))
     if (get_player_bonus(pplayer, EFT_HAVE_CONTACTS) > 0) {
       players_iterate(pother) {
-	/* Note this gives pplayer contact with pother, but doesn't give
-	 * pother contact with pplayer.  This may cause problems in other
-	 * parts of the code if we're not careful. */
-	make_contact(pplayer, pother, NULL);
+        /* Note this gives pplayer contact with pother, but doesn't give
+        * pother contact with pplayer.  This may cause problems in other
+        * parts of the code if we're not careful. */
+        log_normal("do_have_contacts_effect: %s, %s", player_name(pplayer), player_name(pother))
+	      make_contact(pplayer, pother, NULL);
       } players_iterate_end;
     }
+    log_normal("finish do_have_contacts_effect: %s", player_name(pplayer))
   } phase_players_iterate_end;
 }
 
@@ -1407,7 +1410,6 @@ static void begin_phase(bool is_new_phase)
         CALL_PLR_AI_FUNC(diplomacy_actions, pplayer, pplayer);
       }
     } phase_players_iterate_end;
-    log_normal("======= random_movements ========")
 
     /* Spend random movement move points before any controlled actions */
     phase_players_iterate(pplayer) {
@@ -1547,7 +1549,9 @@ static void end_phase(void)
     } unit_list_iterate_end;
   } players_iterate_end;
   phase_players_iterate(pplayer) {
+    log_normal("========= start auto_settlers_player %s =========", player_name(pplayer))
     auto_settlers_player(pplayer);
+    log_normal("========= finished auto_settlers_player =========")
     if (is_ai(pplayer)) {
       CALL_PLR_AI_FUNC(last_activities, pplayer, pplayer);
     }
@@ -1609,6 +1613,7 @@ static void end_phase(void)
   flush_packets();  /* to curb major city spam */
 
   do_reveal_effects();
+  log_normal("End-phase: do_have_contacts_effect")
   do_have_contacts_effect();
   do_border_vision_effect();
 
@@ -3637,6 +3642,7 @@ void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char
 
     putNode(human_assistant, packet);
 }
+
 
 /**********************************************************************//**
   Server main loop.

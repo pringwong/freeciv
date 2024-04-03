@@ -38,7 +38,6 @@ extern "C" {
 
 #define unit_list_iterate_safe(unitlist, _unit)                         \
 {                                                                       \
-  log_normal("------unit_list_iterate_safe start----------")            \
   struct unit_list *_unit##_ul = unitlist;                              \
   int _unit##_size = unit_list_size(_unit##_ul);                        \
                                                                         \
@@ -63,7 +62,6 @@ extern "C" {
       }                                                                 \
     }                                                                   \
   }                                                                     \
-  log_normal("------unit_list_iterate_safe end----------")              \
 }
 
 struct unit *unit_list_find(const struct unit_list *punitlist, int unit_id);
