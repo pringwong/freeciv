@@ -3930,7 +3930,7 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   int dir8 = get_direction_for_step(&(wld.map), psrctile, pdesttile);
 
   /** assistant*/
-  if (game.server.open_assistant){
+  if (game.server.open_assistant && is_human(pplayer)){
     helper_set_unit_action(pplayer, punit->id, ACTION_UNIT_MOVE, dir8, tile_index(pdesttile));
     punit->assist_moves_left = MAX(0, punit->assist_moves_left - move_cost);
     //unit_tile_set(punit, pdesttile);
