@@ -41,7 +41,6 @@
 
 /* ai */
 #include "handicaps.h"
-#include "daiplayer.h"
 
 #include "autoexplorer.h"
 
