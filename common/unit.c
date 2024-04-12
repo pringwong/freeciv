@@ -1247,6 +1247,10 @@ struct player *unit_nationality(const struct unit *punit)
 void unit_tile_set(struct unit *punit, struct tile *ptile)
 {
   fc_assert_ret(NULL != punit);
+  if (game.server.open_assistant && !openUnitTile){
+    punit->assist_tile = ptile;
+    return;
+  }
   punit->tile = ptile;
 }
 

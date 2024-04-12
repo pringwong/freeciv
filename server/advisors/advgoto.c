@@ -263,10 +263,13 @@ static bool adv_unit_move(struct unit *punit, struct tile *ptile)
                                                 unit_type_get(punit)));
       from_tile = unit_tile(punit);
       punit->tile = ptile;
+      punit->assist_tile = ptile;
 
       mcost += unit_pays_mp_for_action(paction, punit);
 
       punit->tile = from_tile;
+      punit->assist_tile = from_tile;
+
     }
 
     if (punit->moves_left <= mcost

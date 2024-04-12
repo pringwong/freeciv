@@ -17,6 +17,7 @@
 
 #include <stdarg.h>
 #include <string.h>
+#include <jansson.h>
 
 /* utility */
 #include "fcintl.h"
@@ -308,7 +309,6 @@ static int dai_goldequiv_clause(struct ai_type *ait,
                                 bool verbose,
                                 enum diplstate_type ds_after)
 {
-  log_normal("debug: dai_goldequiv_clause")
   bool close_here;
   struct ai_plr *ai;
   int worth = 0; /* worth for pplayer of what aplayer gives */
@@ -621,6 +621,11 @@ static int dai_goldequiv_clause(struct ai_type *ait,
     dai_data_phase_finished(ait, pplayer);
   }
 
+  if (game.server.open_assistant && is_assistant(pplayer) && is_ai(aplayer)) {
+    helper_set_player_diplomacy(pplayer, aplayer, pclause->type, "");
+    return worth;
+  }
+
   diplomacy_verbose = TRUE;
   return worth;
 }
@@ -767,7 +772,6 @@ static void dai_treaty_react(struct ai_type *ait,
 void dai_treaty_accepted(struct ai_type *ait, struct player *pplayer,
                          struct player *aplayer, struct Treaty *ptreaty)
 {
-  log_normal("route to dai_treaty_accepted")
   bool close_here;
   struct ai_plr *ai;
   int total_balance = 0;
@@ -1592,7 +1596,9 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
   float aggr_sr;
   float max_sr;
 
-  fc_assert_ret(is_ai(pplayer));
+  if (!game.server.open_assistant){
+    fc_assert_ret(is_ai(pplayer));
+  }
 
   if (!pplayer->is_alive) {
     return;
@@ -1744,7 +1750,7 @@ void dai_diplomacy_actions(struct ai_type *ait, struct player *pplayer)
 
       if (!aplayer->is_alive) {
         adip->countdown = -1;
-        continue;
+        continue; /* No need to declare war if we are dead */             
       }
       if (adip->countdown > 0) {
         adip->countdown--;

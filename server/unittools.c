@@ -476,7 +476,6 @@ static void do_upgrade_effects(struct player *pplayer)
 **************************************************************************/
 void player_restore_units(struct player *pplayer)
 {
-  log_normal("--------------player_restore_units------------")
   const struct civ_map *nmap = &(wld.map);
 
   /* 1) get Leonardo out of the way first: */
@@ -3928,7 +3927,17 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   saved_id = punit->id;
   psrctile = unit_tile(punit);
 
+  int dir8 = get_direction_for_step(&(wld.map), psrctile, pdesttile);
+
+  /** assistant*/
+  if (game.server.open_assistant){
+    helper_set_unit_action(pplayer, punit->id, ACTION_UNIT_MOVE, dir8, tile_index(pdesttile));
+    punit->assist_moves_left = MAX(0, punit->assist_moves_left - move_cost);
+    //unit_tile_set(punit, pdesttile);
+    return true;
+  }
   adj = base_get_direction_for_step(&(wld.map), psrctile, pdesttile, &facing);
+
 
   conn_list_do_buffer(game.est_connections);
 

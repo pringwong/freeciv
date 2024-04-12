@@ -612,7 +612,7 @@ void update_city_activities(struct player *pplayer)
     int i = 0, r;
 
     city_list_iterate(pplayer->cities, pcity) {
-
+      
       citizens_convert(pcity);
 
       /* Cancel trade routes that cannot exist any more */
@@ -2401,7 +2401,7 @@ static const struct impr_type *building_upgrades_to(struct city *pcity,
 **************************************************************************/
 static void upgrade_building_prod(struct city *pcity)
 {
-  const struct impr_type *producing = pcity->production.value.building;
+    const struct impr_type *producing = pcity->production.value.building;
   const struct impr_type *upgrading = building_upgrades_to(pcity, producing);
 
   if (upgrading && can_city_build_improvement_now(pcity, upgrading)) {

@@ -3329,7 +3329,7 @@ void unit_do_action(struct player *pplayer,
                     const action_id action_type)
 {
   log_normal("------------unit_do_action----------")
-  if (is_ai(pplayer)){
+  if (is_ai(pplayer) || game.server.open_assistant){
     log_normal("debug unit_do_action player_id: %s, actor_id: %d, action_type: %d, target_id: %d, sub_tgt_id: %d", pplayer->name, actor_id, action_type, target_id, sub_tgt_id);
     unit_perform_action(pplayer, actor_id, target_id,
                         sub_tgt_id, name, action_type, ACT_REQ_PLAYER);
@@ -6716,19 +6716,6 @@ void handle_ai_player_action_request(struct player *pplayer,
                                      const struct packet_ai_player_action_request *packet)
 {
 
-  /* 
-  call AI function
-  */
-  //// settler move
-  // build city
-
-  // struct settlermap *state;
-
-  // unit_list_iterate_safe(pplayer->units, punit) {
-  //   CALL_PLR_AI_FUNC(settler_run, pplayer, pplayer, punit, state);
-  // }unit_list_iterate_safe_end;
-
-  // unit_move
   notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
               /* TRANS: There can be several winners listed */
               _("Prepare handle_ai_player_action_request"));
@@ -6745,6 +6732,28 @@ void handle_ai_player_action_request(struct player *pplayer,
     struct player *aplayer = conn_get_player(pconn);
       if (aplayer == pplayer) {
         send_packet_ai_player_action_response(pconn, &reciv_packet);
+      }
+  } conn_list_iterate_end;
+
+}
+
+void handle_ai_player_action_batch_request(struct player *pplayer,
+                                     const struct packet_ai_player_action_batch_request *packet)
+{
+
+  notify_conn(game.est_connections, NULL, E_CHAT_MSG, ftc_server,
+              /* TRANS: There can be several winners listed */
+              _("Prepare handle_ai_player_action_batch_request"));
+
+  struct packet_ai_player_action_batch_response reciv_packet = getBatch(pplayer, human_assistant, packet->batch_size);
+
+  /*
+  send response
+  */
+  conn_list_iterate(game.est_connections, pconn) {
+    struct player *aplayer = conn_get_player(pconn);
+      if (aplayer == pplayer) {
+        send_packet_ai_player_action_batch_response(pconn, &reciv_packet);
       }
   } conn_list_iterate_end;
 

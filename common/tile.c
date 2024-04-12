@@ -28,6 +28,7 @@
 #include "road.h"
 #include "unit.h"
 #include "unitlist.h"
+#include "aihelper.h"
 
 #include "tile.h"
 
@@ -100,11 +101,23 @@ struct city *tile_worked(const struct tile *ptile)
 }
 #endif
 
+
 /************************************************************************//**
   Set the city/worker on the tile (may be NULL).
 ****************************************************************************/
 void tile_set_worked(struct tile *ptile, struct city *pcity)
 {
+  if ((pcity != NULL && is_assistant(pcity->owner)) || 
+      (ptile->worked != NULL && ptile->worked->owner != NULL && is_assistant(ptile->worked->owner))){
+    if (openTileWorked && game.server.open_assistant){
+      helper_set_tile_worked(ptile, pcity);
+      return;
+    }
+    if (game.server.open_assistant){
+      return;
+    }
+  }
+
   ptile->worked = pcity;
 }
 

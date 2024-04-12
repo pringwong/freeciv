@@ -155,10 +155,13 @@ struct unit {
   int fuel;
 
   struct tile *goto_tile; /* May be NULL. */
-  struct tile *assistant_goto_tile; /* May be NULL. */
 
   enum unit_activity activity;
+
+  struct tile *assistant_goto_tile; /* May be NULL. */
   enum unit_activity assistant_activity;
+  struct tile *assist_tile;
+  int assist_moves_left;
 
   /* The amount of work that has been done on the current activity.  This
    * is counted in turns but is multiplied by ACTIVITY_FACTOR (which allows
@@ -386,6 +389,8 @@ int get_transporter_capacity(const struct unit *punit);
 #define is_unit_homeless(_pu_) (punit->homecity == IDENTITY_NUMBER_ZERO)
 #define unit_owner(_pu) ((_pu)->owner)
 #define unit_tile(_pu) ((_pu)->tile)
+#define assist_unit_tile(_pu) ((_pu)->assist_tile)
+
 struct player *unit_nationality(const struct unit *punit);
 void unit_tile_set(struct unit *punit, struct tile *ptile);
 

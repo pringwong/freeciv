@@ -1976,5 +1976,5 @@ bool player_has_flag(const struct player *pplayer, enum plr_flag_id flag)
 ***********************************************************************/
 bool player_is_ai_or_assistant(const struct player *pplayer, enum plr_flag_id flag)
 {
-  return BV_ISSET(pplayer->flags, flag) || is_assistant(pplayer);
+  return BV_ISSET(pplayer->flags, flag) || game.server.open_assistant;
 }

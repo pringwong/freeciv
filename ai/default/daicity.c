@@ -181,7 +181,7 @@ void dont_want_tech_obsoleting_impr(struct ai_type *ait,
                                     const struct impr_type *pimprove,
                                     adv_want building_want)
 {
-  requirement_vector_iterate(&pimprove->obsolete_by, pobs) {
+    requirement_vector_iterate(&pimprove->obsolete_by, pobs) {
     if (pobs->source.kind == VUT_ADVANCE && pobs->present) {
       want_tech_for_improvement_effect(ait, pplayer, pcity, pimprove,
                                        pobs->source.value.advance,

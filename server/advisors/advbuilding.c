@@ -69,7 +69,7 @@ static void calculate_city_clusters(struct player *pplayer)
   if (num_role_units(action_id_get_role(ACTION_HELP_WONDER)) == 0) {
     return; /* Ruleset has no help wonder unit */
   }
-
+  
   punittype = best_role_unit_for_player(pplayer,
       action_id_get_role(ACTION_HELP_WONDER));
 
@@ -77,13 +77,13 @@ static void calculate_city_clusters(struct player *pplayer)
     /* Simulate future unit */
     punittype = get_role_unit(action_id_get_role(ACTION_HELP_WONDER), 0);
   }
-
+  
   fc_assert_msg(utype_can_do_action(punittype, ACTION_HELP_WONDER),
                 "Non existence of wonder helper unit not caught");
 
   ghost = unit_virtual_create(pplayer, NULL, punittype, 0);
   range = unit_move_rate(ghost) * 4;
-
+  
   city_list_iterate(pplayer->cities, pcity) {
     struct pf_parameter parameter;
     struct pf_map *pfm;
@@ -110,7 +110,7 @@ static void calculate_city_clusters(struct player *pplayer)
 
     pf_map_destroy(pfm);
   } city_list_iterate_end;
-
+  
   unit_virtual_destroy(ghost);
 }
 
@@ -174,17 +174,17 @@ static void ba_human_wants(struct player *pplayer, struct city *wonder_city)
 **************************************************************************/
 void building_advisor(struct player *pplayer)
 {
-  struct adv_data *adv = adv_data_get(pplayer, NULL);
+    struct adv_data *adv = adv_data_get(pplayer, NULL);
   struct city *wonder_city = game_city_by_number(adv->wonder_city);
 
   CALL_FUNC_EACH_AI(build_adv_init, pplayer);
-
+  
   if (wonder_city && city_owner(wonder_city) != pplayer) {
     /* We lost it to the enemy! */
     adv->wonder_city = 0;
     wonder_city = NULL;
   }
-
+  
   /* Preliminary analysis - find our Wonder City. Also check if it
    * is sane to continue building the wonder in it. If either does
    * not check out, make a Wonder City. */
@@ -196,15 +196,15 @@ void building_advisor(struct player *pplayer)
                                       wonder_city->production.value.building)
    || !is_improvement_productive(wonder_city,
                                  wonder_city->production.value.building)) {
-    /* Find a new wonder city! */
+        /* Find a new wonder city! */
     int best_candidate_value = 0;
     struct city *best_candidate = NULL;
     /* Whether ruleset has a help wonder unit type */
     bool has_help =
         (num_role_units(action_id_get_role(ACTION_HELP_WONDER)) > 0);
-
+    
     calculate_city_clusters(pplayer);
-
+    
     city_list_iterate(pplayer->cities, pcity) {
       int value = pcity->surplus[O_SHIELD];
       Continent_id place = tile_continent(pcity->tile);
@@ -251,7 +251,7 @@ void building_advisor(struct player *pplayer)
         best_candidate_value = value;
       }
     } city_list_iterate_end;
-
+    
     if (best_candidate) {
       CITY_LOG(LOG_DEBUG, best_candidate, "chosen as wonder-city!");
       adv->wonder_city = best_candidate->id;

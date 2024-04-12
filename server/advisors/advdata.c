@@ -260,7 +260,7 @@ bool is_adv_data_phase_open(struct player *pplayer)
 **************************************************************************/
 bool adv_data_phase_init(struct player *pplayer, bool is_new_phase)
 {
-  struct adv_data *adv = pplayer->server.adv;
+    struct adv_data *adv = pplayer->server.adv;
   bool danger_of_nukes;
   action_id nuke_actions[MAX_NUM_ACTIONS];
 
@@ -553,7 +553,7 @@ bool adv_data_phase_init(struct player *pplayer, bool is_new_phase)
   TIMING_LOG(AIT_GOVERNMENT, TIMER_START);
   adv_best_government(pplayer);
   TIMING_LOG(AIT_GOVERNMENT, TIMER_STOP);
-
+  
   return TRUE;
 }
 
@@ -975,7 +975,7 @@ adv_want adv_gov_player_bonus_want(struct player *pplayer)
 **************************************************************************/
 void adv_best_government(struct player *pplayer)
 {
-  struct adv_data *adv = adv_data_get(pplayer, NULL);
+    struct adv_data *adv = adv_data_get(pplayer, NULL);
   int best_val = 0;
   struct government *current_gov = government_of_player(pplayer);
 
@@ -1004,6 +1004,8 @@ void adv_best_government(struct player *pplayer)
       }
 
       CALL_PLR_AI_FUNC(gov_value, pplayer, pplayer, gov, &val, &override);
+
+      openTileWorked = false;
 
       if (!override) {
         int dist;

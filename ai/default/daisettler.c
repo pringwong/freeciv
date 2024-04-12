@@ -888,7 +888,9 @@ static struct cityresult *find_best_city_placement(struct ai_type *ait,
   struct cityresult *cr1 = NULL, *cr2 = NULL;
   const struct civ_map *nmap = &(wld.map);
 
-  fc_assert_ret_val(is_ai(pplayer), NULL);
+  if (!game.server.open_assistant){
+    fc_assert_ret_val(is_ai(pplayer), NULL);
+  }
   /* Only virtual units may use virtual boats: */
   fc_assert_ret_val(0 == punit->id || !use_virt_boat, NULL);
 
@@ -1019,7 +1021,6 @@ void dai_auto_settler_run(struct ai_type *ait, const struct civ_map *nmap,
                           struct player *pplayer,
                           struct unit *punit, struct settlermap *state)
 {
-  log_normal("------------dai_auto_settler_run--------------")
   adv_want best_impr = 0; /* Value of best terrain improvement we can do */
   enum unit_activity best_act;
   struct extra_type *best_target;
@@ -1371,7 +1372,9 @@ void contemplate_new_city(struct ai_type *ait, struct city *pcity)
     }
   } else {
     /* Always failing */
-    fc_assert_ret(is_ai(pplayer));
+    if (!is_assistant(pplayer)){
+      fc_assert_ret(is_ai(pplayer));
+    }
   }
 
   unit_virtual_destroy(virtualunit);

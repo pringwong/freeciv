@@ -1650,11 +1650,16 @@ void handle_unit_info(const struct packet_unit_info *packet)
 void handle_ai_player_action_response(const struct packet_ai_player_action_response *packet)
 {
   log_normal("-------------------started handle_ai_player_action_response--------------------");
-  log_normal("packet: {actor_id:%d,action_type:%d,js_data:%s}", packet->actor_id, packet->action_type, packet->js_data);
-  // call ai
+  log_normal("packet: {actor_id:%d, action_type:%d, js_data:%s}", packet->actor_id, packet->action_type, packet->js_data);
   log_normal("-------------------finished handle_ai_player_action_response--------------------");
 }
 
+void handle_ai_player_action_batch_response(const struct packet_ai_player_action_batch_response *packet)
+{
+  log_normal("-------------------started handle_ai_player_action_batch_response--------------------");
+  log_normal("packet: {player:%d, batch_data:%s}", packet->playerno, packet->batch_data);
+  log_normal("-------------------finished handle_ai_player_action_batch_response--------------------");
+}
 /**********************************************************************//**
   Request that the player makes a decision for the specified unit unless
   it may be an automatic decision. In that case check if one of the auto
@@ -3112,7 +3117,7 @@ void handle_spaceship_info(const struct packet_spaceship_info *p)
 ****************************************************************************/
 void handle_tile_info(const struct packet_tile_info *packet)
 {
-  enum known_type new_known;
+    enum known_type new_known;
   enum known_type old_known;
   bool known_changed = FALSE;
   bool tile_changed = FALSE;

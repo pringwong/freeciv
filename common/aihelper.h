@@ -18,6 +18,9 @@ struct packet_ai_player_action_response;
 
 typedef struct ActionNode{
     int actor_id;
+    int actor_type;
+    int target_playerno;
+    int target_actor_id;
     int action_type;
     int playerno;
     int unique_id;
@@ -38,11 +41,25 @@ void putNode(ActionQueue *action_q, struct packet_ai_player_action_response data
 struct packet_ai_player_action_response getPacket(ActionNode *node);
 
 struct packet_ai_player_action_response getNode(struct player *pplayer, ActionQueue *action_q);
-
-struct packet_ai_player_action_response load_packet(struct player *pplayer, int actor_id, int action_type, char* js_data);
+struct packet_ai_player_action_batch_response getBatch(struct player *pplayer, ActionQueue *action_q, int batch_size);
+struct packet_ai_player_action_response load_packet(struct player *pplayer, 
+                                                  int actor_id, 
+                                                  int action_type, 
+                                                  char* js_data, 
+                                                  int actor_type, 
+                                                  struct player *aplayer,
+                                                  int target_actor_id);
 void send_ai_assistant_message(struct player *pplayer, 
                                struct packet_ai_player_action_response packet);
 bool is_assistant(const struct player *pplayer);
+void helper_set_tile_worked(struct tile *ptile, struct city *pcity);
+void helper_set_city_production(struct player *pplayer, struct city *pcity, int kind, const char* name);
+void helper_set_unit_action(struct player *pplayer, int unit_id, int act_id, int dir8, int target_id);
+void jsonizeQueue(ActionQueue *action_q, size_t n, char **json_str);
+extern ActionQueue* human_assistant;
+extern bool openTileWorked;
+extern bool openUnitTile;
+struct unit *copyUnit(const struct unit *source);
 
 #ifdef __cplusplus
 }

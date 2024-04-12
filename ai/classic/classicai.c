@@ -450,7 +450,6 @@ static void cai_switch_to_explore(struct unit *punit, struct tile *target,
 **************************************************************************/
 static void cai_do_first_activities(struct player *pplayer)
 {
-  log_normal("------------cai_do_first_activities------------")
   struct ai_type *deftype = classic_ai_get_self();
 
   dai_do_first_activities(deftype, pplayer);

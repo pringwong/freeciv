@@ -2690,7 +2690,7 @@ bool give_distorted_map(struct player *pfrom, struct player *pto,
 **************************************************************************/
 void tile_change_side_effects(struct tile *ptile, bool refresh_city)
 {
-  struct city *pcity = ptile->worked;
+    struct city *pcity = ptile->worked;
 
   /* Check the unit activities. */
   unit_activities_cancel_all_illegal_area(ptile);

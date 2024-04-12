@@ -2457,10 +2457,23 @@ end
 
 PACKET_AI_PLAYER_ACTION_RESPONSE = 262; sc, lsend
   PLAYER playerno;
+  PLAYER target_playerno;
+  UNIT target_actor_id;
+  UINT8 actor_type;
   UNIT actor_id;
   ACTION_ID action_type;
   UINT8 unique_id;
   ESTRING js_data[512];
+end
+
+PACKET_AI_PLAYER_ACTION_BATCH_REQUEST = 263; cs
+  PLAYER playerno;
+  UINT8 batch_size;
+end
+
+PACKET_AI_PLAYER_ACTION_BATCH_RESPONSE = 264; sc, lsend
+  PLAYER playerno;
+  ESTRING batch_data[2048];
 end
 
 # Used for showing GOTO path in web client.

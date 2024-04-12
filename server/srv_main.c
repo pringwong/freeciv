@@ -88,6 +88,7 @@
 #include "unitlist.h"
 #include "version.h"
 #include "victory.h"
+#include "aihelper.h"
 
 /* server */
 #include "aiiface.h"
@@ -187,7 +188,6 @@ static enum server_states civserver_state = S_S_INITIAL;
    force end-of-tick asap
 */
 bool force_end_of_sniff;
-ActionQueue* human_assistant;
 
 bv_id identity_numbers_used;
 
@@ -198,6 +198,8 @@ static bool has_been_srv_init = FALSE;
 static struct timer *eot_timer = NULL;
 
 static struct timer *between_turns = NULL;
+
+//ActionQueue* human_assistant = NULL;
 
 /**********************************************************************//**
   Initialize the game seed. This may safely be called multiple times.
@@ -1404,9 +1406,9 @@ static void begin_phase(bool is_new_phase)
 
   if (is_new_phase) {
     /* Try to avoid hiding events under a diplomacy dialog */
-    log_normal("======= diplomacy_actions ========")
     phase_players_iterate(pplayer) {
       if (is_ai(pplayer)) {
+        log_normal("======= diplomacy_actions ======== %s", player_name(pplayer))
         CALL_PLR_AI_FUNC(diplomacy_actions, pplayer, pplayer);
       }
     } phase_players_iterate_end;
@@ -1478,6 +1480,7 @@ static void end_phase(void)
    * following parts get wiped out before the user gets a chance to
    * see them.  --dwp
    */
+
   phase_players_iterate(pplayer) {
     /* Unlike the start_phase packet we only send this one to the active
      * player. */
@@ -1548,13 +1551,15 @@ static void end_phase(void)
       CALL_PLR_AI_FUNC(unit_turn_end, pplayer, punit);
     } unit_list_iterate_end;
   } players_iterate_end;
+
+
   phase_players_iterate(pplayer) {
-    log_normal("========= start auto_settlers_player %s =========", player_name(pplayer))
     auto_settlers_player(pplayer);
-    log_normal("========= finished auto_settlers_player =========")
+
     if (is_ai(pplayer)) {
       CALL_PLR_AI_FUNC(last_activities, pplayer, pplayer);
     }
+
   } phase_players_iterate_end;
 
   /* Refresh cities */
@@ -1576,7 +1581,10 @@ static void end_phase(void)
       /* Died */
       continue;
     }
+
+    log_normal("---- start srv main player_restore_units ----")
     player_restore_units(pplayer);
+    log_normal("---- debug1 srv main player_restore_units ----")
 
     /* If player finished spaceship parts last turn already, and didn't place them
      * during this entire turn, autoplace them. */
@@ -1584,15 +1592,22 @@ static void end_phase(void)
       notify_player(pplayer, NULL, E_SPACESHIP, ftc_server,
                     _("Automatically placed spaceship parts that were still not placed."));
     }
+    log_normal("---- debug2 srv main player_restore_units ----")
 
     old_gold = pplayer->economic.gold;
     pplayer->server.bulbs_last_turn = 0;
 
     update_city_activities(pplayer);
+
+    log_normal("---- debug3 srv main player_restore_units ----")
+
     update_national_activities(pplayer, old_gold);
+
+    log_normal("---- debug3 srv main player_restore_units ----")
 
     city_refresh_queue_processing();
     city_thaw_workers_queue();
+    log_normal("---- debug4 srv main player_restore_units ----")
 
     flush_packets();
   } alive_phase_players_iterate_end;
@@ -1640,9 +1655,27 @@ static void assistant_player(void){
   log_normal("-------started assistant_player------")
   phase_players_iterate(pplayer) {
     if (is_assistant(pplayer)){
+
       game.server.open_assistant = TRUE;
-      assistant_settlers_player(pplayer);
-      CALL_PLR_AI_FUNC(assistant_first_activities, pplayer, pplayer);
+
+      // Unit:Acitivity
+      //log_normal("@@@@@@@@@@ start assistant_first_activities @@@@@@@@@@")
+      //CALL_PLR_AI_FUNC(assistant_first_activities, pplayer, pplayer);
+      //log_normal("@@@@@@@@@@ finish assistant_first_activities @@@@@@@@@@")
+
+      // Unit:Settlers
+      //assistant_settlers_player(pplayer);
+      auto_settlers_player(pplayer);
+
+      // CALL_PLR_AI_FUNC(first_activities, pplayer, pplayer);
+      // Player:Diplomacy
+      CALL_PLR_AI_FUNC(diplomacy_actions, pplayer, pplayer);
+
+      // Player:Tech, City
+      openUnitTile = true;
+      CALL_PLR_AI_FUNC(last_activities, pplayer, pplayer);
+      openUnitTile = false;
+
       game.server.open_assistant = FALSE;
       log_normal("========== finish assistant first activities =============")
     }
@@ -2981,6 +3014,7 @@ static void srv_running(void)
      * We have to initialize data as well as do some actions.  However when
      * loading a game we don't want to do these actions (like AI unit
      * movement and AI diplomacy). */
+
     begin_turn(is_new_turn);
 
     if (game.server.num_phases != 1) {
@@ -2995,7 +3029,14 @@ static void srv_running(void)
       log_debug("Starting phase %d/%d.", game.info.phase,
                 game.server.num_phases);
 
+      game.server.open_assistant = game.server.advisor;
+      openTileWorked = game.server.advisor;
+      openUnitTile = true;
       begin_phase(is_new_turn);
+      game.server.open_assistant = false;
+      openTileWorked = false;
+      openUnitTile = false;
+
       if (need_send_pending_events) {
         /* When loading a savegame, we need to send loaded events, after
          * the clients switched to the game page (after the first
@@ -3624,12 +3665,25 @@ void server_game_free(void)
 
 /**********************************************************************//**
   Human assistant.
+  actor_id: 
+    0: unit
+    1: diplomacy
+    2: tech
+    3: city
 **************************************************************************/
+
+static void initializeHumanAssistant(void) {
+    human_assistant = initQueue();
+}
+
+/**
+ * Unit
+*/
 void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id, char* js_data)
 {
-    log_normal("helper_set_unit_activities: %d, %d, %d", ENTITY_TYPE_UNIT, unit_id, act_id)
-    if (act_id == ACTIVITY_FORTIFYING) {
-      struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_data);
+    if (act_id != ACTIVITY_IDLE) {
+      log_normal("helper_set_unit_activities: %d, %d, %d", ENTITY_TYPE_UNIT, unit_id, act_id)
+      struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_data, 0, NULL, -1);
       putNode(human_assistant, packet);
     }
 }
@@ -3638,11 +3692,48 @@ void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char
 {
     log_normal("helper_do_unit_action: %d %d, %s", unit_id, act_id, js_data)
 
-    struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_data);
+    struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_data, 0, NULL, -1);
 
     putNode(human_assistant, packet);
 }
 
+/**
+ * Diplomacy
+*/
+void helper_set_player_diplomacy(struct player *pplayer, struct player *aplayer, int clause, char* js_data)
+{
+    log_normal("helper_set_player_diplomacy: %s, %s, %d", player_name(pplayer), player_name(aplayer), clause)
+    struct packet_ai_player_action_response packet = load_packet(pplayer, player_index(pplayer), clause, js_data, 1, NULL, -1);
+    putNode(human_assistant, packet);
+}
+
+/**
+ * Tech
+*/
+void helper_set_tech_goal(struct player *pplayer, int tech_id)
+{
+    log_normal("helper_set_tech_goal: %s, %d", player_name(pplayer), tech_id)
+    int actor_type = 2;
+    int actor_id = 0;// goal
+
+    struct packet_ai_player_action_response packet = load_packet(pplayer, actor_id, tech_id, "", actor_type, NULL, -1);
+
+    putNode(human_assistant, packet);
+}
+
+void helper_set_tech_researching(struct player *pplayer, int tech_id)
+{
+    log_normal("helper_set_tech_researching: %s, %d", player_name(pplayer), tech_id)
+    int actor_type = 2;
+    int actor_id = 1;// researching
+    struct packet_ai_player_action_response packet = load_packet(pplayer, actor_id, tech_id, "", actor_type, NULL, -1);
+
+    putNode(human_assistant, packet);
+}
+
+/**
+ * City
+*/
 
 /**********************************************************************//**
   Server main loop.
@@ -3651,8 +3742,8 @@ void fc__noreturn srv_main(void)
 {
   srv_prepare();
 
-  human_assistant = initQueue();
-  log_normal("human_assistant address 1: %p", &human_assistant)
+  initializeHumanAssistant();
+  log_normal("human_assistant address 1: %p, %p", human_assistant, &human_assistant)
 
   // redisClient = redisConnect("127.0.0.1", 6379);
 

@@ -2642,7 +2642,12 @@ static void dai_manage_settler(struct ai_type *ait, struct player *pplayer,
 void dai_manage_unit(struct ai_type *ait, struct player *pplayer,
                      struct unit *punit)
 {
-  log_normal("----------- started dai_manage_unit--------------")
+  if (game.server.open_assistant){
+    punit->assist_moves_left = punit->moves_left;
+    punit->assist_tile = (struct tile *)malloc(sizeof(struct tile));
+    memcpy(punit->assist_tile, punit->tile, sizeof(struct tile));
+  }
+
   struct unit_ai *unit_data;
   struct unit *bodyguard = aiguard_guard_of(ait, punit);
   bool is_ferry = FALSE;

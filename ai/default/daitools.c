@@ -242,19 +242,18 @@ static bool dai_gothere_bodyguard(struct ai_type *ait,
 bool dai_gothere(struct ai_type *ait, struct player *pplayer,
                  struct unit *punit, struct tile *dest_tile)
 {
-  log_normal("------------dai_gothere------------")
   CHECK_UNIT(punit);
   bool bg_needed;
 
   if (same_pos(dest_tile, unit_tile(punit)) || punit->moves_left <= 0) {
     /* Nowhere to go */
-    return TRUE;
+        return TRUE;
   }
-
+  
   /* See if we need a bodyguard at our destination */
   /* FIXME: If bodyguard is _really_ necessary, don't go anywhere */
   bg_needed = dai_gothere_bodyguard(ait, punit, dest_tile);
-
+  
   if (unit_transported(punit)
       || !goto_is_sane(punit, dest_tile)) {
     /* Must go by boat, call an aiferryboat function */
@@ -279,7 +278,7 @@ bool dai_gothere(struct ai_type *ait, struct player *pplayer,
     UNIT_LOG(LOGLEVEL_GOTHERE, punit, "Not moving");
     return FALSE;
   }
-
+  
   if (def_ai_unit_data(punit, ait)->ferryboat > 0
       && !unit_transported(punit)) {
     /* We probably just landed, release our boat */
@@ -288,7 +287,7 @@ bool dai_gothere(struct ai_type *ait, struct player *pplayer,
   
   /* Dead unit shouldn't reach this point */
   CHECK_UNIT(punit);
-
+  
   return (same_pos(unit_tile(punit), dest_tile)
           || is_tiles_adjacent(unit_tile(punit), dest_tile));
 }
@@ -484,7 +483,9 @@ void dai_fill_unit_param(struct ai_type *ait, struct pf_parameter *parameter,
 
   /* This function is now always omniscient and should not be used
    * for human players any more. */
-  fc_assert(is_ai(pplayer));
+  if (!is_assistant(pplayer)){
+    fc_assert(is_ai(pplayer));
+  }
 
   /* If a unit is hunting, don't expect it to be a ferry. */
   is_ferry = (unit_data->task != AIUNIT_HUNTER
@@ -1079,8 +1080,7 @@ bool dai_unit_attack(struct ai_type *ait, struct unit *punit, struct tile *ptile
 void dai_unit_move_or_attack(struct ai_type *ait, struct unit *punit,
                              struct tile *ptile, struct pf_path *path, int step)
 {
-  log_normal("---------dai_unit_move_or_attack-----------")
-  if (step == path->length - 1) {
+    if (step == path->length - 1) {
     (void) dai_unit_attack(ait, punit, ptile);
   } else {
     (void) dai_unit_move(ait, punit, ptile);
@@ -1097,7 +1097,6 @@ void dai_unit_move_or_attack(struct ai_type *ait, struct unit *punit,
 **************************************************************************/
 bool dai_unit_move(struct ai_type *ait, struct unit *punit, struct tile *ptile)
 {
-  log_normal(" -------------- dai_unit_move -------------")
   struct action *paction;
   struct unit *bodyguard;
   struct unit *ptrans = NULL;

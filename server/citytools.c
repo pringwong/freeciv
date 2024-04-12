@@ -1672,7 +1672,6 @@ void create_city(struct player *pplayer, struct tile *ptile,
 bool create_city_for_player(struct player *pplayer, struct tile *ptile,
                             const char *name)
 {
-  log_normal("---------create_city_for_player--------")
   if (is_enemy_unit_tile(ptile, pplayer)
       || !city_can_be_built_here(ptile, nullptr, FALSE)) {
     return FALSE;
@@ -2392,7 +2391,7 @@ void send_city_info(struct player *dest, struct city *pcity)
 void send_city_info_at_tile(struct player *pviewer, struct conn_list *dest,
                             struct city *pcity, struct tile *ptile)
 {
-  struct packet_city_info packet;
+    struct packet_city_info packet;
   struct packet_city_nationalities nat_packet;
   struct packet_city_rally_point rally_packet;
   struct packet_web_city_info_addition web_packet;
@@ -3160,6 +3159,15 @@ void change_build_target(struct player *pplayer, struct city *pcity,
     return;
   }
 
+  /* Change build target. */
+  if (game.server.open_assistant) {
+    struct universal *old_target = &pcity->production;
+    pcity->production = *target;
+    helper_set_city_production(pplayer, pcity, (*target).kind, city_production_name_translation(pcity));
+    pcity->production = *old_target;
+    return;
+  }
+
   /* Is the city no longer building a wonder? */
   if (VUT_IMPROVEMENT == pcity->production.kind
       && is_great_wonder(pcity->production.value.building)
@@ -3182,7 +3190,7 @@ void change_build_target(struct player *pplayer, struct city *pcity,
     pcity->shield_stock = city_change_production_penalty(pcity, target);
   }
 
-  /* Change build target. */
+/* Change build target. */
   pcity->production = *target;
 
   /* What's the name of the target? */
@@ -3249,7 +3257,7 @@ void city_map_update_empty(struct city *pcity, struct tile *ptile)
 ****************************************************************************/
 void city_map_update_worker(struct city *pcity, struct tile *ptile)
 {
-  tile_set_worked(ptile, pcity);
+    tile_set_worked(ptile, pcity);
   send_tile_info(nullptr, ptile, FALSE);
   pcity->server.synced = FALSE;
 }

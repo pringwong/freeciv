@@ -8,6 +8,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/common/aicore \
 	-I$(top_srcdir)/common/networking \
 	-I$(top_srcdir)/ai \
+	-I$(top_srcdir)/ai/default \
 	-I$(top_srcdir)/dependencies/tinycthread
 
 libadvisors_la_SOURCES = \

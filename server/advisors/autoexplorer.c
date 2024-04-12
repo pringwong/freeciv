@@ -41,6 +41,7 @@
 
 /* ai */
 #include "handicaps.h"
+#include "daiplayer.h"
 
 #include "autoexplorer.h"
 
@@ -125,7 +126,7 @@ static enum tile_behavior explorer_tb(const struct tile *ptile,
 **************************************************************************/
 static bool explorer_goto(struct unit *punit, struct tile *ptile)
 {
-  struct pf_parameter parameter;
+    struct pf_parameter parameter;
   struct adv_risk_cost risk_cost;
   bool alive = TRUE;
   struct pf_map *pfm;
@@ -155,7 +156,7 @@ static bool explorer_goto(struct unit *punit, struct tile *ptile)
 
   pf_map_destroy(pfm);
 
-
+  
   return alive;
 }
 
@@ -276,8 +277,14 @@ static int explorer_desirable(struct tile *ptile, struct player *pplayer,
 enum unit_move_result manage_auto_explorer(struct unit *punit)
 {
   struct player *pplayer = unit_owner(punit);
+
   /* Loop prevention */
-  const struct tile *init_tile = unit_tile(punit);
+  const struct tile *init_tile;
+  if (game.server.open_assistant){
+    init_tile = assist_unit_tile(punit);
+  } else {
+    init_tile = unit_tile(punit);
+  }
 
   /* The log of the want of the most desirable tile, 
    * given nearby water, cities, etc. */
@@ -321,6 +328,7 @@ enum unit_move_result manage_auto_explorer(struct unit *punit)
   parameter.omniscience = FALSE;
 
   pfm = pf_map_new(&parameter);
+
   pf_map_move_costs_iterate(pfm, ptile, move_cost, FALSE) {
     int desirable;
     double log_desirable;
@@ -400,18 +408,20 @@ enum unit_move_result manage_auto_explorer(struct unit *punit)
     UNIT_LOG(LOG_DEBUG, punit, "exploration GOTO succeeded");
     if (punit->moves_left > 0) {
       /* We can still move on... */
-      if (!same_pos(init_tile, unit_tile(punit))) {
+      if ((!same_pos(init_tile, unit_tile(punit)) || punit->moves_left == 1) && !game.server.open_assistant)
+      {
         /* At least we moved (and maybe even got to where we wanted).  
          * Let's do more exploring. 
          * (Checking only whether our position changed is unsafe: can allow
          * yoyoing on a RR) */
-	UNIT_LOG(LOG_DEBUG, punit, "recursively exploring...");
-	return manage_auto_explorer(punit);          
+        UNIT_LOG(LOG_DEBUG, punit, "recursively exploring...");
+        return manage_auto_explorer(punit);
       } else {
-	UNIT_LOG(LOG_DEBUG, punit, "done exploring (all finished)...");
-	return MR_PAUSE;
+        UNIT_LOG(LOG_DEBUG, punit, "done exploring (all finished)...");
+        return MR_PAUSE;
       }
     }
+
     UNIT_LOG(LOG_DEBUG, punit, "done exploring (but more go go)...");
     return MR_OK;
   } else {
@@ -420,6 +430,7 @@ enum unit_move_result manage_auto_explorer(struct unit *punit)
     return MR_BAD_MAP_POSITION;
   }
 #undef DIST_FACTOR
+
 }
 
 /* assistant */
