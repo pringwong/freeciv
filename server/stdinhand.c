@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef FREECIV_HAVE_LIBREADLINE
 #include <readline/readline.h>
@@ -613,6 +614,10 @@ static bool metamessage_command(struct connection *caller,
   log_deprecation(_("/metamessage command is deprecated. "
                     "Set metamessage setting instead."));
 
+  if (is_longturn() && S_S_RUNNING == server_state()) {
+    return FALSE;
+  }
+
   if (check) {
     return TRUE;
   }
@@ -670,11 +675,6 @@ static bool show_serverid(struct connection *caller, char *arg)
 **************************************************************************/
 static bool save_command(struct connection *caller, char *arg, bool check)
 {
-  if (is_restricted(caller)) {
-    cmd_reply(CMD_SAVE, caller, C_FAIL,
-              _("You cannot save games manually on this server."));
-    return FALSE;
-  }
   if (!check) {
     save_game(arg, "User request", FALSE);
   }
@@ -705,6 +705,10 @@ void toggle_ai_player_direct(struct connection *caller, struct player *pplayer)
 {
   fc_assert_ret(pplayer != NULL);
 
+  if (is_longturn() && S_S_RUNNING == server_state()) {
+    return;
+  }
+
   if (is_human(pplayer)) {
     cmd_reply(CMD_AITOGGLE, caller, C_OK,
 	      _("%s is now under AI control."),
@@ -730,6 +734,10 @@ static bool toggle_ai_command(struct connection *caller, char *arg, bool check)
 {
   enum m_pre_result match_result;
   struct player *pplayer;
+
+  if (is_longturn() && S_S_RUNNING == server_state()) {
+    return FALSE;
+  }
 
   pplayer = player_by_name_prefix(arg, &match_result);
 
@@ -3786,6 +3794,7 @@ bool load_command(struct connection *caller, const char *filename, bool check,
   struct section_file *file;
   char arg[MAX_LEN_PATH];
   struct conn_list *global_observers;
+  struct strvec *webdirs;
 
   if (!filename || filename[0] == '\0') {
     cmd_reply(CMD_LOAD, caller, C_FAIL, _("Usage:\n%s"),
@@ -3805,10 +3814,21 @@ bool load_command(struct connection *caller, const char *filename, bool check,
   }
 
   {
+    char websave[300];
+
+    webdirs = strvec_new();
+
+    if (caller != NULL) {
+      fc_snprintf(websave, sizeof(websave), "%s/%s", srvarg.saves_pathname, caller->username);
+      strvec_append(webdirs, websave);
+    }
+    fc_snprintf(websave, sizeof(websave), "%s/pbem", srvarg.saves_pathname);
+    strvec_append(webdirs, websave);
+
     /* it is a normal savegame or maybe a scenario */
     char testfile[MAX_LEN_PATH];
     const struct strvec *pathes[] = {
-      get_save_dirs(), get_scenario_dirs(), NULL
+      get_save_dirs(), get_scenario_dirs(), webdirs, NULL
     };
     const char *exts[] = {
       "sav", "gz", "bz2", "xz", "sav.gz", "sav.bz2", "sav.xz", "sav.zst", NULL
@@ -3859,8 +3879,11 @@ bool load_command(struct connection *caller, const char *filename, bool check,
     cmd_reply(CMD_LOAD, caller, C_FAIL, _("Could not load savefile: %s"),
               arg);
     dlsend_packet_game_load(game.est_connections, FALSE, arg);
+    strvec_destroy(webdirs);
     return FALSE;
   }
+
+  strvec_destroy(webdirs);
 
   if (check) {
     return TRUE;
@@ -3953,6 +3976,9 @@ bool load_command(struct connection *caller, const char *filename, bool check,
       lsend_packet_achievement_info(pplayer->connections, &pack);
     } players_iterate_end;
   } achievements_iterate_end;
+
+  /* Do not translate, as freeciv-web relies on exact string */
+  cmd_reply(CMD_DEFAULT, caller, C_OK, "Load complete");
 
   return TRUE;
 }
@@ -4501,6 +4527,35 @@ static bool handle_stdin_input_real(struct connection *caller, char *str,
   }
 
   level = command_level(command_by_number(cmd));
+
+  /* Special savegame handling for Freeciv-web. */
+  if (strncmp(game.server.meta_info.type, "pbem", 4) == 0 
+      && cmd == CMD_SAVE && caller) {
+    char pbemfile[200];
+
+    fc_snprintf(pbemfile, sizeof(pbemfile), "%s/pbem/pbem-%s-%u",
+                srvarg.saves_pathname, caller->username, (unsigned)time(NULL));
+    sz_strlcpy(arg, pbemfile);
+  } else if (cmd == CMD_SAVE && caller) {
+    char savefile[300];
+    char buffer[30];
+    char savedir[300];
+    time_t timer;
+    struct tm tm_info;
+
+    time(&timer);
+    fc_localtime(&timer, &tm_info);
+    strftime(buffer, 30, "%Y-%m-%d-%H_%M", &tm_info);
+    fc_snprintf(savefile, sizeof(savefile), "%s/%s/%s_T%u_%s",
+                srvarg.saves_pathname,  caller->username,
+                caller->username, game.info.turn, buffer);
+    sz_strlcpy(arg, savefile);
+
+    /* Create sub-directory from players username in saves directory. */
+    fc_snprintf(savedir, sizeof(savedir), "%s/%s",
+                srvarg.saves_pathname, caller->username);
+    make_dir(savedir);
+  }
 
   if (conn_can_vote(caller, NULL) && level == ALLOW_CTRL
       && conn_get_access(caller) == ALLOW_BASIC && !check

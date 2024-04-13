@@ -391,6 +391,10 @@ static bool send_to_metaserver(enum meta_flag flag)
         }
       } players_iterate_end;
 
+      if (S_S_INITIAL == server_state()) {
+        humans = conn_list_size(game.est_connections);
+      }
+
       /* Send the number of available players. */
       netfile_add_form_int(post, "available", players);
       netfile_add_form_int(post, "humans", humans);
@@ -533,7 +537,7 @@ bool send_server_info_to_metaserver(enum meta_flag flag)
     since_previous = timer_read_seconds(last_send_timer);
 
     /* Don't allow the user to spam the metaserver with updates */
-    if (since_previous < METASERVER_MIN_UPDATE_INTERVAL) {
+    if (flag != META_FORCE && since_previous < METASERVER_MIN_UPDATE_INTERVAL) {
       if (flag == META_INFO) {
         want_update = TRUE; /* We couldn't update now, but update a.s.a.p. */
       }

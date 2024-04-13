@@ -87,6 +87,7 @@
 #include "unitlist.h"
 #include "version.h"
 #include "victory.h"
+#include "aihelper.h"
 
 /* server */
 #include "aiiface.h"
@@ -197,6 +198,11 @@ static struct timer *eot_timer = NULL;
 
 static struct timer *between_turns = NULL;
 
+
+static void initializeHumanAssistant(void) {
+    human_assistant = initQueue();
+}
+
 /**********************************************************************//**
   Initialize the game seed. This may safely be called multiple times.
 **************************************************************************/
@@ -284,6 +290,7 @@ void srv_init(void)
   srvarg.auth_enabled = FALSE;
   srvarg.auth_allow_guests = FALSE;
   srvarg.auth_allow_newusers = FALSE;
+  srvarg.server_password_enabled = FALSE;
 
   /* Mark as initialized */
   has_been_srv_init = TRUE;
@@ -2576,7 +2583,12 @@ void player_nation_defaults(struct player *pplayer, struct nation_type *pnation,
   pplayer->style = style_of_nation(pnation);
 
   if (set_name) {
-    server_player_set_name(pplayer, pick_random_player_name(pnation));
+    if (is_ai(pplayer)) {
+      server_player_set_name(pplayer, pick_random_player_name(pnation));
+    } else {
+      /* FIXME: in Web client, connection username == player name. */
+      server_player_set_name(pplayer, pplayer->username);
+    }
   }
 
   if ((pleader = nation_leader_by_name(pnation, player_name(pplayer)))) {
@@ -3022,6 +3034,8 @@ static void srv_prepare(void)
   }
 #endif /* HAVE_FCDB */
 
+  initializeHumanAssistant();
+
   /* make sure it's initialized */
   if (!has_been_srv_init) {
     srv_init();
@@ -3408,6 +3422,15 @@ static void srv_ready(void)
     if (game.server.revealmap & REVEAL_MAP_START) {
       players_iterate(pplayer) {
         map_show_all(pplayer);
+      } players_iterate_end;
+    }
+
+    if (is_longturn()) {
+      players_iterate(pplayer) {
+        if (is_ai(pplayer)) {
+          set_as_human(pplayer);
+          server_player_set_name(pplayer, "New Available Player");
+	}
       } players_iterate_end;
     }
   }
@@ -3820,10 +3843,22 @@ static void save_all_map_images(void)
     struct mapdef *pmapdef = mapimg_isvalid(i);
 
     if (pmapdef != NULL) {
-      mapimg_create(pmapdef, FALSE, game.server.save_name,
+      char imgfilename[128];
+
+      fc_snprintf(imgfilename, sizeof(imgfilename), "map-%d", srvarg.port);
+
+      mapimg_create(pmapdef, FALSE, imgfilename,
                     srvarg.saves_pathname);
     } else {
       log_error("%s", mapimg_error());
     }
   }
+}
+
+/**********************************************************************//**
+ Is this a LongTurn game?
+**************************************************************************/
+bool is_longturn(void)
+{
+  return (!fc_strcasecmp(game.server.meta_info.type, "longturn"));
 }

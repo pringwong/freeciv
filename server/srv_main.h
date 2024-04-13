@@ -57,6 +57,8 @@ struct server_arguments {
   bool auth_enabled;            /* defaults to FALSE */
   bool auth_allow_guests;       /* defaults to FALSE */
   bool auth_allow_newusers;     /* defaults to FALSE */
+  bool server_password_enabled; /* Defaults to FALSE */
+  char server_password[MAX_LEN_PASSWORD]; /* Server password */
   enum announce_type announce;
   int fatal_assertions;         /* default to -1 (disabled). */
 };
@@ -94,6 +96,7 @@ void srv_init(void);
 void fc__noreturn srv_main(void);
 void fc__noreturn server_quit(void);
 void save_game_auto(const char *save_reason, enum autosave_type type);
+bool is_longturn(void);
 
 enum server_states server_state(void);
 void set_server_state(enum server_states newstate);

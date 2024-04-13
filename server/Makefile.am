@@ -27,7 +27,7 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/scripting \
 	-I$(top_srcdir)/dependencies/tinycthread \
 	$(LUA_CFLAGS) \
-	$(FCDB_MYSQL_CFLAGS) $(FCDB_POSTGRES_CFLAGS) $(FCDB_SQLITE3_CFLAGS)
+	$(FCDB_MYSQL_CFLAGS) $(FCDB_POSTGRES_CFLAGS) $(FCDB_SQLITE3_CFLAGS) $(JANSSON_CFLAGS)
 
 if MINGW
 SERVERICON=../windows/servericon.o

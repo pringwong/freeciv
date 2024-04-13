@@ -3657,7 +3657,7 @@ void real_menus_update(void)
 
   submenu = g_menu_new();
 
-  extra_type_by_rmcause_iterate(ERM_CLEANPOLLUTION, pextra) {
+  extra_type_by_rmcause_iterate(ERM_CLEAN, pextra) {
     char actname[256];
     GSimpleAction *act;
 

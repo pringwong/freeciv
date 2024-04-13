@@ -2288,9 +2288,16 @@ static void dai_manage_caravan(struct ai_type *ait, struct player *pplayer,
        || unit_data->task == AIUNIT_WONDER)) {
     /* we are moving to our destination */
     /* we check to see if our current goal is feasible */
-    struct city *city_dest = tile_city(punit->goto_tile);
+    struct city *city_dest = NULL;
 
-    if ((city_dest == NULL) 
+    if (punit->goto_tile != NULL) {
+      city_dest = tile_city(punit->goto_tile);
+    } else {
+      dai_unit_new_task(ait, punit, AIUNIT_NONE, NULL);
+      city_dest = NULL;
+    }
+
+    if (city_dest == NULL
         || !pplayers_allied(unit_owner(punit), city_dest->owner)
         || (unit_data->task == AIUNIT_TRADE
             && !(can_cities_trade(homecity, city_dest)

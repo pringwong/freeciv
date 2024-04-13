@@ -418,6 +418,8 @@ static void game_defaults(bool keep_ruleset_value)
     game.server.save_options.save_private_map = TRUE;
     game.server.save_options.save_starts = TRUE;
     game.server.savepalace        = GAME_DEFAULT_SAVEPALACE;
+    game.server.open_assistant   = GAME_DEFAULT_OPEN_ASSISTANT;
+    game.server.advisor   = GAME_DEFAULT_ADVISOR;
     game.server.scorelog          = GAME_DEFAULT_SCORELOG;
     game.server.scoreloglevel     = GAME_DEFAULT_SCORELOGLEVEL;
     game.server.scoreturn         = GAME_DEFAULT_SCORETURN - 1;

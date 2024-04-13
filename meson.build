@@ -16,6 +16,7 @@ meta_url = 'https://meta.freeciv.org/metaserver.php'
 mp_list_url = ''
 storage_dir = ''
 default_port = ''
+testmatic = ''
 
 proj_def = get_option('project-definition')
 if proj_def != ''
@@ -31,6 +32,8 @@ if proj_def != ''
         storage_dir = item.substring(20)
       elif item.startswith('FREECIV_DEFAULT_PORT')
         default_port = item.substring(21)
+      elif item.startswith('FREECIV_TESTMATIC')
+        testmatic = item.substring(18)
       elif not item.startswith('#') and item != ''
         error('Unknown parameter ' + item + ' in project definition')
       endif
@@ -54,6 +57,12 @@ if default_port == ''
   default_port = 5556
 endif
 priv_conf_data.set('DEFAULT_SOCK_PORT', default_port)
+
+if testmatic == 'yes'
+  pub_conf_data.set('FREECIV_TESTMATIC', 1)
+elif testmatic != '' and testmatic != 'no'
+  error('Unknown testmatic value ' + testmatic)
+endif
 
 pub_conf_data.set('FREECIV_AI_MOD_LAST', 3)
 priv_conf_data.set('BINDIR',
@@ -146,10 +155,10 @@ else
 endif
 
 if meson.is_cross_build()
-  cross_inc_str = meson.get_cross_property('cross_inc_path')
+  cross_inc_str = meson.get_external_property('cross_inc_path', '')
   cross_inc_path = [cross_inc_str]
-  cross_lib_path = [meson.get_cross_property('cross_lib_path')]
-  crosser = meson.get_cross_property('crosser')
+  cross_lib_path = [meson.get_external_property('cross_lib_path', '')]
+  crosser = meson.get_external_property('crosser', false)
 
   # emscripten build is always cross-build, so check it only here
   if c_compiler.compiles(
@@ -1005,6 +1014,7 @@ common_lib = library('freeciv',
   'common/scriptcore/luascript_signal.c',
   'common/achievements.c',
   'common/actions.c',
+  'common/aihelper.c',
   'common/actres.c',
   'common/ai.c',
   'common/base.c',
@@ -3731,7 +3741,8 @@ rulesets = [
   'sandbox',
   'civ1',
   'civ2',
-  'stub'
+  'stub',
+  'webperimental'
   ]
 
 ruleset_files = [
@@ -3759,6 +3770,8 @@ install_data(
   'data/sandbox.modpack',
   'data/civ1.modpack',
   'data/civ2.modpack',
+  'data/webperimental.serv',
+  'data/webperimental.modpack',
   install_dir : join_paths(get_option('datadir'), 'freeciv')
   )
 
@@ -3790,6 +3803,11 @@ install_data(
   'data/alien/README.alien',
   'data/alien/nation_effects.ruleset',
   install_dir : join_paths(get_option('datadir'), 'freeciv/alien')
+  )
+
+install_data(
+  'data/webperimental/README.webperimental',
+  install_dir : join_paths(get_option('datadir'), 'freeciv/webperimental')
   )
 
 install_data(
