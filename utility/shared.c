@@ -1800,14 +1800,14 @@ bool make_dir(const char *pathname)
       }
     }
 #else  /* HAVE__MKDIR */
-    if (mkdir(path, 0755) == -1
+    if (mkdir(path, 0775) == -1
         && fc_get_errno() != EEXIST) {
       free(path);
       return FALSE;
     }
 #endif /* HAVE__MKDIR */
 #else  /* FREECIV_MSWINDOWS */
-    if (mkdir(path, 0755) == -1
+    if (mkdir(path, 0775) == -1
         && fc_get_errno() != EEXIST) {
       free(path);
       return FALSE;

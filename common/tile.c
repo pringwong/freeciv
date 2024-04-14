@@ -28,6 +28,7 @@
 #include "road.h"
 #include "unit.h"
 #include "unitlist.h"
+#include "aihelper.h"
 
 #include "tile.h"
 

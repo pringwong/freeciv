@@ -2434,3 +2434,53 @@ PACKET_WEB_RULESET_UNIT_ADDITION = 260; sc, lsend, handle-via-fields, no-handle
 
   BV_ACTIONS utype_actions;
 end
+
+/*************** AI assistant packets ****************/
+PACKET_AI_PLAYER_ACTION_REQUEST = 261; cs
+  PLAYER playerno;
+end
+
+PACKET_AI_PLAYER_ACTION_RESPONSE = 262; sc, lsend
+  PLAYER playerno;
+  PLAYER target_playerno;
+  UNIT target_actor_id;
+  UINT8 actor_type;
+  UNIT actor_id;
+  ACTION_ID action_type;
+  UINT8 unique_id;
+  ESTRING js_data[512];
+end
+
+PACKET_AI_PLAYER_ACTION_BATCH_REQUEST = 263; cs
+  PLAYER playerno;
+  UINT8 batch_size;
+end
+
+PACKET_AI_PLAYER_ACTION_BATCH_RESPONSE = 264; sc, lsend
+  PLAYER playerno;
+  ESTRING batch_data[2048];
+end
+
+# Used for showing GOTO path in web client.
+PACKET_WEB_GOTO_PATH_REQ = 287; cs, dsend, handle-via-fields
+  UNIT unit_id;
+  TILE goal;
+end
+
+PACKET_WEB_GOTO_PATH = 288; sc, dsend, handle-via-fields, no-handle
+  UNIT unit_id;
+  UINT16 length;
+  DIRECTION dir[MAX_LEN_ROUTE:length];
+  TILE dest;
+  UINT32 turns;
+end
+
+PACKET_WEB_INFO_TEXT_REQ = 289; cs, dsend, handle-via-fields
+  TILE loc;
+  UNIT visible_unit;
+  UNIT focus_unit;
+end
+
+PACKET_WEB_INFO_TEXT_MESSAGE = 290; sc, dsend, handle-via-fields, no-handle
+  STRING message[MAX_LEN_MSG];
+end

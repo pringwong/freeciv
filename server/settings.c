@@ -857,6 +857,10 @@ static void wrap_action(const struct setting *pset)
 ****************************************************************************/
 static void metamessage_action(const struct setting *pset)
 {
+  if (is_longturn() && S_S_RUNNING == server_state()) {
+    return;
+  }
+
   /* Set the metaserver message based on the new meta server user message.
    * An empty user metaserver message results in an automatic meta message.
    * A non empty user meta message results in the user meta message. */
@@ -3191,6 +3195,13 @@ static struct setting settings[] = {
                 "is used '-T%04T-Y%05Y-%R' is appended to the value of "
                 "'savename'."),
              savename_validate, NULL, GAME_DEFAULT_SAVE_NAME)
+
+  GEN_BOOL("advisor", game.server.advisor,
+           SSET_META, SSET_SOCIOLOGY, SSET_VITAL,
+           ALLOW_NONE, ALLOW_BASIC,
+           N_("Whether the human player follows the agent policy"),
+           N_("If enabled, the human player will follow the agent policy."),
+           NULL, NULL, GAME_DEFAULT_ADVISOR)
 
   GEN_BOOL("scorelog", game.server.scorelog,
            SSET_META, SSET_INTERNAL, SSET_SITUATIONAL,

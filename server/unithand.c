@@ -44,6 +44,10 @@
 #include "traderoutes.h"
 #include "unit.h"
 #include "unitlist.h"
+#include "aihelper.h"
+
+/* common/aicore */
+#include "pf_tools.h"
 
 /* common/scriptcore */
 #include "luascript_types.h"
@@ -4228,6 +4232,85 @@ static bool city_build(struct player *pplayer, struct unit *punit,
 }
 
 /**********************************************************************//**
+  This function handles GOTO path requests from the client.
+**************************************************************************/
+void handle_web_goto_path_req(struct player *pplayer, int unit_id, int goal)
+{
+  struct unit *punit = player_unit_by_number(pplayer, unit_id);
+  struct tile *ptile = index_to_tile(&(wld.map), goal);
+  struct pf_parameter parameter;
+  struct pf_map *pfm;
+  struct pf_path *path;
+  struct tile *old_tile;
+  int i = 0;
+  struct packet_web_goto_path p;
+
+  if (NULL == punit) {
+    /* Shouldn't happen */
+    log_error("handle_unit_move(): invalid unit %d",
+              unit_id);
+    return;
+  }
+
+  if (NULL == ptile) {
+    /* Shouldn't happen */
+    log_error("handle_unit_move(): invalid %s (%d) tile (%d, %d)",
+              unit_rule_name(punit),
+              unit_id,
+              TILE_XY(ptile));
+    return;
+  }
+
+  if (!is_player_phase(unit_owner(punit), game.info.phase)) {
+    /* Client is out of sync, ignore */
+    log_verbose("handle_unit_move(): invalid %s (%d) %s != phase %d",
+                unit_rule_name(punit),
+                unit_id,
+                nation_rule_name(nation_of_unit(punit)),
+                game.info.phase);
+    return;
+  }
+
+  p.unit_id = punit->id;
+  p.dest = tile_index(ptile);
+
+  /* Use path-finding to find a goto path. */
+  pft_fill_unit_parameter(&parameter, punit);
+  pfm = pf_map_new(&parameter);
+  path = pf_map_path(pfm, ptile);
+  pf_map_destroy(pfm);
+
+  if (path) {
+    int total_mc = 0;
+
+    p.length = path->length - 1;
+
+    old_tile = path->positions[0].tile;
+
+    for (i = 0; i < path->length - 1; i++) {
+      struct tile *new_tile = path->positions[i + 1].tile;
+      int dir;
+
+      total_mc += path->positions[1].total_MC;
+      if (same_pos(new_tile, old_tile)) {
+        dir = -1;
+      } else {
+        dir = get_direction_for_step(&(wld.map), old_tile, new_tile);
+      }
+      old_tile = new_tile;
+      p.dir[i] = dir;
+
+    }
+    pf_path_destroy(path);
+    p.turns = total_mc / unit_move_rate(punit);
+    send_packet_web_goto_path(pplayer->current_conn, &p);
+
+  } else {
+    return;
+  }
+}
+
+/**********************************************************************//**
   Handle change in unit activity.
 **************************************************************************/
 static void handle_unit_change_activity_real(struct player *pplayer,
@@ -4321,11 +4404,16 @@ void handle_unit_change_activity(struct player *pplayer, int unit_id,
       }
 
     } else if (activity == ACTIVITY_CLEAN) {
-      activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANPOLLUTION,
+      activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEAN,
                                            pplayer, punit);
+
       if (activity_target == NULL) {
-        activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANFALLOUT,
+        activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANPOLLUTION,
                                              pplayer, punit);
+        if (activity_target == NULL) {
+          activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANFALLOUT,
+                                               pplayer, punit);
+        }
       }
     } else if (activity == ACTIVITY_POLLUTION) {
       activity_target = prev_extra_in_tile(unit_tile(punit), ERM_CLEANPOLLUTION,
@@ -6734,4 +6822,35 @@ void handle_worker_task(struct player *pplayer,
   }
 
   lsend_packet_worker_task(pplayer->connections, packet);
+}
+
+
+/**********************************************************************//**
+  Receives AI human agent requests.
+**************************************************************************/
+void handle_ai_player_action_request(struct player *pplayer,
+                                     const struct packet_ai_player_action_request *packet)
+{
+  struct packet_ai_player_action_response reciv_packet = getNode(pplayer, human_assistant);
+  conn_list_iterate(game.est_connections, pconn) {
+    struct player *aplayer = conn_get_player(pconn);
+      if (aplayer == pplayer) {
+        send_packet_ai_player_action_response(pconn, &reciv_packet);
+      }
+  } conn_list_iterate_end;
+
+}
+
+void handle_ai_player_action_batch_request(struct player *pplayer,
+                                     const struct packet_ai_player_action_batch_request *packet)
+{
+
+  struct packet_ai_player_action_batch_response reciv_packet = getBatch(pplayer, human_assistant, packet->batch_size);
+  conn_list_iterate(game.est_connections, pconn) {
+    struct player *aplayer = conn_get_player(pconn);
+      if (aplayer == pplayer) {
+        send_packet_ai_player_action_batch_response(pconn, &reciv_packet);
+      }
+  } conn_list_iterate_end;
+
 }

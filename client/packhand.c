@@ -5585,3 +5585,21 @@ void handle_city_update_counters(const struct packet_city_update_counters *packe
   update_city_description(pcity);
   city_report_dialog_update_city(pcity);
 }
+
+
+/**********************************************************************//**
+  Packet AI human agent responses.
+**************************************************************************/
+void handle_ai_player_action_response(const struct packet_ai_player_action_response *packet)
+{
+  log_normal("-------------------started handle_ai_player_action_response--------------------");
+  log_normal("packet: {actor_id:%d, action_type:%d, js_data:%s}", packet->actor_id, packet->action_type, packet->js_data);
+  log_normal("-------------------finished handle_ai_player_action_response--------------------");
+}
+
+void handle_ai_player_action_batch_response(const struct packet_ai_player_action_batch_response *packet)
+{
+  log_normal("-------------------started handle_ai_player_action_batch_response--------------------");
+  log_normal("packet: {player:%d, batch_data:%s}", packet->playerno, packet->batch_data);
+  log_normal("-------------------finished handle_ai_player_action_batch_response--------------------");
+}
