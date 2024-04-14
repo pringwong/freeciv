@@ -38,6 +38,7 @@
 #include "tech.h"
 #include "traderoutes.h"
 #include "unitlist.h"
+#include "aihelper.h"
 
 #include "unit.h"
 
@@ -1263,6 +1264,10 @@ struct player *unit_nationality(const struct unit *punit)
 void unit_tile_set(struct unit *punit, struct tile *ptile)
 {
   fc_assert_ret(NULL != punit);
+  if (game.server.open_assistant && !openUnitTile){
+    return;
+  }
+
   punit->tile = ptile;
 }
 

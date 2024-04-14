@@ -6465,16 +6465,23 @@ static bool unit_activity_internal(struct unit *punit,
 {
   if (!can_unit_do_activity(punit, new_activity)) {
     return FALSE;
-  } else {
-    enum unit_activity old_activity = punit->activity;
-    struct extra_type *old_target = punit->activity_target;
-
-    set_unit_activity(punit, new_activity);
-    send_unit_info(NULL, punit);
-    unit_activity_dependencies(punit, old_activity, old_target);
-
-    return TRUE;
   }
+  enum unit_activity old_activity = punit->activity;
+  struct extra_type *old_target = punit->activity_target;
+
+  if (game.server.open_assistant){
+    helper_set_unit_activities(punit->owner, punit->id, new_activity);
+
+    punit->assist_activity = new_activity;
+    log_normal("====== assist_activity =======%d", new_activity)
+    return FALSE;
+  }
+
+  set_unit_activity(punit, new_activity);
+  send_unit_info(NULL, punit);
+  unit_activity_dependencies(punit, old_activity, old_target);
+
+  return TRUE;
 }
 
 /**********************************************************************//**

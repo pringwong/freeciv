@@ -81,6 +81,7 @@
 
 /* ai */
 #include "handicaps.h"
+#include "aihelper.h"
 
 #include "unittools.h"
 
@@ -3865,6 +3866,12 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   saved_id = punit->id;
   psrctile = unit_tile(punit);
   adj = base_get_direction_for_step(&(wld.map), psrctile, pdesttile, &facing);
+
+  if (game.server.open_assistant && is_assistant(pplayer)){
+    int dir8 = get_direction_for_step(&(wld.map), psrctile, pdesttile);
+    helper_set_unit_action(pplayer, punit->id, ACTION_UNIT_MOVE, dir8, tile_index(pdesttile));
+    return true;
+  }
 
   conn_list_do_buffer(game.est_connections);
 

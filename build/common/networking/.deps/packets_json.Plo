@@ -1,0 +1,4 @@
+packets_json.lo: ../../../common/networking/packets_json.c \
+ /usr/include/stdc-predef.h ../../gen_headers/fc_config.h
+/usr/include/stdc-predef.h:
+../../gen_headers/fc_config.h:

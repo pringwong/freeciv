@@ -886,7 +886,7 @@ static struct cityresult *find_best_city_placement(struct ai_type *ait,
   struct unit *ferry = NULL;
   struct cityresult *cr1 = NULL, *cr2 = NULL;
 
-  fc_assert_ret_val(is_ai(pplayer), NULL);
+  fc_assert_ret_val(is_ai(pplayer), NULL);  
   /* Only virtual units may use virtual boats: */
   fc_assert_ret_val(0 == punit->id || !use_virt_boat, NULL);
 
@@ -1326,7 +1326,11 @@ void contemplate_new_city(struct ai_type *ait, struct city *pcity)
     bool is_coastal = is_terrain_class_near_tile(pcenter, TC_OCEAN);
     struct ai_city *city_data = def_ai_city_data(pcity, ait);
 
-    result = find_best_city_placement(ait, virtualunit, is_coastal, is_coastal);
+    //remove
+    result = NULL;
+    if (!game.server.open_assistant){
+      result = find_best_city_placement(ait, virtualunit, is_coastal, is_coastal);
+    }
 
     if (result) {
       fc_assert_ret(0 <= result->result); /* 'result' is not freed! */

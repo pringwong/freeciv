@@ -20,5 +20,6 @@ void dai_do_last_activities(struct ai_type *ait, struct player *pplayer);
 
 void dai_calc_data(const struct player *pplayer, int *trade, int *expenses,
                    int *income);
+void dai_assist_do_actions(struct ai_type *ait, struct player *pplayer);
 
 #endif  /* FC__AIHAND_H */

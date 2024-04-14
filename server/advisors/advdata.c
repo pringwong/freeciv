@@ -31,6 +31,7 @@
 #include "research.h"
 #include "unit.h"
 #include "unitlist.h"
+#include "aihelper.h"
 
 /* common/aicore */
 #include "aisupport.h"
@@ -994,7 +995,7 @@ void adv_best_government(struct player *pplayer)
     governments_iterate(gov) {
       adv_want val = 0;
       bool override = FALSE;
-
+  
       if (gov == game.government_during_revolution) {
         continue; /* pointless */
       }
@@ -1004,6 +1005,7 @@ void adv_best_government(struct player *pplayer)
       }
 
       CALL_PLR_AI_FUNC(gov_value, pplayer, pplayer, gov, &val, &override);
+      openTileWorked = false;
 
       if (!override) {
         int dist;

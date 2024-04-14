@@ -1238,7 +1238,15 @@ static void begin_phase(bool is_new_phase)
   /* Must be the first thing as it is needed for lots of functions below! */
   phase_players_iterate(pplayer) {
     /* Human players also need this for building advice */
+    if (is_assistant(pplayer)){
+      game.server.open_assistant = openTileWorked = game.server.advisor;
+      openUnitTile = true;
+    }
     adv_data_phase_init(pplayer, is_new_phase);
+    if (is_assistant(pplayer)){
+      game.server.open_assistant = openTileWorked = openUnitTile = false;
+    }
+
     CALL_PLR_AI_FUNC(phase_begin, pplayer, pplayer, is_new_phase);
   } phase_players_iterate_end;
 
@@ -2830,6 +2838,30 @@ static void announce_player(struct player *pplayer)
   send_player_info_c(pplayer, NULL);
 }
 
+
+static void assistant_player(void){
+  log_normal("-------started assistant_player------")
+  phase_players_iterate(pplayer) {
+    if (is_assistant(pplayer)){
+      log_normal("-------started assistant_player------")
+
+      game.server.open_assistant = TRUE;
+
+      // auto_settlers_player(pplayer);
+
+      // CALL_PLR_AI_FUNC(diplomacy_actions, pplayer, pplayer);
+
+      openUnitTile = true;
+      CALL_PLR_AI_FUNC(assist_do_actions, pplayer, pplayer);
+      openUnitTile = false;
+
+      game.server.open_assistant = FALSE;
+      log_normal("-------ended assistant_player------")
+    }
+  } phase_players_iterate_end;
+  return;
+}
+
 /**********************************************************************//**
   Play the game! Returns when S_S_RUNNING != server_state().
 **************************************************************************/
@@ -2839,6 +2871,9 @@ static void srv_running(void)
   bool skip_mapimg = !game.info.is_new_game; /* Do not overwrite start-of-turn image */
   bool need_send_pending_events = !game.info.is_new_game;
   int save_counter = game.info.is_new_game ? 1 : 0;
+
+  openUnitTile = false;
+  openTileWorked = false;
 
   /* We may as well reset is_new_game now. */
   game.info.is_new_game = FALSE;
@@ -2938,6 +2973,8 @@ static void srv_running(void)
         log_debug("Inresponsive between turns %g seconds", game.server.turn_change_time);
       }
 
+      assistant_player();
+
       while (server_sniff_all_input() == S_E_OTHERWISE) {
         /* nothing */
       }
@@ -3008,6 +3045,7 @@ static void srv_running(void)
   }
   timer_clear(eot_timer);
 }
+
 
 /**********************************************************************//**
   Server initialization.

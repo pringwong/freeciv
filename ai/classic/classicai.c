@@ -477,6 +477,13 @@ static void cai_do_last_activities(struct player *pplayer)
   dai_do_last_activities(deftype, pplayer);
 }
 
+static void cai_assist_do_actions(struct player *pplayer)
+{
+  struct ai_type *deftype = classic_ai_get_self();
+
+  dai_assist_do_actions(deftype, pplayer);
+}
+
 /**********************************************************************//**
   Call default ai with classic ai type as parameter.
 **************************************************************************/
@@ -670,6 +677,7 @@ bool fc_ai_classic_setup(struct ai_type *ai)
   ai->funcs.restart_phase = cai_restart_phase;
   ai->funcs.diplomacy_actions = cai_diplomacy_actions;
   ai->funcs.last_activities = cai_do_last_activities;
+  ai->funcs.assist_do_actions = cai_assist_do_actions;
   ai->funcs.treaty_evaluate = cai_treaty_evaluate;
   ai->funcs.treaty_accepted = cai_treaty_accepted;
   ai->funcs.first_contact = cai_diplomacy_first_contact;

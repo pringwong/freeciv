@@ -26,6 +26,7 @@
 #include "player.h"
 #include "research.h"
 #include "tech.h"
+#include "aihelper.h"
 
 /* server */
 #include "plrhand.h"
@@ -357,11 +358,15 @@ void dai_manage_tech(struct ai_type *ait, struct player *pplayer)
         && (penalty + research->bulbs_researched
             <= research_total_bulbs_required(research, research->researching,
                                              FALSE))) {
-      TECH_LOG(ait, LOG_DEBUG, pplayer, advance_by_number(choice.choice), 
-               "new research, was %s, penalty was %d", 
-               research_advance_rule_name(research, research->researching),
-               penalty);
-      choose_tech(research, choice.choice);
+      if (game.server.open_assistant){
+        helper_set_tech_researching(pplayer, research->researching);
+      } else {
+        TECH_LOG(ait, LOG_DEBUG, pplayer, advance_by_number(choice.choice), 
+                "new research, was %s, penalty was %d", 
+                research_advance_rule_name(research, research->researching),
+                penalty);
+        choose_tech(research, choice.choice);
+      }
     }
   }
 
@@ -376,7 +381,11 @@ void dai_manage_tech(struct ai_type *ait, struct player *pplayer)
               goal.current_want,
               research_advance_rule_name(research, goal.choice),
               goal.want);
-    choose_tech_goal(research, goal.choice);
+    if (game.server.open_assistant){
+      helper_set_tech_goal(pplayer, goal.choice);
+    } else {
+      choose_tech_goal(research, goal.choice);
+    }
   }
 }
 

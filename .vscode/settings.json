@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "government.h": "c",
+        "daicity.h": "c",
+        "functional": "c",
+        "fc_types.h": "c"
+    }
+}

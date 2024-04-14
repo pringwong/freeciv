@@ -255,6 +255,7 @@ struct ai_type
 
     /* Called for player AI type in the end of player phase. */
     void (*last_activities)(struct player *pplayer);
+    void (*assist_do_actions)(struct player *pplayer);
 
     /* Called for player AI type when diplomatic treaty requires evaluation. */
     void (*treaty_evaluate)(struct player *pplayer, struct player *aplayer,

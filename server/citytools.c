@@ -87,9 +87,7 @@
 
 /* ai */
 #include "handicaps.h"
-
-/* ai */
-#include "handicaps.h"
+#include "aihelper.h"
 
 #include "citytools.h"
 
@@ -3136,6 +3134,17 @@ void change_build_target(struct player *pplayer, struct city *pcity,
 
   /* If the city is already building this thing, don't do anything */
   if (are_universals_equal(&pcity->production, target)) {
+    return;
+  }
+
+  log_normal("---- change_build_target ---")
+
+  /* Change build target. */
+  if (game.server.open_assistant) {
+    struct universal *old_target = &pcity->production;
+    pcity->production = *target;
+    helper_set_city_production(pplayer, pcity, (*target).kind, city_production_name_translation(pcity));
+    pcity->production = *old_target;
     return;
   }
 

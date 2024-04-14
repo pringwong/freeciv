@@ -575,8 +575,13 @@ bool unit_can_move_to_tile(const struct civ_map *nmap,
                            bool enter_transport,
                            bool enter_enemy_city)
 {
+  enum unit_activity activity = punit->activity;
+  if (game.server.open_assistant){
+    activity = punit->assist_activity;
+  }
+
   return (MR_OK == unit_move_to_tile_test(nmap, punit,
-                                          punit->activity, unit_tile(punit),
+                                          activity, unit_tile(punit),
                                           dst_tile, igzoc,
                                           enter_transport, NULL,
                                           enter_enemy_city));

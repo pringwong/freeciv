@@ -154,6 +154,7 @@ struct unit {
   struct tile *goto_tile; /* May be NULL. */
 
   enum unit_activity activity;
+  enum unit_activity assist_activity;
 
   /* The amount of work that has been done on the current activity.  This
    * is counted in turns but is multiplied by ACTIVITY_FACTOR (which allows

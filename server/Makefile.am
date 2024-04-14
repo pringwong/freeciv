@@ -15,6 +15,7 @@ endif
 lib_LTLIBRARIES = libfreeciv-srv.la
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/ai \
+	-I$(top_srcdir)/ai/default \
 	-I$(top_srcdir)/ai/classic \
 	-I$(top_srcdir)/common \
 	-I$(top_srcdir)/common/aicore \
