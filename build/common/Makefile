@@ -172,18 +172,18 @@ libfreeciv_la_DEPENDENCIES = $(top_builddir)/utility/libcivutility.la \
 	$(top_builddir)/common/networking/libfcivnetwork.la \
 	$(top_builddir)/common/scriptcore/libscriptcore.la \
 	$(am__DEPENDENCIES_1)
-am_libfreeciv_la_OBJECTS = achievements.lo actions.lo actres.lo ai.lo \
-	base.lo borders.lo calendar.lo capstr.lo citizens.lo city.lo \
-	clientutils.lo combat.lo counters.lo culture.lo diptreaty.lo \
-	disaster.lo effects.lo events.lo extras.lo featured_text.lo \
-	fc_interface.lo game.lo government.lo idex.lo improvement.lo \
-	map.lo mapimg.lo metaknowledge.lo modpack.lo movement.lo \
-	multipliers.lo nation.lo packets_gen.lo player.lo reqtext.lo \
-	requirements.lo research.lo rgbcolor.lo road.lo \
-	server_settings.lo sex.lo spaceship.lo specialist.lo style.lo \
-	team.lo tech.lo terrain.lo tile.lo traderoutes.lo unit.lo \
-	unitlist.lo unittype.lo version.lo victory.lo vision.lo \
-	workertask.lo worklist.lo
+am_libfreeciv_la_OBJECTS = achievements.lo actions.lo aihelper.lo \
+	actres.lo ai.lo base.lo borders.lo calendar.lo capstr.lo \
+	citizens.lo city.lo clientutils.lo combat.lo counters.lo \
+	culture.lo diptreaty.lo disaster.lo effects.lo events.lo \
+	extras.lo featured_text.lo fc_interface.lo game.lo \
+	government.lo idex.lo improvement.lo map.lo mapimg.lo \
+	metaknowledge.lo modpack.lo movement.lo multipliers.lo \
+	nation.lo packets_gen.lo player.lo reqtext.lo requirements.lo \
+	research.lo rgbcolor.lo road.lo server_settings.lo sex.lo \
+	spaceship.lo specialist.lo style.lo team.lo tech.lo terrain.lo \
+	tile.lo traderoutes.lo unit.lo unitlist.lo unittype.lo \
+	version.lo victory.lo vision.lo workertask.lo worklist.lo
 libfreeciv_la_OBJECTS = $(am_libfreeciv_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
@@ -206,33 +206,34 @@ depcomp = $(SHELL) $(top_srcdir)/bootstrap/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/achievements.Plo \
 	./$(DEPDIR)/actions.Plo ./$(DEPDIR)/actres.Plo \
-	./$(DEPDIR)/ai.Plo ./$(DEPDIR)/base.Plo \
-	./$(DEPDIR)/borders.Plo ./$(DEPDIR)/calendar.Plo \
-	./$(DEPDIR)/capstr.Plo ./$(DEPDIR)/citizens.Plo \
-	./$(DEPDIR)/city.Plo ./$(DEPDIR)/clientutils.Plo \
-	./$(DEPDIR)/combat.Plo ./$(DEPDIR)/counters.Plo \
-	./$(DEPDIR)/culture.Plo ./$(DEPDIR)/diptreaty.Plo \
-	./$(DEPDIR)/disaster.Plo ./$(DEPDIR)/effects.Plo \
-	./$(DEPDIR)/events.Plo ./$(DEPDIR)/extras.Plo \
-	./$(DEPDIR)/fc_interface.Plo ./$(DEPDIR)/featured_text.Plo \
-	./$(DEPDIR)/game.Plo ./$(DEPDIR)/government.Plo \
-	./$(DEPDIR)/idex.Plo ./$(DEPDIR)/improvement.Plo \
-	./$(DEPDIR)/map.Plo ./$(DEPDIR)/mapimg.Plo \
-	./$(DEPDIR)/metaknowledge.Plo ./$(DEPDIR)/modpack.Plo \
-	./$(DEPDIR)/movement.Plo ./$(DEPDIR)/multipliers.Plo \
-	./$(DEPDIR)/nation.Plo ./$(DEPDIR)/packets_gen.Plo \
-	./$(DEPDIR)/player.Plo ./$(DEPDIR)/reqtext.Plo \
-	./$(DEPDIR)/requirements.Plo ./$(DEPDIR)/research.Plo \
-	./$(DEPDIR)/rgbcolor.Plo ./$(DEPDIR)/road.Plo \
-	./$(DEPDIR)/server_settings.Plo ./$(DEPDIR)/sex.Plo \
-	./$(DEPDIR)/spaceship.Plo ./$(DEPDIR)/specialist.Plo \
-	./$(DEPDIR)/style.Plo ./$(DEPDIR)/team.Plo \
-	./$(DEPDIR)/tech.Plo ./$(DEPDIR)/terrain.Plo \
-	./$(DEPDIR)/tile.Plo ./$(DEPDIR)/traderoutes.Plo \
-	./$(DEPDIR)/unit.Plo ./$(DEPDIR)/unitlist.Plo \
-	./$(DEPDIR)/unittype.Plo ./$(DEPDIR)/version.Plo \
-	./$(DEPDIR)/victory.Plo ./$(DEPDIR)/vision.Plo \
-	./$(DEPDIR)/workertask.Plo ./$(DEPDIR)/worklist.Plo
+	./$(DEPDIR)/ai.Plo ./$(DEPDIR)/aihelper.Plo \
+	./$(DEPDIR)/base.Plo ./$(DEPDIR)/borders.Plo \
+	./$(DEPDIR)/calendar.Plo ./$(DEPDIR)/capstr.Plo \
+	./$(DEPDIR)/citizens.Plo ./$(DEPDIR)/city.Plo \
+	./$(DEPDIR)/clientutils.Plo ./$(DEPDIR)/combat.Plo \
+	./$(DEPDIR)/counters.Plo ./$(DEPDIR)/culture.Plo \
+	./$(DEPDIR)/diptreaty.Plo ./$(DEPDIR)/disaster.Plo \
+	./$(DEPDIR)/effects.Plo ./$(DEPDIR)/events.Plo \
+	./$(DEPDIR)/extras.Plo ./$(DEPDIR)/fc_interface.Plo \
+	./$(DEPDIR)/featured_text.Plo ./$(DEPDIR)/game.Plo \
+	./$(DEPDIR)/government.Plo ./$(DEPDIR)/idex.Plo \
+	./$(DEPDIR)/improvement.Plo ./$(DEPDIR)/map.Plo \
+	./$(DEPDIR)/mapimg.Plo ./$(DEPDIR)/metaknowledge.Plo \
+	./$(DEPDIR)/modpack.Plo ./$(DEPDIR)/movement.Plo \
+	./$(DEPDIR)/multipliers.Plo ./$(DEPDIR)/nation.Plo \
+	./$(DEPDIR)/packets_gen.Plo ./$(DEPDIR)/player.Plo \
+	./$(DEPDIR)/reqtext.Plo ./$(DEPDIR)/requirements.Plo \
+	./$(DEPDIR)/research.Plo ./$(DEPDIR)/rgbcolor.Plo \
+	./$(DEPDIR)/road.Plo ./$(DEPDIR)/server_settings.Plo \
+	./$(DEPDIR)/sex.Plo ./$(DEPDIR)/spaceship.Plo \
+	./$(DEPDIR)/specialist.Plo ./$(DEPDIR)/style.Plo \
+	./$(DEPDIR)/team.Plo ./$(DEPDIR)/tech.Plo \
+	./$(DEPDIR)/terrain.Plo ./$(DEPDIR)/tile.Plo \
+	./$(DEPDIR)/traderoutes.Plo ./$(DEPDIR)/unit.Plo \
+	./$(DEPDIR)/unitlist.Plo ./$(DEPDIR)/unittype.Plo \
+	./$(DEPDIR)/version.Plo ./$(DEPDIR)/victory.Plo \
+	./$(DEPDIR)/vision.Plo ./$(DEPDIR)/workertask.Plo \
+	./$(DEPDIR)/worklist.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -334,7 +335,7 @@ AWK = gawk
 BUG_URL = https://osdn.net/projects/freeciv/ticket/
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2
+CFLAGS = -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2 -ljansson
 CLIENT_LIBS =  -lm 
 COMMON_LIBS =  -lm -lz
 CONFIGURE_DEPENDENCIES =  $(top_srcdir)/fc_version
@@ -688,6 +689,8 @@ libfreeciv_la_SOURCES = \
 		achievements.h	\
 		actions.c	\
 		actions.h	\
+		aihelper.c		\
+		aihelper.h		\
 		actres.c	\
 		actres.h	\
 		ai.c		\
@@ -913,6 +916,7 @@ include ./$(DEPDIR)/achievements.Plo # am--include-marker
 include ./$(DEPDIR)/actions.Plo # am--include-marker
 include ./$(DEPDIR)/actres.Plo # am--include-marker
 include ./$(DEPDIR)/ai.Plo # am--include-marker
+include ./$(DEPDIR)/aihelper.Plo # am--include-marker
 include ./$(DEPDIR)/base.Plo # am--include-marker
 include ./$(DEPDIR)/borders.Plo # am--include-marker
 include ./$(DEPDIR)/calendar.Plo # am--include-marker
@@ -1212,6 +1216,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/actions.Plo
 	-rm -f ./$(DEPDIR)/actres.Plo
 	-rm -f ./$(DEPDIR)/ai.Plo
+	-rm -f ./$(DEPDIR)/aihelper.Plo
 	-rm -f ./$(DEPDIR)/base.Plo
 	-rm -f ./$(DEPDIR)/borders.Plo
 	-rm -f ./$(DEPDIR)/calendar.Plo
@@ -1314,6 +1319,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/actions.Plo
 	-rm -f ./$(DEPDIR)/actres.Plo
 	-rm -f ./$(DEPDIR)/ai.Plo
+	-rm -f ./$(DEPDIR)/aihelper.Plo
 	-rm -f ./$(DEPDIR)/base.Plo
 	-rm -f ./$(DEPDIR)/borders.Plo
 	-rm -f ./$(DEPDIR)/calendar.Plo

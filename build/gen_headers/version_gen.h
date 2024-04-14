@@ -14,7 +14,7 @@
 #define VERSION_STRING "3.2.90.2-dev"
 #endif
 
-#define NETWORK_CAPSTRING "+Freeciv.Devel-3.3-2023.Apr.06"
+#define NETWORK_CAPSTRING "+Freeciv.Web.Devel-3.3"
 
 #ifndef FOLLOWTAG
 #define FOLLOWTAG "S3_3"

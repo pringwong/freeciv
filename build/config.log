@@ -2943,7 +2943,7 @@ configure: failed program was:
 configure:25283: result: no
 configure:25374: checking for threads availability
 configure:25406: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   >&5
-/usr/bin/ld: /tmp/cclLOyuE.o: in function `main':
+/usr/bin/ld: /tmp/ccwkvdMU.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:96: undefined reference to `thrd_create'
 collect2: error: ld returned 1 exit status
 configure:25406: $? = 1
@@ -6028,7 +6028,7 @@ configure:35436: $? = 0
 configure:35436: result: yes
 configure:35442: checking for _doprnt
 configure:35442: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/cc8fU0jP.o: in function `main':
+/usr/bin/ld: /tmp/cc8XGv62.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:181: undefined reference to `_doprnt'
 collect2: error: ld returned 1 exit status
 configure:35442: $? = 1
@@ -6280,7 +6280,7 @@ configure:35624: $? = 0
 configure:35624: result: yes
 configure:35624: checking for snooze
 configure:35624: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/ccfeyfRe.o: in function `main':
+/usr/bin/ld: /tmp/ccOfTD8U.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:194: undefined reference to `snooze'
 collect2: error: ld returned 1 exit status
 configure:35624: $? = 1
@@ -6519,7 +6519,7 @@ configure:35648: $? = 0
 configure:35648: result: yes
 configure:35648: checking for _strcoll
 configure:35648: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/ccNsZ1lT.o: in function `main':
+/usr/bin/ld: /tmp/cct6FQyw.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:201: undefined reference to `_strcoll'
 collect2: error: ld returned 1 exit status
 configure:35648: $? = 1
@@ -6731,7 +6731,7 @@ configure: failed program was:
 configure:35648: result: no
 configure:35648: checking for stricoll
 configure:35648: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/ccfap1Mb.o: in function `main':
+/usr/bin/ld: /tmp/ccutQO5U.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:201: undefined reference to `stricoll'
 collect2: error: ld returned 1 exit status
 configure:35648: $? = 1
@@ -6943,7 +6943,7 @@ configure: failed program was:
 configure:35648: result: no
 configure:35648: checking for _stricoll
 configure:35648: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/ccFyxGjA.o: in function `main':
+/usr/bin/ld: /tmp/cczrvhCi.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:201: undefined reference to `_stricoll'
 collect2: error: ld returned 1 exit status
 configure:35648: $? = 1
@@ -7155,7 +7155,7 @@ configure: failed program was:
 configure:35648: result: no
 configure:35648: checking for strcasecoll
 configure:35648: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/ccyHU0UX.o: in function `main':
+/usr/bin/ld: /tmp/ccXO8YYD.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:201: undefined reference to `strcasecoll'
 collect2: error: ld returned 1 exit status
 configure:35648: $? = 1
@@ -7383,7 +7383,7 @@ configure:35660: $? = 0
 configure:35660: result: yes
 configure:35660: checking for fopen_s
 configure:35660: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/ccE3RvN1.o: in function `main':
+/usr/bin/ld: /tmp/ccs6Ad7K.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:205: undefined reference to `fopen_s'
 collect2: error: ld returned 1 exit status
 configure:35660: $? = 1
@@ -8016,7 +8016,7 @@ configure:35760: checking for /dev/urandom
 configure:35773: result: yes
 configure:35799: checking for _mkdir
 configure:35799: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\""  conftest.c   -lpthread >&5
-/usr/bin/ld: /tmp/ccA23qvs.o: in function `main':
+/usr/bin/ld: /tmp/ccXs17ba.o: in function `main':
 /home/pring/13v/freeciv-web/freeciv/freeciv/build/conftest.c:210: undefined reference to `_mkdir'
 collect2: error: ld returned 1 exit status
 configure:35799: $? = 1
@@ -8344,7 +8344,7 @@ configure:37040: gcc -o conftest -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\""
 configure:37040: $? = 0
 configure:37040: result: yes
 configure:37198: checking needs to return value after exit()
-configure:37219: gcc -c -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\"" -DFC_CONF_PATH="\"${prefix}/etc/freeciv\"" -DDEFAULT_DATA_PATH="\".:data:~/.freeciv/dev:${datarootdir}/freeciv\"" -DDEFAULT_SAVE_PATH="\".:~/.freeciv/saves\"" -DDEFAULT_SCENARIO_PATH="\".:data/scenarios:~/.freeciv/dev/scenarios:~/.freeciv/scenarios:${datarootdir}/freeciv/scenarios\"" conftest.c >&5
+configure:37219: gcc -c -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2 -ljansson  -DLOCALEDIR="\"${datarootdir}/locale\"" -DBINDIR="\"${exec_prefix}/bin\"" -DFC_CONF_PATH="\"${prefix}/etc/freeciv\"" -DDEFAULT_DATA_PATH="\".:data:~/.freeciv/dev:${datarootdir}/freeciv\"" -DDEFAULT_SAVE_PATH="\".:~/.freeciv/saves\"" -DDEFAULT_SCENARIO_PATH="\".:data/scenarios:~/.freeciv/dev/scenarios:~/.freeciv/scenarios:${datarootdir}/freeciv/scenarios\"" conftest.c >&5
 configure:37219: $? = 0
 configure:37249: result: no
 configure:37411: checking that generated files are newer than configure
@@ -8783,7 +8783,7 @@ AWK='gawk'
 BUG_URL='https://osdn.net/projects/freeciv/ticket/'
 CC='gcc'
 CCDEPMODE='depmode=gcc3'
-CFLAGS='-Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2'
+CFLAGS='-Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2 -ljansson'
 CLIENT_FALSE='#'
 CLIENT_GUI_GTK_3_22_FALSE='#'
 CLIENT_GUI_GTK_3_22_TRUE=''
@@ -9374,7 +9374,7 @@ target_alias=''
 #define HAVE__SETJMP 1
 #define HAVE_GMTIME_R 1
 #define FC_STORE_CPPFLAGS "-DLOCALEDIR=\"\\\"${datarootdir}/locale\\\"\" -DBINDIR=\"\\\"${exec_prefix}/bin\\\"\" -DFC_CONF_PATH=\"\\\"${prefix}/etc/freeciv\\\"\" -DDEFAULT_DATA_PATH=\"\\\".:data:~/.freeciv/dev:${datarootdir}/freeciv\\\"\" -DDEFAULT_SAVE_PATH=\"\\\".:~/.freeciv/saves\\\"\" -DDEFAULT_SCENARIO_PATH=\"\\\".:data/scenarios:~/.freeciv/dev/scenarios:~/.freeciv/scenarios:${datarootdir}/freeciv/scenarios\\\"\""
-#define FC_STORE_CFLAGS "-Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2"
+#define FC_STORE_CFLAGS "-Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2 -ljansson"
 #define FC_STORE_CXXFLAGS "-Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2"
 
 configure: exit 0

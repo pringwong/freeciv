@@ -237,7 +237,7 @@ AWK = gawk
 BUG_URL = https://osdn.net/projects/freeciv/ticket/
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2
+CFLAGS = -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2 -ljansson
 CLIENT_LIBS =  -lm 
 COMMON_LIBS =  -lm -lz
 CONFIGURE_DEPENDENCIES =  $(top_srcdir)/fc_version

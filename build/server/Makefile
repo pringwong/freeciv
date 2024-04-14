@@ -355,7 +355,7 @@ AWK = gawk
 BUG_URL = https://osdn.net/projects/freeciv/ticket/
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2
+CFLAGS = -Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2 -ljansson
 CLIENT_LIBS =  -lm 
 COMMON_LIBS =  -lm -lz
 CONFIGURE_DEPENDENCIES =  $(top_srcdir)/fc_version
@@ -713,7 +713,7 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/scripting \
 	-I$(top_srcdir)/dependencies/tinycthread \
 	$(LUA_CFLAGS) \
-	$(FCDB_MYSQL_CFLAGS) $(FCDB_POSTGRES_CFLAGS) $(FCDB_SQLITE3_CFLAGS)
+	$(FCDB_MYSQL_CFLAGS) $(FCDB_POSTGRES_CFLAGS) $(FCDB_SQLITE3_CFLAGS) $(JANSSON_CFLAGS)
 
 #SERVERICON = ../windows/servericon.o
 exe_sources = \

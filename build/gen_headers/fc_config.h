@@ -64,7 +64,7 @@
 /* #undef FC_QT6X_MODE */
 
 /* These are the CFLAGS used in compilation */
-#define FC_STORE_CFLAGS "-Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2"
+#define FC_STORE_CFLAGS "-Wall -Wpointer-arith -Wcast-align -Wno-tautological-compare -Wno-nonnull-compare -g -O2 -ljansson"
 
 /* These are the CPPFLAGS used in compilation */
 #define FC_STORE_CPPFLAGS "-DLOCALEDIR=\"\\\"${datarootdir}/locale\\\"\" -DBINDIR=\"\\\"${exec_prefix}/bin\\\"\" -DFC_CONF_PATH=\"\\\"${prefix}/etc/freeciv\\\"\" -DDEFAULT_DATA_PATH=\"\\\".:data:~/.freeciv/dev:${datarootdir}/freeciv\\\"\" -DDEFAULT_SAVE_PATH=\"\\\".:~/.freeciv/saves\\\"\" -DDEFAULT_SCENARIO_PATH=\"\\\".:data/scenarios:~/.freeciv/dev/scenarios:~/.freeciv/scenarios:${datarootdir}/freeciv/scenarios\\\"\""

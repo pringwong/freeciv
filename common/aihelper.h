@@ -56,7 +56,7 @@ void helper_set_tile_worked(struct tile *ptile, struct city *pcity);
 void helper_set_city_production(struct player *pplayer, struct city *pcity, int kind, const char* name);
 void helper_set_unit_action(struct player *pplayer, int unit_id, int act_id, int dir8, int target_id);
 void jsonizeQueue(ActionQueue *action_q, size_t n, char **json_str);
-void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id, char* js_data);
+void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id);
 void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char* js_data);
 void helper_set_player_diplomacy(struct player *pplayer, struct player *aplayer, int clause, char* js_data);
 void helper_set_tech_goal(struct player *pplayer, int tech_id);
