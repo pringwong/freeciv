@@ -2871,6 +2871,8 @@ static void assistant_player(void){
       log_normal("-------ended assistant_player------")
     }
   } phase_players_iterate_end;
+  log_normal("-------finish assistant_player------")
+
   return;
 }
 
@@ -2986,10 +2988,14 @@ static void srv_running(void)
       }
 
       assistant_player();
+      
+      log_normal("before server_sniff_all_input")
 
       while (server_sniff_all_input() == S_E_OTHERWISE) {
         /* nothing */
       }
+
+      log_normal("after server_sniff_all_input")
 
       between_turns = timer_renew(between_turns, TIMER_USER, TIMER_ACTIVE,
                                   between_turns != NULL ? NULL : "between turns");
@@ -3000,15 +3006,20 @@ static void srv_running(void)
       timer_start(eot_timer);
 
       conn_list_do_buffer(game.est_connections);
+      log_normal("after conn_list_do_buffer")
 
       sanity_check();
+      log_normal("after sanity_check")
 
       /* 
        * This will freeze the reports and agents at the client.
        */
       lsend_packet_freeze_client(game.est_connections);
 
+      log_normal("--- start end_phase () ---")
+
       end_phase();
+      log_normal("--- finish end_phase () ---")
 
       conn_list_do_unbuffer(game.est_connections);
 

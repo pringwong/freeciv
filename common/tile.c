@@ -132,27 +132,14 @@ bool is_city_human(struct city *pcity) {
 ****************************************************************************/
 void tile_set_worked(struct tile *ptile, struct city *pcity)
 {
-  if ((pcity != NULL && is_assistant(pcity->owner)) || 
-      (ptile->worked != NULL && ptile->worked->owner != NULL && is_assistant(ptile->worked->owner))){
-    if (openTileWorked && game.server.open_assistant){
+  if ((is_city_human(pcity) || is_worked_human(ptile)) && game.server.open_assistant){
+    if (openTileWorked){
       helper_set_tile_worked(ptile, pcity);
-      return;
     }
-    if (game.server.open_assistant){
-      return;
-    }
+    return;
   }
 
-  // if ((is_city_human(pcity) || is_worked_human(ptile)) && game.server.open_assistant){
-  //   if (openTileWorked){
-  //     helper_set_tile_worked(ptile, pcity);
-  //   }
-  //   return;
-  // }
-
   ptile->worked = pcity;
-  log_normal("--- finish2 tile_set_worked ---")
-
 
 }
 

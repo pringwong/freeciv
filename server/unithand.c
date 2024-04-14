@@ -6560,7 +6560,6 @@ static bool unit_activity_internal(struct unit *punit,
   if (game.server.open_assistant){
     helper_set_unit_activities(punit->owner, punit->id, new_activity);
     punit->assist_activity = new_activity;
-    log_normal("====== assist_activity =======%d", new_activity)
     return FALSE;
   }
 
