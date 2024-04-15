@@ -86,6 +86,7 @@ enum unit_airlift_result {
 
 struct unit_adv {
   enum adv_unit_task task;
+  enum adv_unit_task assist_task;
 };
 
 struct unit_order {
@@ -152,6 +153,7 @@ struct unit {
   int fuel;
 
   struct tile *goto_tile; /* May be NULL. */
+  struct tile *assist_goto_tile; /* May be NULL. */
 
   enum unit_activity activity;
   enum unit_activity assist_activity;

@@ -794,12 +794,12 @@ void dai_do_last_activities(struct ai_type *ait, struct player *pplayer)
 void dai_assist_do_actions(struct ai_type *ait, struct player *pplayer)
 {
   dai_manage_units(ait, pplayer);
-  // dai_clear_tech_wants(ait, pplayer);
-  // dai_manage_government(ait, pplayer);
-  // dai_adjust_policies(ait, pplayer);
-  // dai_manage_taxes(ait, pplayer);
-  dai_manage_cities(ait, pplayer);
+  dai_clear_tech_wants(ait, pplayer);
+  dai_manage_government(ait, pplayer);
+  dai_adjust_policies(ait, pplayer);
+  dai_manage_taxes(ait, pplayer);
+  // dai_manage_cities(ait, pplayer);
   dai_manage_tech(ait, pplayer); 
-  // dai_manage_spaceship(pplayer);
+  dai_manage_spaceship(pplayer);
 
 }

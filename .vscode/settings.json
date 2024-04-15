@@ -3,6 +3,7 @@
         "government.h": "c",
         "daicity.h": "c",
         "functional": "c",
-        "fc_types.h": "c"
+        "fc_types.h": "c",
+        "specenum_gen.h": "c"
     }
 }

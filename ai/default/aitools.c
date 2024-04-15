@@ -710,6 +710,9 @@ void dai_unit_new_task(struct ai_type *ait, struct unit *punit,
   }
 
   unit_data->task = task;
+  if (task > 0){
+    unit_data->assist_task = task;
+  }
 
   /* Verify and set the goto destination.  Eventually this can be a lot more
    * stringent, but for now we don't want to break things too badly. */
@@ -752,9 +755,11 @@ void dai_unit_new_task(struct ai_type *ait, struct unit *punit,
   switch (unit_data->task) {
    case AIUNIT_AUTO_SETTLER:
      punit->server.adv->task = AUT_AUTO_SETTLER;
+     punit->server.adv->assist_task = AUT_AUTO_SETTLER;
      break;
    case AIUNIT_BUILD_CITY:
      punit->server.adv->task = AUT_BUILD_CITY;
+     punit->server.adv->assist_task = AUT_BUILD_CITY;
      break;
    default:
      punit->server.adv->task = AUT_NONE;

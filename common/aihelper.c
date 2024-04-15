@@ -249,10 +249,10 @@ void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id)
 {
     if (act_id != ACTIVITY_IDLE) {
         log_normal("helper_set_unit_activities: %d, %d, %d", ENTITY_TYPE_UNIT, unit_id, act_id)
-        // json_t* js_data = json_object();
-        // json_object_set_new(js_data, "is_activity", json_integer(1));
-        // char* js_str = json_dumps(js_data, 0);
-        struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, "", 0, NULL, -1);
+        json_t* js_data = json_object();
+        json_object_set_new(js_data, "is_activity", json_integer(1));
+        char* js_str = json_dumps(js_data, 0);
+        struct packet_ai_player_action_response packet = load_packet(pplayer, unit_id, act_id, js_str, 0, NULL, -1);
         putNode(human_assistant, packet);
     }
 }
@@ -279,13 +279,17 @@ void helper_set_player_diplomacy(struct player *pplayer, struct player *aplayer,
 /**
  * Tech
 */
-void helper_set_tech_goal(struct player *pplayer, int tech_id)
+void helper_set_tech_goal(struct player *pplayer, int tech_id, const char* tech_name)
 {
-    log_normal("helper_set_tech_goal: %s, %d", player_name(pplayer), tech_id)
+    log_normal("helper_set_tech_goal: %s, %d, %s", player_name(pplayer), tech_id, tech_name)
     int actor_type = 2;
     int actor_id = 0;// goal
 
-    struct packet_ai_player_action_response packet = load_packet(pplayer, actor_id, tech_id, "", actor_type, NULL, -1);
+    json_t* js_data = json_object();
+    json_object_set_new(js_data, "tech_name", json_string(tech_name));
+    char* js_str = json_dumps(js_data, 0);
+
+    struct packet_ai_player_action_response packet = load_packet(pplayer, actor_id, tech_id, js_str, actor_type, NULL, -1);
 
     putNode(human_assistant, packet);
 }

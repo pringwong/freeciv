@@ -382,7 +382,7 @@ void dai_manage_tech(struct ai_type *ait, struct player *pplayer)
               research_advance_rule_name(research, goal.choice),
               goal.want);
     if (game.server.open_assistant){
-      helper_set_tech_goal(pplayer, goal.choice);
+      helper_set_tech_goal(pplayer, goal.choice, research_advance_rule_name(research, goal.choice));
     } else {
       choose_tech_goal(research, goal.choice);
     }

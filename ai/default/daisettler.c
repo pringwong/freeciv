@@ -1029,8 +1029,12 @@ void dai_auto_settler_run(struct ai_type *ait, struct player *pplayer,
 
 BUILD_CITY:
 
-  if (def_ai_unit_data(punit, ait)->task == AIUNIT_BUILD_CITY) {
-    struct tile *ptile = punit->goto_tile;
+  if (
+    (def_ai_unit_data(punit, ait)->task == AIUNIT_BUILD_CITY)
+    ||
+    (def_ai_unit_data(punit, ait)->assist_task == AIUNIT_BUILD_CITY)
+  ) {
+    struct tile *ptile = game.server.open_assistant ? ptile = punit->assist_goto_tile : punit->goto_tile;
     int sanity = punit->id;
 
     /* Check that the mission is still possible.  If the tile has become
@@ -1049,7 +1053,6 @@ BUILD_CITY:
       }
       if (same_pos(unit_tile(punit), ptile)) {
         enum cb_error_level elevel = dai_do_build_city(ait, pplayer, punit);
-
         if (elevel != CBE_OK) {
           UNIT_LOG(LOG_DEBUG, punit, "could not make city on %s",
                    tile_get_info_text(unit_tile(punit), TRUE, 0));
@@ -1134,7 +1137,11 @@ BUILD_CITY:
          * first citizen of the city is working. */
         citymap_reserve_tile(result->best_other.tile, punit->id);
       }
-      punit->goto_tile = result->tile; /* TMP */
+      if (game.server.open_assistant){
+        punit->assist_goto_tile = result->tile; /* TMP */
+      } else{
+        punit->goto_tile =  result->tile;
+      }      
 
       cityresult_destroy(result);
 

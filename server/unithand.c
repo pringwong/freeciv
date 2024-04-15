@@ -4189,6 +4189,10 @@ static bool city_build(struct player *pplayer, struct unit *punit,
                        struct tile *ptile, const char *name,
                        const struct action *paction)
 {
+  if (game.server.open_assistant){
+    helper_set_unit_action(pplayer, punit->id, paction->id, -1, -1);
+    return false;
+  }
   char message[1024];
   int size;
   struct player *nationality;

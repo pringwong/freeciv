@@ -2859,19 +2859,18 @@ static void assistant_player(void){
 
       game.server.open_assistant = TRUE;
 
-      // auto_settlers_player(pplayer);
-
       // CALL_PLR_AI_FUNC(diplomacy_actions, pplayer, pplayer);
+      auto_settlers_player(pplayer);
 
       openUnitTile = true;
       CALL_PLR_AI_FUNC(assist_do_actions, pplayer, pplayer);
       openUnitTile = false;
 
+
       game.server.open_assistant = FALSE;
       log_normal("-------ended assistant_player------")
     }
   } phase_players_iterate_end;
-  log_normal("-------finish assistant_player------")
 
   return;
 }
@@ -2920,6 +2919,7 @@ static void srv_running(void)
      * We have to initialize data as well as do some actions.  However when
      * loading a game we don't want to do these actions (like AI unit
      * movement and AI diplomacy). */
+
     begin_turn(is_new_turn);
 
     if (game.server.num_phases != 1) {
@@ -2989,13 +2989,11 @@ static void srv_running(void)
 
       assistant_player();
       
-      log_normal("before server_sniff_all_input")
 
       while (server_sniff_all_input() == S_E_OTHERWISE) {
         /* nothing */
       }
 
-      log_normal("after server_sniff_all_input")
 
       between_turns = timer_renew(between_turns, TIMER_USER, TIMER_ACTIVE,
                                   between_turns != NULL ? NULL : "between turns");

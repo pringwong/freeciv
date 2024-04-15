@@ -59,7 +59,7 @@ void jsonizeQueue(ActionQueue *action_q, size_t n, char **json_str);
 void helper_set_unit_activities(struct player *pplayer, int unit_id, int act_id);
 void helper_do_unit_action(struct player *pplayer, int unit_id, int act_id, char* js_data);
 void helper_set_player_diplomacy(struct player *pplayer, struct player *aplayer, int clause, char* js_data);
-void helper_set_tech_goal(struct player *pplayer, int tech_id);
+void helper_set_tech_goal(struct player *pplayer, int tech_id, const char* tech_name);
 void helper_set_tech_researching(struct player *pplayer, int tech_id);
 
 extern ActionQueue* human_assistant;

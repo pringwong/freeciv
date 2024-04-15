@@ -3864,7 +3864,7 @@ bool unit_move(struct unit *punit, struct tile *pdesttile, int move_cost,
   if (game.server.open_assistant && is_assistant(pplayer)){
     int dir8 = get_direction_for_step(&(wld.map), psrctile, pdesttile);
     helper_set_unit_action(pplayer, punit->id, ACTION_UNIT_MOVE, dir8, tile_index(pdesttile));
-    return true;
+    return false;
   }
 
   conn_list_do_buffer(game.est_connections);
